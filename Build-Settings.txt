@@ -1,0 +1,5 @@
+set(Kernel_Version_Expected \"4.9.27\" CACHE STRING "The compatible kernel version. NOTE: quotes must surround the version string !" FORCE)
+add_definitions(-DKERNEL_VERSION_EXPECTED=${Kernel_Version_Expected})
+
+set(Kernel_Hacking_Version_Expected 0x2018020700 CACHE STRING "The compatible hacking version" FORCE)
+add_definitions(-DKERNEL_HACKING_VERSION_EXPECTED=${Kernel_Hacking_Version_Expected})

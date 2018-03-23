@@ -1,0 +1,20 @@
+name: picoscenes
+version: "0.10-dev"
+summary: PicoScenes
+description: This is for your build
+
+confinement: devmode
+
+apps:
+  PicoScenes:
+    command: PicoScenes
+    
+parts:
+  my-part:
+    plugin: cmake
+    source: .
+    build-packages:
+      - libboost-all-dev
+      - libopencv-dev
+    stage-packages:
+      - libstdc++-7-dev

@@ -1,0 +1,56 @@
+//
+// Created by Zhiping Jiang on 11/20/17.
+//
+
+#ifndef PICOSCENES_UNIFIEDCHRONOSPARAMETERS_H
+#define PICOSCENES_UNIFIEDCHRONOSPARAMETERS_H
+
+#include <array>
+#include <memory>
+#include <unordered_map>
+#include <boost/optional.hpp>
+#include <headers/hal/BaseHeader.h>
+#include "UnifiedChronos.h"
+using namespace boost;
+
+class UnifiedChronosParameters {
+public:
+    static std::shared_ptr<UnifiedChronosParameters> sharedParameters;
+    static std::shared_ptr<UnifiedChronosParameters> getInstance(const std::string &phyId);
+
+    static const std::array<uint8_t, 6> magicIntel123456;
+
+    optional<uint64_t> workingSessionId;
+    optional<uint64_t> finishedSessionId;
+    optional<std::string> inj_target_interface;
+    optional<std::array<uint8_t, 6>> inj_target_mac_address;
+    optional<uint32_t> inj_delay_us;
+    optional<uint8_t>  inj_mcs;
+    optional<uint8_t>  inj_bw;
+    optional<uint8_t>  inj_sgi;
+    optional<int64_t>  inj_freq_begin;
+    optional<int64_t>  inj_freq_end;
+    optional<int64_t>  inj_freq_step;
+    optional<uint32_t> inj_freq_repeat;
+
+    optional<int64_t> chronos_inj_freq_gap;
+    optional<ChronosACKType>  chronos_ack_type;
+    optional<ChronosACKInjectionType> chronos_ack_injection_type;
+    optional<uint8_t>  chronos_ack_mcs;
+    optional<uint8_t>  chronos_ack_bw;
+    optional<uint8_t>  chronos_ack_sgi;
+    optional<uint32_t> chronos_ack_additional_delay;
+    optional<uint8_t>  chronos_ack_txpower;
+    optional<uint8_t>  chronos_ack_txchainmask;
+    optional<uint8_t>  chronos_ack_rxchainmask;
+    optional<uint16_t> chronos_ack_maxLengthPerPacket;
+    optional<uint32_t> chronos_timeout_us;
+    optional<uint32_t> delay_after_freq_change_us;
+    optional<bool>     wait;
+
+private:
+    static void initializeSharedParameters();
+};
+
+
+#endif //PICOSCENES_UNIFIEDCHRONOSPARAMETERS_H
