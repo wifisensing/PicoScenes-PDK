@@ -23,6 +23,6 @@ add_subdirectory(chronos-plugin)
 add_subdirectory(rxs-broadcaster-plugin)
 
 # include CPack settings
-#include(CPack-Settings.txt)
+include(CPack-Settings.txt)
 
 
