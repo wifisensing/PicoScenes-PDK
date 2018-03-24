@@ -1,4 +1,3 @@
-file(GLOB PlugIn-RXSBroadcaster_Source RXSBroadcasterPlugIn.cpp)
-ADD_LIBRARY(PlugIn-RXSBroadcaster SHARED ${PlugIn-RXSBroadcaster_Source})
+ADD_LIBRARY(PlugIn-RXSBroadcaster SHARED RXSBroadcasterPlugIn.cpp)
 TARGET_LINK_LIBRARIES(PlugIn-RXSBroadcaster Utilities)
-install(TARGETS PlugIn-RXSBroadcaster DESTINATION ${INSTALL_TARGET_DIR})
+#install(TARGETS PlugIn-RXSBroadcaster DESTINATION ${INSTALL_TARGET_DIR})

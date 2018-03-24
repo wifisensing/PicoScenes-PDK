@@ -85,7 +85,7 @@ std::shared_ptr<struct RXS_enhanced> UnifiedChronosInitiator::transmitAndSyncRxU
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
     while(retryCount++ < *hal->parameters->tx_max_retry) {
-        hal->transmitLorconPacket(packetFabricator, txTime);
+        hal->transmitRawPacket(packetFabricator, txTime);
 
         if (!packetFabricator->packetHeader->header_info.hasChronosInfo || packetFabricator->chronosInfo->ackRequestType == ChronosACKType_NoACK)
             break;

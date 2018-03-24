@@ -6,7 +6,7 @@
 #define PICOSCENES_UNIFIEDCHRONOSACTIONRULE_H
 
 #include <unordered_map>
-#include <headers/hal/AtherosNicHAL.h>
+#include <PicoScenes/AtherosNicHAL.h>
 #include "UnifiedChronos.h"
 #include "UnifiedChronosParameters.h"
 

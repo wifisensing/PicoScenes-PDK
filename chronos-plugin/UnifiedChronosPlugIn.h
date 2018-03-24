@@ -5,7 +5,7 @@
 #ifndef PICOSCENES_UNIFIEDCHRONOSPLUGIN_H
 #define PICOSCENES_UNIFIEDCHRONOSPLUGIN_H
 
-#include <headers/hal/AbstractRXSPlugIn.h>
+#include <PicoScenes/AbstractRXSPlugIn.h>
 #include "UnifiedChronosInitiator.h"
 #include "UnifiedChronosResponder.h"
 #include "UnifiedChronosParameters.h"

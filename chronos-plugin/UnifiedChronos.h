@@ -5,7 +5,7 @@
 #ifndef PICOSCENES_UNIFIEDCHRONOS_H
 #define PICOSCENES_UNIFIEDCHRONOS_H
 
-#include <hal/rxs_parsing_core/rxs_enhanced.h>
+#include <PicoScenes/rxs_enhanced.h>
 
 enum ChronosWorkingMode: uint8_t {
     Injector = 15,

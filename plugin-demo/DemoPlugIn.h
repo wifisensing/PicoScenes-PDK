@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <mutex>
-#include <headers/hal/AbstractRXSPlugIn.h>
+#include <PicoScenes/AbstractRXSPlugIn.h>
 
 class DemoPlugIn : public AbstractRXSPlugIn {
 public:

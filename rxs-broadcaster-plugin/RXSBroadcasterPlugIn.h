@@ -5,8 +5,8 @@
 #ifndef PICOSCENES_RXSBROADCASTPLUGIN_H
 #define PICOSCENES_RXSBROADCASTPLUGIN_H
 
-#include <headers/hal/AbstractRXSPlugIn.h>
-#include <headers/utils/UDPService.h>
+#include <PicoScenes/AbstractRXSPlugIn.h>
+#include <PicoScenes/UDPService.h>
 
 
 class RXSBroadcasterPlugIn : public AbstractRXSPlugIn{

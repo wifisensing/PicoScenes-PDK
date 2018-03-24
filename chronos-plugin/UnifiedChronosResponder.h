@@ -5,7 +5,7 @@
 #ifndef PICOSCENES_UNIFIEDCHRONOSRESPONDER_H
 #define PICOSCENES_UNIFIEDCHRONOSRESPONDER_H
 
-#include <headers/hal/AtherosNicHAL.h>
+#include <PicoScenes/AtherosNicHAL.h>
 #include "UnifiedChronos.h"
 #include "UnifiedChronosParameters.h"
 
