@@ -12,6 +12,9 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             parameters->inj_freq_end = parameters->inj_freq_begin;
     }
 
+    if (parameters->inj_delayed_start_s)
+        std::this_thread::sleep_for(std::chrono::seconds(*parameters->inj_delayed_start_s));
+
     auto inj_total_count =0;
     auto freqGrowthDirection = *parameters->inj_freq_begin > *parameters->inj_freq_end;
     auto continue2Work = true;

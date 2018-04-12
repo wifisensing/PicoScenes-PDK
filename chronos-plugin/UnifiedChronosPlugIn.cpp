@@ -34,7 +34,8 @@ void UnifiedChronosPlugIn::initialization() {
             ("inj-freq-end", po::value<int64_t>(), "The ending CF of a scan(unit in Hz, working CF as default)")
             ("inj-freq-step", po::value<int64_t>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
             ("inj-freq-repeat", po::value<uint32_t>(), "The repeating injection number for each CF, 1 as default")
-            ("inj-delay", po::value<uint32_t>(), "The delay between successive injections(unit in us, 0 as default)")
+            ("inj-delay", po::value<uint32_t>(), "The delay between successive injections(unit in us, 1000000 as default)")
+            ("inj-delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("inj-bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40]")
             ("inj-gi", po::value<std::string>(), "guarding-interval [short, long]")
             ("inj-mcs", po::value<uint32_t>(), "mcs value [0-23]");
@@ -133,6 +134,10 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
 
     if (vm.count("inj-delay")) {
        parameters->inj_delay_us = vm["inj-delay"].as<uint32_t>();
+    }
+
+    if (vm.count("inj-delayed-start")) {
+        parameters->inj_delayed_start_s = vm["inj-delayed-start"].as<uint32_t>();
     }
 
     if (vm.count("inj-bw")) {
