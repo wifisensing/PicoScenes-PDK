@@ -9,9 +9,10 @@ set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O3")
 
-include_directories(/usr/share/PicoScenes/include/)
-link_directories(/usr/share/PicoScenes/lib/)
-set(INSTALL_PLUGIN_DIR /usr/share/PicoScenes/plug-ins/)
+set(PICOSCENES_BASE_DIR /usr/share/PicoScenes)
+include_directories(${PICOSCENES_BASE_DIR}/include/)
+link_directories(${PICOSCENES_BASE_DIR}/lib/)
+set(INSTALL_PLUGIN_DIR ${PICOSCENES_BASE_DIR}/plug-ins/)
 
 # make plug-ins
 add_subdirectory(plugin-demo)
