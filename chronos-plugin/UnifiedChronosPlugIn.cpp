@@ -245,3 +245,7 @@ bool UnifiedChronosPlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
     return responder->handle(rxs);
 }
 
+void UnifiedChronosPlugIn::serialize() {
+    propertyDescriptionTree.add_child("initiator", initiator->getBoostPropertyTree());
+    propertyDescriptionTree.add_child("responder", responder->getBoostPropertyTree());
+}

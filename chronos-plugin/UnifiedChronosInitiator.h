@@ -7,17 +7,21 @@
 
 #include <unordered_map>
 #include <PicoScenes/AtherosNicHAL.h>
+#include <PicoScenes/PropertyJSONDescriptable.hxx>
 #include "UnifiedChronos.h"
 #include "UnifiedChronosParameters.h"
 
 
-class UnifiedChronosInitiator {
+class UnifiedChronosInitiator : public PropertyJSONDescriptable {
 public:
     UnifiedChronosInitiator(std::shared_ptr<AtherosNicHAL> hal): hal(hal) {}
     void startDaemonTask();
     void blockWait();
 
     std::shared_ptr<UnifiedChronosParameters> parameters;
+
+    void serialize() override;
+
 private:
     std::shared_ptr<AtherosNicHAL> hal;
     std::condition_variable blockCV;

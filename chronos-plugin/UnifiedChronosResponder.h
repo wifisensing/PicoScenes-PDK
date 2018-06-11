@@ -11,12 +11,15 @@
 
 class AtherosNicHAL;
 
-class UnifiedChronosResponder {
+class UnifiedChronosResponder : public PropertyJSONDescriptable{
 public:
     UnifiedChronosResponder(const std::shared_ptr<AtherosNicHAL> &hal): hal(hal) {}
     bool handle(const struct RXS_enhanced * rxs);
 
     std::shared_ptr<UnifiedChronosParameters> parameters;
+
+    void serialize() override;
+
 private:
     std::shared_ptr<AtherosNicHAL> hal;
 

@@ -196,3 +196,39 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
 
     return fp;
 }
+
+void UnifiedChronosInitiator::serialize() {
+    if (parameters->inj_delay_us) {
+        propertyDescriptionTree.put("inj-delay", *parameters->inj_delay_us);
+    }
+
+    if (parameters->inj_mcs) {
+        propertyDescriptionTree.put("inj-mcs", *parameters->inj_mcs);
+    }
+
+    if (parameters->inj_bw) {
+        propertyDescriptionTree.put("inj-bw", *parameters->inj_bw);
+    }
+
+    if (parameters->inj_sgi) {
+        propertyDescriptionTree.put("inj-sgi", *parameters->inj_sgi);
+    }
+
+    if (parameters->inj_freq_begin) {
+        propertyDescriptionTree.put("inj-freq-begin", *parameters->inj_freq_begin);
+    }
+
+    if (parameters->inj_freq_end) {
+        propertyDescriptionTree.put("inj-freq-end", *parameters->inj_freq_end);
+    }
+
+    if (parameters->inj_freq_step) {
+        propertyDescriptionTree.put("inj-freq-step", *parameters->inj_freq_step);
+    }
+
+    if (parameters->inj_freq_repeat) {
+        propertyDescriptionTree.put("inj-freq-repeat", *parameters->inj_freq_repeat);
+    }
+
+
+}

@@ -28,6 +28,7 @@ public:
 
     ~UnifiedChronosPlugIn() override {};
 
+    void serialize() override;
 private:
     std::shared_ptr<UnifiedChronosInitiator> initiator;
     std::shared_ptr<UnifiedChronosResponder> responder;

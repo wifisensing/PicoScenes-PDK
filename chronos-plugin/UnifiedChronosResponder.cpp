@@ -124,3 +124,7 @@ std::vector<std::shared_ptr<PacketFabricator>> UnifiedChronosResponder::makePack
 
     return fps;
 }
+
+void UnifiedChronosResponder::serialize() {
+    propertyDescriptionTree.put("test output", "a value");
+}
