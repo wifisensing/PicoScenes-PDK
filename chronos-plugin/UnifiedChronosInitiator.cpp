@@ -230,5 +230,84 @@ void UnifiedChronosInitiator::serialize() {
         propertyDescriptionTree.put("inj-freq-repeat", *parameters->inj_freq_repeat);
     }
 
+    if (parameters->inj_target_interface) {
+        propertyDescriptionTree.put("inj-target-interface", *parameters->inj_target_interface);
+    }
+
+    if (parameters->inj_target_mac_address) {
+        propertyDescriptionTree.put("inj-target-mac-address", macAddress2String(*parameters->inj_target_mac_address));
+    }
+
+    if (parameters->inj_delayed_start_s) {
+        propertyDescriptionTree.put("inj-delay-start", *parameters->inj_delayed_start_s);
+    }
+
+    if (parameters->chronos_ack_mcs) {
+        propertyDescriptionTree.put("ack-mcs", *parameters->chronos_ack_mcs);
+    }
+
+    if (parameters->chronos_ack_bw) {
+        propertyDescriptionTree.put("ack-bw", *parameters->chronos_ack_bw);
+    }
+
+    if (parameters->chronos_ack_sgi) {
+        propertyDescriptionTree.put("ack-sgi", *parameters->chronos_ack_sgi);
+    }
+
+    if (parameters->chronos_ack_txpower) {
+        propertyDescriptionTree.put("ack-txpower", *parameters->chronos_ack_txpower);
+    }
+
+    if (parameters->chronos_ack_txchainmask) {
+        propertyDescriptionTree.put("ack-txchainmask", *parameters->chronos_ack_txchainmask);
+    }
+
+    if (parameters->chronos_ack_rxchainmask) {
+        propertyDescriptionTree.put("ack-rxchainmask", *parameters->chronos_ack_rxchainmask);
+    }
+
+    if (parameters->chronos_inj_freq_gap) {
+        propertyDescriptionTree.put("ack-freq-gap", *parameters->chronos_inj_freq_gap);
+    }
+
+    if (parameters->chronos_ack_maxLengthPerPacket) {
+        propertyDescriptionTree.put("ack-package-max-length", *parameters->chronos_ack_maxLengthPerPacket);
+    }
+
+    if (parameters->chronos_ack_additional_delay) {
+        propertyDescriptionTree.put("ack-additional-delay", *parameters->chronos_ack_additional_delay);
+    }
+
+    if (parameters->wait) {
+        propertyDescriptionTree.put("wait", *parameters->wait);
+    }
+
+    if (parameters->chronos_timeout_us) {
+        propertyDescriptionTree.put("ack-timeout", *parameters->chronos_timeout_us);
+    }
+
+    if (parameters->chronos_ack_type) {
+        if (*parameters->chronos_ack_type == ChronosACKType_NoACK) {
+            propertyDescriptionTree.put("ack-type", "no-ack");
+        } else if (*parameters->chronos_ack_type == ChronosACKType_Colocation_Or_Injection) {
+            propertyDescriptionTree.put("ack-type", "colocation-or-injection");
+        } else if (*parameters->chronos_ack_type == ChronosACKType_Injection) {
+            propertyDescriptionTree.put("ack-type", "injection");
+        } else if (*parameters->chronos_ack_type == ChronosACKType_Colocation) {
+            propertyDescriptionTree.put("ack-type", "colocation");
+        }
+    }
+
+    if (parameters->chronos_ack_injection_type) {
+        if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_HeaderOnly) {
+            propertyDescriptionTree.put("ack-injection-type", "header");
+        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_ExtraInfo) {
+            propertyDescriptionTree.put("ack-injection-type", "extra");
+        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_Chronos) {
+            propertyDescriptionTree.put("ack-injection-type", "Chronos");
+        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_Chronos_or_HeaderWithColocation) {
+            propertyDescriptionTree.put("ack-injection-type", "chronos-or-header-with-colocation");
+        }
+    }
 
 }
