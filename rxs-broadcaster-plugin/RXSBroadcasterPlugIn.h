@@ -25,6 +25,8 @@ public:
 
     bool RXSHandle(const struct RXS_enhanced *rxs) override;
 
+    void serialize() override;
+
 private:
     std::string destinationIP = "127.0.0.1";
     uint16_t destinationPort = 50000;

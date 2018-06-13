@@ -53,3 +53,8 @@ void RXSBroadcasterPlugIn::initialization() {
     AbstractRXSPlugIn::initialization();
 }
 
+
+void RXSBroadcasterPlugIn::serialize() {
+    propertyDescriptionTree.put("rxs-broadcaster-dest-ip", destinationIP);
+    propertyDescriptionTree.put("rxs-broadcaster-dest-port", destinationPort);
+}
