@@ -198,6 +198,7 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
 }
 
 void UnifiedChronosInitiator::serialize() {
+    propertyDescriptionTree.clear();
     if (parameters->inj_delay_us) {
         propertyDescriptionTree.put("inj-delay", *parameters->inj_delay_us);
     }

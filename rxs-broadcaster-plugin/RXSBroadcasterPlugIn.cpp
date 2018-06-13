@@ -55,16 +55,20 @@ void RXSBroadcasterPlugIn::initialization() {
 
 
 void RXSBroadcasterPlugIn::serialize() {
+    propertyDescriptionTree.clear();
     propertyDescriptionTree.put("rxs-broadcaster-dest-ip", destinationIP);
     propertyDescriptionTree.put("rxs-broadcaster-dest-port", destinationPort);
 }
 
 property_tree::ptree RXSBroadcasterPlugIn::plugInRESTfulPOST(const pt::ptree &request) {
-    if (request.count("rxs-broadcaster-dest-ip") > 0) {
-        destinationIP = request.get<std::string>("rxs-broadcaster-dest-ip");
+    if (request.count("json")) {
+        auto jsonPart = request.get_child("json");
+        if (jsonPart.count("rxs-broadcaster-dest-ip") > 0) {
+            destinationIP = jsonPart.get<std::string>("rxs-broadcaster-dest-ip");
+        }
+        if (jsonPart.count("rxs-broadcaster-dest-port") > 0) {
+            destinationPort = jsonPart.get<uint16_t>("rxs-broadcaster-dest-port");
+        }
     }
-
-    if (request.count("rxs-broadcaster-dest-port") > 0) {
-        destinationIP = request.get<std::string>("rxs-broadcaster-dest-port");
-    }
+    return pt::ptree();
 }

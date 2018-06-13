@@ -126,4 +126,5 @@ std::vector<std::shared_ptr<PacketFabricator>> UnifiedChronosResponder::makePack
 }
 
 void UnifiedChronosResponder::serialize() {
+    propertyDescriptionTree.clear();
 }
