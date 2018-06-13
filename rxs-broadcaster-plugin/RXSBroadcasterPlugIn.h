@@ -27,6 +27,8 @@ public:
 
     void serialize() override;
 
+    property_tree::ptree plugInRESTfulPOST(const pt::ptree &request) override;
+
 private:
     std::string destinationIP = "127.0.0.1";
     uint16_t destinationPort = 50000;

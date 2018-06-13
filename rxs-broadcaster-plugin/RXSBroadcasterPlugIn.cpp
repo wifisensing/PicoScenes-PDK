@@ -58,3 +58,13 @@ void RXSBroadcasterPlugIn::serialize() {
     propertyDescriptionTree.put("rxs-broadcaster-dest-ip", destinationIP);
     propertyDescriptionTree.put("rxs-broadcaster-dest-port", destinationPort);
 }
+
+property_tree::ptree RXSBroadcasterPlugIn::plugInRESTfulPOST(const pt::ptree &request) {
+    if (request.count("rxs-broadcaster-dest-ip") > 0) {
+        destinationIP = request.get<std::string>("rxs-broadcaster-dest-ip");
+    }
+
+    if (request.count("rxs-broadcaster-dest-port") > 0) {
+        destinationIP = request.get<std::string>("rxs-broadcaster-dest-port");
+    }
+}
