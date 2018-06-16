@@ -45,7 +45,7 @@ bool RXSBroadcasterPlugIn::handleCommandString(std::string commandString) {
 }
 
 bool RXSBroadcasterPlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
-    UDPService::getInstance("RXSExport"+std::to_string(destinationPort))->sendData(rxs->rawBuffer, rxs->rawBufferLength, destinationIP, destinationPort);
+    UDPService::getInstance("RXSExport"+destinationIP+std::to_string(destinationPort))->sendData(rxs->rawBuffer, rxs->rawBufferLength, destinationIP, destinationPort);
     return false;
 }
 
