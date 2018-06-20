@@ -20,7 +20,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
     auto continue2Work = true;
     for(auto curFreq = *parameters->inj_freq_begin;(freqGrowthDirection ? curFreq >= *parameters->inj_freq_end : curFreq <=*parameters->inj_freq_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->inj_freq_step)) {
         if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == Injector) {
-            hal->setCarrierFreq(curFreq, *hal->parameters->freqTuningPolicy);
+            hal->setCarrierFreq(curFreq);
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_freq_change_us));
         }
 
@@ -32,10 +32,10 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             for(auto retryCount = 0; retryCount < 10; retryCount ++) { // try connect in current frequency
                 replyRXS = this->transmitAndSyncRxUnified(fp.get());
                 if (replyRXS) {
-                    hal->setCarrierFreq(curFreq, *hal->parameters->freqTuningPolicy);
+                    hal->setCarrierFreq(curFreq);
                     break;
                 } else if (retryCount >=3){ // try to recover the connect in next frequency.
-                    LoggingService::warning_print("shift to next freq to recovery connection.\n");
+                    LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
                     hal->setCarrierFreq(curFreq, CFTuningByFastCC);
                 }
             }

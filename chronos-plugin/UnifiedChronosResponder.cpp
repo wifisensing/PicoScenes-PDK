@@ -79,7 +79,7 @@ bool UnifiedChronosResponder::handle(const struct RXS_enhanced *received_rxs) {
     if (ackType == ChronosACKType_Colocation) {
         ColocationService::getInstance()->notifyReception(received_rxs);
         if (received_rxs->chronosInfo.frequency > 0 && hal->getCarrierFreq() != received_rxs->chronosInfo.frequency) {
-            hal->setCarrierFreq(received_rxs->chronosInfo.frequency, *hal->parameters->freqTuningPolicy);
+            hal->setCarrierFreq(received_rxs->chronosInfo.frequency);
         }
         handleCompletely = true;
     }
@@ -87,7 +87,7 @@ bool UnifiedChronosResponder::handle(const struct RXS_enhanced *received_rxs) {
     if (received_rxs->chronosInfo.frequency > 0 && hal->getCarrierFreq() != received_rxs->chronosInfo.frequency) {
         if (ackType == ChronosACKType_Injection)
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_freq_change_us));
-        hal->setCarrierFreq(received_rxs->chronosInfo.frequency, *hal->parameters->freqTuningPolicy);
+        hal->setCarrierFreq(received_rxs->chronosInfo.frequency);
     }
 
     return handleCompletely;
