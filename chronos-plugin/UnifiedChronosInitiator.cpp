@@ -180,7 +180,7 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
 
         if (frameType == UnifiedChronosProbeRequest) {
             fp->setChronosACKType(ChronosACKType_Injection);
-            fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos_or_HeaderWithColocation);
+            fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos);
         }
 
         if(parameters->chronos_ack_type)
