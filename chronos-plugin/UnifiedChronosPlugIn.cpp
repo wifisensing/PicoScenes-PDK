@@ -29,7 +29,8 @@ void UnifiedChronosPlugIn::initialization() {
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
     injectionOptions->add_options()
             ("inj-target-interface", po::value<std::string>(), "PhyId of the injection target")
-            ("inj-target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 12:34:56 is default]")
+            ("inj-target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
+            ("inj-for-intel5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
             ("inj-freq-begin", po::value<int64_t>(), "The starting CF of a scan(unit in Hz, working CF as default)")
             ("inj-freq-end", po::value<int64_t>(), "The ending CF of a scan(unit in Hz, working CF as default)")
             ("inj-freq-step", po::value<int64_t>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
@@ -114,6 +115,10 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
 
             parameters->inj_target_mac_address = address;
         }
+    }
+
+    if (vm.count("wait")) {
+        parameters->inj_for_intel5300 = true;
     }
 
     if (vm.count("inj-freq-begin")) {

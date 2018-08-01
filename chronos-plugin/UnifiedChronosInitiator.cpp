@@ -150,6 +150,10 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
     fp->setTaskId(taskId);
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
+    if (parameters->inj_for_intel5300 && *parameters->inj_for_intel5300) {
+        fp->setDestinationAddress(UnifiedChronosParameters::magicIntel123456.data());
+        fp->setSourceAddress(UnifiedChronosParameters::magicIntel123456.data());
+    }
     if(parameters->inj_mcs)
         fp->setTxMCS(*parameters->inj_mcs);
     if(parameters->inj_bw)
@@ -237,6 +241,10 @@ void UnifiedChronosInitiator::serialize() {
 
     if (parameters->inj_target_mac_address) {
         propertyDescriptionTree.put("inj-target-mac-address", macAddress2String(*parameters->inj_target_mac_address));
+    }
+
+    if (parameters->inj_for_intel5300) {
+        propertyDescriptionTree.put("inj_for_intel5300", *parameters->inj_for_intel5300);
     }
 
     if (parameters->inj_delayed_start_s) {

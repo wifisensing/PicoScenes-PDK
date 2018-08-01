@@ -24,6 +24,7 @@ public:
     optional<uint64_t> finishedSessionId;
     optional<std::string> inj_target_interface;
     optional<std::array<uint8_t, 6>> inj_target_mac_address;
+    optional<bool>     inj_for_intel5300;
     optional<uint32_t> inj_delay_us;
     optional<uint32_t> inj_delayed_start_s;
     optional<uint8_t>  inj_mcs;
