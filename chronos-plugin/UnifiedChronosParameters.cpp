@@ -7,6 +7,7 @@
 
 std::shared_ptr<UnifiedChronosParameters> UnifiedChronosParameters::sharedParameters = std::make_shared<UnifiedChronosParameters>();
 const std::array<uint8_t, 6> UnifiedChronosParameters::magicIntel123456{{0x00, 0x16, 0xea, 0x12, 0x34, 0x56}};
+const std::array<uint8_t, 6> UnifiedChronosParameters::fullFF{{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
 std::shared_ptr<UnifiedChronosParameters> UnifiedChronosParameters::getInstance(const std::string &phyId) {
     static std::unordered_map<std::string, std::shared_ptr<UnifiedChronosParameters>> instanceMap;

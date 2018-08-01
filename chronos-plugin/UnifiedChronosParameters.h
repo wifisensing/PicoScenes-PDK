@@ -19,6 +19,7 @@ public:
     static std::shared_ptr<UnifiedChronosParameters> getInstance(const std::string &phyId);
 
     static const std::array<uint8_t, 6> magicIntel123456;
+    static const std::array<uint8_t, 6> fullFF;
 
     optional<uint64_t> workingSessionId;
     optional<uint64_t> finishedSessionId;
