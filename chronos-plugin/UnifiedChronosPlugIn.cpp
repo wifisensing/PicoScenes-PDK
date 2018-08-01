@@ -117,7 +117,7 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
         }
     }
 
-    if (vm.count("wait")) {
+    if (vm.count("inj-for-intel5300")) {
         parameters->inj_for_intel5300 = true;
     }
 
