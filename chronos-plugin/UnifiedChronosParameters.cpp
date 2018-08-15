@@ -29,9 +29,9 @@ void UnifiedChronosParameters::initializeSharedParameters() {
     sharedParameters->inj_mcs = 0;
     sharedParameters->inj_sgi = 1;
     sharedParameters->inj_freq_repeat = 10;
-    sharedParameters->inj_freq_step = 0;
+    sharedParameters->inj_freq_step = 1e3;
     sharedParameters->inj_bw = 20;
-    sharedParameters->inj_delay_us = 1e5;
+    sharedParameters->inj_delay_us = 5e5;
     sharedParameters->finishedSessionId = UINT64_MAX;
     sharedParameters->workingSessionId = UINT64_MAX;
     sharedParameters->chronos_timeout_us = 20e3;
