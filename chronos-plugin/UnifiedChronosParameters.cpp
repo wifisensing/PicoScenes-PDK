@@ -37,4 +37,5 @@ void UnifiedChronosParameters::initializeSharedParameters() {
     sharedParameters->chronos_timeout_us = 20e3;
     sharedParameters->chronos_ack_maxLengthPerPacket = 1200;
     sharedParameters->delay_after_freq_change_us = 50;
+    sharedParameters->numOfPacketsPerDotDisplay = 10;
 }
