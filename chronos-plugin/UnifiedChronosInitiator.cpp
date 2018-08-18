@@ -230,6 +230,11 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
         if (frameType == UnifiedChronosFreqChangeRequest) {
             fp->setChronosACKType(ChronosACKType_Colocation_Or_Injection);
             fp->setChronosACKInjectionType(ChronosACKInjectionType_HeaderOnly);
+            if (parameters->inj_mcs || parameters->chronos_ack_mcs)
+                fp->setTxMCS(0);
+
+            if (hal->parameters->tx_power || parameters->chronos_ack_txpower)
+                fp->setTxpower(30);
         }
     }
 
