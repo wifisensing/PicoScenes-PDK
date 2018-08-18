@@ -15,7 +15,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
     if (parameters->inj_delayed_start_s)
         std::this_thread::sleep_for(std::chrono::seconds(*parameters->inj_delayed_start_s));
 
-    auto inj_total_count =0;
+    auto total_acked_count =0, total_tx_count = 0;
     auto freqGrowthDirection = *parameters->inj_freq_begin > *parameters->inj_freq_end;
     auto continue2Work = true;
     for(auto curFreq = *parameters->inj_freq_begin;(freqGrowthDirection ? curFreq >= *parameters->inj_freq_end : curFreq <=*parameters->inj_freq_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->inj_freq_step)) {
@@ -57,8 +57,8 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             }
         }
 
-        auto injectionPerFreq = 0, retryPerFreq = 0, packetsCountPerDot = 0, continuousFailure = 0;
-        for(;continue2Work && injectionPerFreq < *parameters->inj_freq_repeat;) {
+        auto acked_count = 0, tx_count = 0, countPerDot = 0, continuousFailure = 0;
+        for(;continue2Work && acked_count < *parameters->inj_freq_repeat;) {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
             std::shared_ptr<PacketFabricator> fp = nullptr;
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
@@ -69,11 +69,10 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             } else if (*hal->parameters->workingMode == ChronosInitiator) {
                 fp = buildPacket(taskId, UnifiedChronosProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                retryPerFreq += retryPerTx;
+                tx_count += retryPerTx;
 
                 if (replyRXS = rxs) {
-                    inj_total_count++;
-                    injectionPerFreq++;
+                    acked_count++;
                     continuousFailure = 0;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         struct RXS_enhanced rxs_acked_tx;
@@ -86,12 +85,12 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
 
                     if (LoggingService::localDisplayLevel == Trace) {
                         if (parameters->numOfPacketsPerDotDisplay && *parameters->numOfPacketsPerDotDisplay > 0) {
-                            packetsCountPerDot = ++packetsCountPerDot % *parameters->numOfPacketsPerDotDisplay;
-                            if (packetsCountPerDot == 0) {
+                            countPerDot = ++countPerDot % *parameters->numOfPacketsPerDotDisplay;
+                            if (countPerDot == 0) {
                                 printf(".");
                                 fflush(stdout);
                             }
-                            if (injectionPerFreq % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && injectionPerFreq > *parameters->numOfPacketsPerDotDisplay)
+                            if (acked_count % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && acked_count > *parameters->numOfPacketsPerDotDisplay)
                                 printf("\n");
                         }
                     }
@@ -99,21 +98,27 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                     if (++continuousFailure > *hal->parameters->tx_max_retry) {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
-
-                        LoggingService::warning_printf("\nChronos Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
+                        LoggingService::warning_printf("Chronos Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
                         break;
-                    }   
+                    }
                 }
             }
             if (parameters->inj_delay_us)
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->inj_delay_us));
         }
+
+        total_acked_count += acked_count;
+        total_tx_count    += tx_count;
+
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
-            if (retryPerFreq != 0)
-                LoggingService::trace_print("Chronos in {}Hz, tx = {}, done = {}, success rate = {}\%.\n", curFreq, retryPerFreq, injectionPerFreq, 100.0 * injectionPerFreq / retryPerFreq);
+            LoggingService::trace_print("Chronos in {}Hz, tx = {}, acked = {}, success rate = {}\%.\n", curFreq, tx_count, acked_count, 100.0 * acked_count / tx_count);
         }
 
+    }
+
+    if (LoggingService::localDisplayLevel == Trace) {
+        LoggingService::trace_print("Job done! total_tx = {}, total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
     }
 
     parameters->finishedSessionId = *parameters->workingSessionId;
@@ -222,24 +227,20 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
         if(parameters->chronos_ack_additional_delay)
             fp->chronosInfo->ackExpectedDelay_us = *parameters->chronos_ack_additional_delay;
 
-        if (frameType == UnifiedChronosProbeRequest) {
-            fp->setChronosACKType(ChronosACKType_Injection);
-            fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos);
-        }
-
-        if(parameters->chronos_ack_type)
-            fp->setChronosACKType(*parameters->chronos_ack_type);
-        if(parameters->chronos_ack_injection_type)
-            fp->setChronosACKInjectionType(*parameters->chronos_ack_injection_type);
+        fp->setChronosACKType(ChronosACKType_Injection);
+        fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos);
 
         if (frameType == UnifiedChronosFreqChangeRequest) {
-            fp->setChronosACKType(ChronosACKType_Colocation_Or_Injection);
-            fp->setChronosACKInjectionType(ChronosACKInjectionType_HeaderOnly);
             if (parameters->inj_mcs || parameters->chronos_ack_mcs)
                 fp->setTxMCS(0);
 
             if (hal->parameters->tx_power || parameters->chronos_ack_txpower)
                 fp->setTxpower(30);
+        } else {
+            if(parameters->chronos_ack_type)
+                fp->setChronosACKType(*parameters->chronos_ack_type);
+            if(parameters->chronos_ack_injection_type)
+                fp->setChronosACKInjectionType(*parameters->chronos_ack_injection_type);
         }
     }
 
