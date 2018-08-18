@@ -87,17 +87,19 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                     if (LoggingService::localDisplayLevel == Trace) {
                         if (parameters->numOfPacketsPerDotDisplay && *parameters->numOfPacketsPerDotDisplay > 0) {
                             packetsCountPerDot = ++packetsCountPerDot % *parameters->numOfPacketsPerDotDisplay;
-                            if (injectionPerFreq % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && injectionPerFreq > *parameters->numOfPacketsPerDotDisplay)
-                                printf("\n");
                             if (packetsCountPerDot == 0) {
                                 printf(".");
                                 fflush(stdout);
                             }
+                            if (injectionPerFreq % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && injectionPerFreq > *parameters->numOfPacketsPerDotDisplay)
+                                printf("\n");
                         }
                     }
                 } else {
-                    if (++continuousFailure > *hal->parameters->tx_max_retry)
+                    if (++continuousFailure > *hal->parameters->tx_max_retry) {
+                        LoggingService::warning_print("\nChronos Job Warning: max retry times reached during measurement @ %luHz...\n, curFreq");
                         break;
+                    }   
                 }
             }
             if (parameters->inj_delay_us)
@@ -106,7 +108,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
             if (retryPerFreq != 0)
-                LoggingService::trace_print("Chronos in {}Hz, tx = {}, done={}, success rate ={}\%.\n", curFreq, retryPerFreq, injectionPerFreq, 100.0 * injectionPerFreq / retryPerFreq);
+                LoggingService::trace_print("Chronos in {}Hz, tx = {}, done = {}, success rate = {}\%.\n", curFreq, retryPerFreq, injectionPerFreq, 100.0 * injectionPerFreq / retryPerFreq);
         }
 
     }
