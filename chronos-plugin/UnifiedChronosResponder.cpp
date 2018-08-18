@@ -60,17 +60,24 @@ bool UnifiedChronosResponder::handle(const struct RXS_enhanced *received_rxs) {
 
 
         if (received_rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeRequest) {
-            for(auto & reply: simpleReplies)
+            for(auto & reply: simpleReplies) {
                 reply->setFrameType(UnifiedChronosFreqChangeACK);
-        }
+                reply->setTxMCS(0);
 
-        // TODO this is actually not right!
-//        if (received_rxs->chronosInfo.ackExpectedDelay_us > 0)
-//            std::this_thread::sleep_for(std::chrono::microseconds(received_rxs->chronosInfo.ackExpectedDelay_us));
+                if (hal->parameters->tx_power || received_rxs->chronosInfo.ackTxpower > 0)
+                    reply->setTxpower(30);
+            }
+
+        }
 
         for(auto & reply: simpleReplies) {
             reply->setTaskId(received_rxs->txHeader.header_info.taskId);
             hal->transmitRawPacket(reply.get());
+            if (received_rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeACK) {
+                for (auto i = 0; i < *hal->parameters->tx_max_retry; i ++) { // send Freq Change ACK frame multiple times to ensure the reception at the Initiator
+                    hal->transmitRawPacket(reply.get());
+                }
+            }
         }
 
         handleCompletely = true;
