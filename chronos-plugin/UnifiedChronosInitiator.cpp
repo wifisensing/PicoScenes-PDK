@@ -31,7 +31,9 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             fp->chronosInfo->frequency = curFreq + (parameters->chronos_inj_freq_gap ? *parameters->chronos_inj_freq_gap : 0);
             for(auto retryCount = 0; retryCount < 10; retryCount ++) { // try connect in current frequency
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                if (replyRXS = rxs) {
+                replyRXS = rxs;
+
+                if (replyRXS) {
                     hal->setCarrierFreq(curFreq);
                     break;
                 } else if (retryCount >=3){ // try to recover the connect in next frequency.
@@ -49,8 +51,8 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             }
         }
 
-        auto packetsCountPerDot = 0;
-        for(auto injectionPerFreq = 0; continue2Work && injectionPerFreq < *parameters->inj_freq_repeat; inj_total_count++, injectionPerFreq++) {
+        auto injectionPerFreq = 0, retryPerFreq = 0, packetsCountPerDot = 0, continuousFailure = 0;
+        for(;continue2Work && injectionPerFreq < *parameters->inj_freq_repeat;) {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
             std::shared_ptr<PacketFabricator> fp = nullptr;
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
@@ -61,8 +63,12 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             } else if (*hal->parameters->workingMode == ChronosInitiator) {
                 fp = buildPacket(taskId, UnifiedChronosProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                retryPerFreq += retryPerTx;
 
                 if (replyRXS = rxs) {
+                    inj_total_count++;
+                    injectionPerFreq++;
+                    continuousFailure = 0;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         struct RXS_enhanced rxs_acked_tx;
                         parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
@@ -71,24 +77,35 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                     }
                     RXSDumper::getInstance("rxack_"+hal->phyId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
                     LoggingService::detail_print("TaskId {} done!\n", taskId);
-                }
 
-                if (parameters->numOfPacketsPerDotDisplay && *parameters->numOfPacketsPerDotDisplay > 0) {
-                    packetsCountPerDot = ++packetsCountPerDot % *parameters->numOfPacketsPerDotDisplay;
                     if (LoggingService::localDisplayLevel == Trace) {
-                        if (injectionPerFreq % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && injectionPerFreq > *parameters->numOfPacketsPerDotDisplay)
-                            printf("\n");
-                        if (packetsCountPerDot == 0) {
-                            printf(".");
-                            fflush(stdout);
+                        if (parameters->numOfPacketsPerDotDisplay && *parameters->numOfPacketsPerDotDisplay > 0) {
+                            packetsCountPerDot = ++packetsCountPerDot % *parameters->numOfPacketsPerDotDisplay;
+                            if (injectionPerFreq % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && injectionPerFreq > *parameters->numOfPacketsPerDotDisplay)
+                                printf("\n");
+                            if (packetsCountPerDot == 0) {
+                                printf(".");
+                                fflush(stdout);
+                            }
                         }
-
                     }
+                } else {
+                    if (++continuousFailure > *hal->parameters->tx_max_retry)
+                        break;
                 }
             }
             if (parameters->inj_delay_us)
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->inj_delay_us));
         }
+        if (LoggingService::localDisplayLevel == Trace) {
+            printf("\n");
+
+            if (injectionPerFreq > 0)
+                LoggingService::trace_print("{}, {} success rate @ {}Hz is {}.\n", retryPerFreq, injectionPerFreq, curFreq, 100.0 * injectionPerFreq / retryPerFreq);
+            else
+                LoggingService::trace_print("success rate @ {}Hz is 0, retries = {}.\n", curFreq, retryPerFreq);
+        }
+
     }
 
     parameters->finishedSessionId = *parameters->workingSessionId;
@@ -131,7 +148,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::t
         std::this_thread::sleep_for(std::chrono::microseconds(*hal->parameters->tx_retry_delay_us));
     }
 
-    return std::make_tuple(nullptr, 0);
+    return std::make_tuple(nullptr, retryCount);
 }
 
 int UnifiedChronosInitiator::daemonTask() {
