@@ -25,18 +25,17 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
         }
 
         if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == ChronosInitiator) { // should initiate freq shifting work.
-            auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
+            auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto fp = buildPacket(taskId, UnifiedChronosFreqChangeRequest);
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             fp->chronosInfo->frequency = curFreq + (parameters->chronos_inj_freq_gap ? *parameters->chronos_inj_freq_gap : 0);
-            for(auto retryCount = 0; retryCount < 10; retryCount ++) { // try connect in current frequency
+            for(auto retryCount = 0; retryCount < (*hal->parameters->tx_max_retry)*2; retryCount ++) { // try connect in current frequency
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                replyRXS = rxs;
 
-                if (replyRXS) {
+                if (replyRXS = rxs) {
                     hal->setCarrierFreq(curFreq);
                     break;
-                } else if (retryCount >=3){ // try to recover the connect in next frequency.
+                } else if (retryCount >= *hal->parameters->tx_max_retry){ // try to recover the connect in next frequency.
                     LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
                     hal->setCarrierFreq(curFreq, CFTuningByFastCC);
                 }
