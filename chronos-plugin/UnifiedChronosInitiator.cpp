@@ -99,11 +99,8 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
         }
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
-
-            if (injectionPerFreq > 0)
-                LoggingService::trace_print("{}, {} success rate @ {}Hz is {}.\n", retryPerFreq, injectionPerFreq, curFreq, 100.0 * injectionPerFreq / retryPerFreq);
-            else
-                LoggingService::trace_print("success rate @ {}Hz is 0, retries = {}.\n", curFreq, retryPerFreq);
+            if (retryPerFreq != 0)
+                LoggingService::trace_print("Chronos in {}Hz, tx = {}, done={}, success rate ={}\%.\n", curFreq, retryPerFreq, injectionPerFreq, 100.0 * injectionPerFreq / retryPerFreq);
         }
 
     }
