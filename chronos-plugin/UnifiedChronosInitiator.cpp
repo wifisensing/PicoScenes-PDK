@@ -100,7 +100,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
 
-                        LoggingService::warning_print("\nChronos Job Warning: max retry times reached during measurement @ %luHz...\n, curFreq");
+                        LoggingService::warning_printf("\nChronos Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
                         break;
                     }   
                 }
