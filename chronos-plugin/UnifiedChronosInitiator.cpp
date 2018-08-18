@@ -29,15 +29,22 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             auto fp = buildPacket(taskId, UnifiedChronosFreqChangeRequest);
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             fp->chronosInfo->frequency = curFreq + (parameters->chronos_inj_freq_gap ? *parameters->chronos_inj_freq_gap : 0);
-            for(auto retryCount = 0; retryCount < (*hal->parameters->tx_max_retry)*2; retryCount ++) { // try connect in current frequency
-                auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
 
+            for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *hal->parameters->tx_max_retry; retryCount ++) {
+                auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                 if (replyRXS = rxs) {
                     hal->setCarrierFreq(curFreq);
-                    break;
-                } else if (retryCount >= *hal->parameters->tx_max_retry){ // try to recover the connect in next frequency.
-                    LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
-                    hal->setCarrierFreq(curFreq, CFTuningByFastCC);
+                }
+            }
+
+            if (replyRXS==nullptr) {
+                LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
+                hal->setCarrierFreq(curFreq, CFTuningByFastCC);
+                for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *hal->parameters->tx_max_retry; retryCount ++) {
+                    auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                    if (replyRXS = rxs) {
+                        hal->setCarrierFreq(curFreq);
+                    }
                 }
             }
 
