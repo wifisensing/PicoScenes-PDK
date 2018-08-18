@@ -97,6 +97,9 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                     }
                 } else {
                     if (++continuousFailure > *hal->parameters->tx_max_retry) {
+                        if (LoggingService::localDisplayLevel == Trace)
+                            printf("\n");
+
                         LoggingService::warning_print("\nChronos Job Warning: max retry times reached during measurement @ %luHz...\n, curFreq");
                         break;
                     }   
