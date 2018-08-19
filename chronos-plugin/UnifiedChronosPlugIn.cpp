@@ -247,6 +247,7 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
 }
 
 bool UnifiedChronosPlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
+    hal->plugInManager->properties.put("bypass_platform_logging", true);
     return responder->handle(rxs);
 }
 
