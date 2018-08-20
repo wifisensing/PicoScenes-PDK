@@ -31,11 +31,11 @@ void UnifiedChronosPlugIn::initialization() {
             ("inj-target-interface", po::value<std::string>(), "PhyId of the injection target")
             ("inj-target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
             ("inj-for-intel5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
-            ("inj-freq-begin", po::value<int64_t>(), "The starting CF of a scan(unit in Hz, working CF as default)")
-            ("inj-freq-end", po::value<int64_t>(), "The ending CF of a scan(unit in Hz, working CF as default)")
-            ("inj-freq-step", po::value<int64_t>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
-            ("inj-freq-repeat", po::value<uint32_t>(), "The repeating injection number for each CF, 1 as default")
-            ("inj-delay", po::value<uint32_t>(), "The delay between successive injections(unit in us, 1000000 as default)")
+            ("inj-freq-begin", po::value<std::string>(), "The starting CF of a scan(unit in Hz, working CF as default)")
+            ("inj-freq-end", po::value<std::string>(), "The ending CF of a scan(unit in Hz, working CF as default)")
+            ("inj-freq-step", po::value<std::string>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
+            ("inj-freq-repeat", po::value<std::string>(), "The repeating injection number for each CF, 1 as default")
+            ("inj-delay", po::value<std::string>(), "The delay between successive injections(unit in us, 1000000 as default)")
             ("inj-delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("inj-bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40]")
             ("inj-gi", po::value<std::string>(), "guarding-interval [short, long]")
@@ -43,7 +43,7 @@ void UnifiedChronosPlugIn::initialization() {
 
     chronosOptions = std::make_shared<po::options_description>("Chronos(Injection and Reply) Options");
     chronosOptions->add_options()
-            ("ack-freq-gap", po::value<int64_t>(), "The CF gap between Chronos Initiator and Responder(unit in Hz, 0 as default)")
+            ("ack-freq-gap", po::value<std::string>(), "The CF gap between Chronos Initiator and Responder(unit in Hz, 0 as default)")
             ("ack-additional-delay", po::value<uint32_t>(), "Additional delay between Rx and Tx in responder side(unit in us, 0 as default)")
             ("ack-type", po::value<std::string>(), "Chronos ACK type [no-ack, injection, colocation, colocation-or-injection ack-with-rxs as default]")
             ("ack-injection-type", po::value<std::string>(), "Chronos injection-based ACK type [header-only, extrainfo, chronos, chronos-or-extrainfo-with-colocation]")
@@ -122,23 +122,23 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("inj-freq-begin")) {
-       parameters->inj_freq_begin = vm["inj-freq-begin"].as<int64_t>();
+       parameters->inj_freq_begin = boost::lexical_cast<double>(vm["inj-freq-begin"].as<std::string>());
     }
 
     if (vm.count("inj-freq-end")) {
-       parameters->inj_freq_end = vm["inj-freq-end"].as<int64_t>();
+       parameters->inj_freq_end = boost::lexical_cast<double>(vm["inj-freq-end"].as<std::string>());
     }
 
     if (vm.count("inj-freq-step")) {
-       parameters->inj_freq_step = vm["inj-freq-step"].as<int64_t>();
+       parameters->inj_freq_step = boost::lexical_cast<double>(vm["inj-freq-step"].as<std::string>());
     }
 
     if (vm.count("inj-freq-repeat")) {
-       parameters->inj_freq_repeat = vm["inj-freq-repeat"].as<uint32_t>();
+       parameters->inj_freq_repeat = boost::lexical_cast<double>(vm["inj-freq-repeat"].as<std::string>());
     }
 
     if (vm.count("inj-delay")) {
-       parameters->inj_delay_us = vm["inj-delay"].as<uint32_t>();
+       parameters->inj_delay_us = boost::lexical_cast<double>(vm["inj-delay"].as<std::string>());
     }
 
     if (vm.count("inj-delayed-start")) {
@@ -170,7 +170,7 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("ack-freq-gap")) {
-       parameters->chronos_inj_freq_gap = vm["ack-freq-gap"].as<int64_t>();
+       parameters->chronos_inj_freq_gap = boost::lexical_cast<double>(vm["ack-freq-gap"].as<std::string>());
     }
 
     if (vm.count("ack-additional-delay")) {
