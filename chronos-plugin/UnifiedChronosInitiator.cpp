@@ -66,6 +66,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             if (*hal->parameters->workingMode == Injector) {
                 fp = buildPacket(taskId, SimpleInjection);
                 hal->transmitRawPacket(fp.get());
+                acked_count++; // this is an ad-hoc solution, not good, but work.
             } else if (*hal->parameters->workingMode == ChronosInitiator) {
                 fp = buildPacket(taskId, UnifiedChronosProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
