@@ -28,7 +28,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto fp = buildPacket(taskId, UnifiedChronosFreqChangeRequest);
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-            fp->chronosInfo->frequency = curFreq + (parameters->chronos_inj_freq_gap ? *parameters->chronos_inj_freq_gap : 0);
+            fp->chronosInfo->frequency = curFreq;
 
             for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *hal->parameters->tx_max_retry; retryCount ++) {
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
@@ -194,11 +194,6 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
             fp->chronosInfo->ackBandWidth = *parameters->chronos_ack_bw;
         if(parameters->chronos_ack_sgi)
             fp->chronosInfo->ackSGI = *parameters->chronos_ack_sgi;
-        if(parameters->chronos_ack_additional_delay)
-            fp->chronosInfo->ackExpectedDelay_us = *parameters->chronos_ack_additional_delay;
-
-        fp->setChronosACKType(ChronosACKType_Injection);
-        fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos);
 
         if (frameType == UnifiedChronosFreqChangeRequest) {
             fp->setTxMCS(0);
@@ -269,13 +264,5 @@ void UnifiedChronosInitiator::serialize() {
 
     if (parameters->chronos_ack_sgi) {
         propertyDescriptionTree.put("ack-sgi", *parameters->chronos_ack_sgi);
-    }
-
-    if (parameters->chronos_inj_freq_gap) {
-        propertyDescriptionTree.put("ack-freq-gap", *parameters->chronos_inj_freq_gap);
-    }
-
-    if (parameters->chronos_ack_additional_delay) {
-        propertyDescriptionTree.put("ack-additional-delay", *parameters->chronos_ack_additional_delay);
     }
 }

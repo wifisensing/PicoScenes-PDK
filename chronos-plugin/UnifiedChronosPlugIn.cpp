@@ -44,8 +44,6 @@ void UnifiedChronosPlugIn::initialization() {
 
     chronosOptions = std::make_shared<po::options_description>("Chronos(Injection and Reply) Options");
     chronosOptions->add_options()
-            ("ack-freq-gap", po::value<std::string>(), "The CF gap between Chronos Initiator and Responder(unit in Hz, 0 as default)")
-            ("ack-additional-delay", po::value<uint32_t>(), "Additional delay between Rx and Tx in responder side(unit in us, 0 as default)")
             ("ack-mcs",  po::value<uint32_t>(), "mcs value for Chronos ACK [0-23], unspecified as default")
             ("ack-bw", po::value<uint32_t>(), "bandwidth for Chronos ACK(unit in MHz) [20, 40], unspecified as default")
             ("ack-sgi", po::value<uint32_t>(), "guarding-interval for Chronos ACK [1 for on, 0 for off], unspecified as default");
@@ -171,14 +169,6 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
             parameters->inj_mcs = mcs;
         else 
             throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid MCS value: {}.\n", mcs));
-    }
-
-    if (vm.count("ack-freq-gap")) {
-       parameters->chronos_inj_freq_gap = boost::lexical_cast<double>(vm["ack-freq-gap"].as<std::string>());
-    }
-
-    if (vm.count("ack-additional-delay")) {
-       parameters->chronos_ack_additional_delay = vm["ack-additional-delay"].as<uint32_t>();
     }
 
     if (vm.count("ack-mcs")) {
