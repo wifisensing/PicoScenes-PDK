@@ -62,7 +62,11 @@ std::shared_ptr<program_options::options_description> UnifiedChronosPlugIn::plug
 
 bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     po::variables_map vm;
-    po::store(po::command_line_parser(po::split_unix(commandString)).options(*unifiedChronosOptions).allow_unregistered().run(), vm);
+    auto style = pos::allow_long | pos::allow_dash_for_short |
+            pos::long_allow_adjacent | pos::long_allow_next |
+            pos::short_allow_adjacent | pos::short_allow_next;
+
+    po::store(po::command_line_parser(po::split_unix(commandString)).options(*unifiedChronosOptions).style(style).allow_unregistered().run(), vm);
     po::notify(vm);
 
     if(vm.count("mode")) {
