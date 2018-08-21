@@ -9,7 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <boost/optional.hpp>
-#include <PicoScenes/BaseHeader.h>
+#include <PicoScenes/AtherosNicHAL.h>
 #include "UnifiedChronos.h"
 using namespace boost;
 
@@ -17,9 +17,6 @@ class UnifiedChronosParameters {
 public:
     static std::shared_ptr<UnifiedChronosParameters> sharedParameters;
     static std::shared_ptr<UnifiedChronosParameters> getInstance(const std::string &phyId);
-
-    static const std::array<uint8_t, 6> magicIntel123456;
-    static const std::array<uint8_t, 6> fullFF;
 
     optional<uint64_t> workingSessionId;
     optional<uint64_t> finishedSessionId;
