@@ -9,7 +9,7 @@ std::string UnifiedChronosPlugIn::pluginName() {
 }
 
 std::string UnifiedChronosPlugIn::pluginDescription() {
-    return "Mimic of \"Chronos\" system";
+    return "Round-Trip Measurement";
 }
 
 std::string UnifiedChronosPlugIn::pluginStatus() {
@@ -45,8 +45,6 @@ void UnifiedChronosPlugIn::initialization() {
     chronosOptions->add_options()
             ("ack-freq-gap", po::value<std::string>(), "The CF gap between Chronos Initiator and Responder(unit in Hz, 0 as default)")
             ("ack-additional-delay", po::value<uint32_t>(), "Additional delay between Rx and Tx in responder side(unit in us, 0 as default)")
-            ("ack-type", po::value<std::string>(), "Chronos ACK type [no-ack, injection, colocation, colocation-or-injection ack-with-rxs as default]")
-            ("ack-injection-type", po::value<std::string>(), "Chronos injection-based ACK type [header-only, extrainfo, chronos, chronos-or-extrainfo-with-colocation]")
             ("ack-mcs",  po::value<uint32_t>(), "mcs value for Chronos ACK [0-23]")
             ("ack-bw", po::value<uint32_t>(), "bandwidth for Chronos ACK(unit in MHz) [20, 40]")
             ("ack-gi", po::value<std::string>(), "guarding-interval for Chronos ACK [short, long]");
@@ -174,38 +172,6 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
 
     if (vm.count("ack-additional-delay")) {
        parameters->chronos_ack_additional_delay = vm["ack-additional-delay"].as<uint32_t>();
-    }
-
-    if (vm.count("ack-type")) {
-        auto ackTypeString = vm["ack-type"].as<std::string>();
-        boost::algorithm::to_lower(ackTypeString);
-        boost::trim(ackTypeString);
-
-        if (ackTypeString.find("no-ack") != std::string::npos) {
-           parameters->chronos_ack_type = ChronosACKType_NoACK;
-        } else if (ackTypeString.find("colocation-or-injection") != std::string::npos) {
-           parameters->chronos_ack_type = ChronosACKType_Colocation_Or_Injection;
-        } else if (ackTypeString.find("injection") != std::string::npos) {
-           parameters->chronos_ack_type = ChronosACKType_Injection;
-        } else if (ackTypeString.find("colocation") != std::string::npos) {
-           parameters->chronos_ack_type = ChronosACKType_Colocation;
-        }
-    }
-
-    if (vm.count("ack-injection-type")) {
-        auto injectionTypeString = vm["ack-injection-type"].as<std::string>();
-        boost::algorithm::to_lower(injectionTypeString);
-        boost::trim(injectionTypeString);
-
-        if (injectionTypeString.find("chronos-or-header-with-colocation") != std::string::npos) {
-           parameters->chronos_ack_injection_type = ChronosACKInjectionType_Chronos_or_HeaderWithColocation;
-        } else if (injectionTypeString.find("header") != std::string::npos) {
-           parameters->chronos_ack_injection_type = ChronosACKInjectionType_HeaderOnly;
-        } else if (injectionTypeString.find("extra") != std::string::npos) {
-           parameters->chronos_ack_injection_type = ChronosACKInjectionType_ExtraInfo;
-        } else if (injectionTypeString.find("chronos") != std::string::npos) {
-           parameters->chronos_ack_injection_type = ChronosACKInjectionType_Chronos;
-        }
     }
 
     if (vm.count("ack-mcs")) {

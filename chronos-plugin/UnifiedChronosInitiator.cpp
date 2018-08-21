@@ -124,7 +124,6 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
 
     parameters->finishedSessionId = *parameters->workingSessionId;
     blockCV.notify_all();
-
 }
 
 std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::transmitAndSyncRxUnified(
@@ -134,31 +133,10 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::t
     auto retryCount = 0;
     while(retryCount++ < *hal->parameters->tx_max_retry) {
         hal->transmitRawPacket(packetFabricator, txTime);
-
-        if (!packetFabricator->packetHeader->header_info.hasChronosInfo || packetFabricator->chronosInfo->ackRequestType == ChronosACKType_NoACK)
-            break;
-
-        switch (packetFabricator->chronosInfo->ackRequestType) {
-            case ChronosACKType_Injection: {
-                if (packetFabricator->chronosInfo->ackInjectionType == ChronosACKInjectionType_Chronos_or_HeaderWithColocation) {
-                    replyRXS = hal->unifiedSyncRx(taskId, true, *parameters->chronos_timeout_us);
-                }
-                else
-                    replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->chronos_timeout_us);
-                break;
-            }
-            case ChronosACKType_Colocation:
-                replyRXS = ColocationService::getInstance()->colocationSyncWaitTaskId(taskId, *parameters->chronos_timeout_us);
-                break;
-            case ChronosACKType_Colocation_Or_Injection: {
-                replyRXS = hal->unifiedSyncRx(taskId, false, *parameters->chronos_timeout_us);
-                break;
-            }
-        }
+        replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->chronos_timeout_us);
 
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
-
         std::this_thread::sleep_for(std::chrono::microseconds(*hal->parameters->tx_retry_delay_us));
     }
 
@@ -185,14 +163,15 @@ void UnifiedChronosInitiator::blockWait() {
     blockCV.wait(lock, [&]()->bool {
         return *parameters->finishedSessionId == *parameters->workingSessionId;
     });
-    parameters->wait.reset();
 }
 
 std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t taskId, const ChronosPacketFrameType & frameType) const {
     auto fp= hal->packetFabricator->makePacket_ExtraInfo();
+    
     fp->setTaskId(taskId);
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
+
     if (parameters->inj_for_intel5300) {
         fp->setDestinationAddress(UnifiedChronosParameters::magicIntel123456.data());
         fp->setSourceAddress(UnifiedChronosParameters::magicIntel123456.data());
@@ -204,8 +183,6 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
         fp->setTx40MHzBW((*parameters->inj_bw == 40 ? true : false));
     if(hal->parameters->tx_power)
         fp->setTxpower(*hal->parameters->tx_power);
-    if(hal->parameters->tx_chainmask)
-        fp->setTxChainMask(*hal->parameters->tx_chainmask);
     if(parameters->inj_sgi)
         fp->setTxSGI(*parameters->inj_sgi == 1 ? true : false);
 
@@ -217,12 +194,6 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
             fp->chronosInfo->ackBandWidth = *parameters->chronos_ack_bw;
         if(parameters->chronos_ack_sgi)
             fp->chronosInfo->ackSGI = *parameters->chronos_ack_sgi;
-        if(parameters->chronos_ack_txpower)
-            fp->chronosInfo->ackTxpower = *parameters->chronos_ack_txpower;
-        if(parameters->chronos_ack_txchainmask)
-            fp->chronosInfo->ackTxChainMask = *parameters->chronos_ack_txchainmask;
-        if(parameters->chronos_ack_rxchainmask)
-            fp->chronosInfo->ackRxChainMask = *parameters->chronos_ack_rxchainmask;
         if(parameters->chronos_ack_additional_delay)
             fp->chronosInfo->ackExpectedDelay_us = *parameters->chronos_ack_additional_delay;
 
@@ -230,16 +201,8 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
         fp->setChronosACKInjectionType(ChronosACKInjectionType_Chronos);
 
         if (frameType == UnifiedChronosFreqChangeRequest) {
-            if (parameters->inj_mcs || parameters->chronos_ack_mcs)
-                fp->setTxMCS(0);
-
-            if (hal->parameters->tx_power || parameters->chronos_ack_txpower)
-                fp->setTxpower(30);
-        } else {
-            if(parameters->chronos_ack_type)
-                fp->setChronosACKType(*parameters->chronos_ack_type);
-            if(parameters->chronos_ack_injection_type)
-                fp->setChronosACKInjectionType(*parameters->chronos_ack_injection_type);
+            fp->setTxMCS(0);
+            fp->setTxpower(30);
         }
     }
 
@@ -308,60 +271,11 @@ void UnifiedChronosInitiator::serialize() {
         propertyDescriptionTree.put("ack-sgi", *parameters->chronos_ack_sgi);
     }
 
-    if (parameters->chronos_ack_txpower) {
-        propertyDescriptionTree.put("ack-txpower", *parameters->chronos_ack_txpower);
-    }
-
-    if (parameters->chronos_ack_txchainmask) {
-        propertyDescriptionTree.put("ack-txchainmask", *parameters->chronos_ack_txchainmask);
-    }
-
-    if (parameters->chronos_ack_rxchainmask) {
-        propertyDescriptionTree.put("ack-rxchainmask", *parameters->chronos_ack_rxchainmask);
-    }
-
     if (parameters->chronos_inj_freq_gap) {
         propertyDescriptionTree.put("ack-freq-gap", *parameters->chronos_inj_freq_gap);
-    }
-
-    if (parameters->chronos_ack_maxLengthPerPacket) {
-        propertyDescriptionTree.put("ack-package-max-length", *parameters->chronos_ack_maxLengthPerPacket);
     }
 
     if (parameters->chronos_ack_additional_delay) {
         propertyDescriptionTree.put("ack-additional-delay", *parameters->chronos_ack_additional_delay);
     }
-
-    if (parameters->wait) {
-        propertyDescriptionTree.put("wait", *parameters->wait);
-    }
-
-    if (parameters->chronos_timeout_us) {
-        propertyDescriptionTree.put("ack-timeout", *parameters->chronos_timeout_us);
-    }
-
-    if (parameters->chronos_ack_type) {
-        if (*parameters->chronos_ack_type == ChronosACKType_NoACK) {
-            propertyDescriptionTree.put("ack-type", "no-ack");
-        } else if (*parameters->chronos_ack_type == ChronosACKType_Colocation_Or_Injection) {
-            propertyDescriptionTree.put("ack-type", "colocation-or-injection");
-        } else if (*parameters->chronos_ack_type == ChronosACKType_Injection) {
-            propertyDescriptionTree.put("ack-type", "injection");
-        } else if (*parameters->chronos_ack_type == ChronosACKType_Colocation) {
-            propertyDescriptionTree.put("ack-type", "colocation");
-        }
-    }
-
-    if (parameters->chronos_ack_injection_type) {
-        if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_HeaderOnly) {
-            propertyDescriptionTree.put("ack-injection-type", "header");
-        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_ExtraInfo) {
-            propertyDescriptionTree.put("ack-injection-type", "extra");
-        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_Chronos) {
-            propertyDescriptionTree.put("ack-injection-type", "Chronos");
-        } else if (*parameters->chronos_ack_injection_type == ChronosACKInjectionType_Chronos_or_HeaderWithColocation) {
-            propertyDescriptionTree.put("ack-injection-type", "chronos-or-header-with-colocation");
-        }
-    }
-
 }

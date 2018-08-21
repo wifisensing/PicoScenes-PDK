@@ -37,17 +37,12 @@ public:
     optional<uint32_t> inj_freq_repeat;
 
     optional<int64_t> chronos_inj_freq_gap;
-    optional<ChronosACKType>  chronos_ack_type;
-    optional<ChronosACKInjectionType> chronos_ack_injection_type;
     optional<uint8_t>  chronos_ack_mcs;
     optional<uint8_t>  chronos_ack_bw;
     optional<uint8_t>  chronos_ack_sgi;
     optional<uint32_t> chronos_ack_additional_delay;
-    optional<uint8_t>  chronos_ack_txpower;
-    optional<uint8_t>  chronos_ack_txchainmask;
-    optional<uint8_t>  chronos_ack_rxchainmask;
-    optional<uint16_t> chronos_ack_maxLengthPerPacket;
     optional<uint32_t> chronos_timeout_us;
+    optional<uint32_t> chronos_ack_maxLengthPerPacket;
     optional<uint32_t> delay_after_freq_change_us;
     optional<uint32_t> numOfPacketsPerDotDisplay;
 
