@@ -50,7 +50,6 @@ public:
     optional<uint32_t> chronos_timeout_us;
     optional<uint32_t> delay_after_freq_change_us;
     optional<uint32_t> numOfPacketsPerDotDisplay;
-    optional<bool>     wait;
 
 private:
     static void initializeSharedParameters();

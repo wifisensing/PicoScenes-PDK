@@ -53,7 +53,6 @@ void UnifiedChronosPlugIn::initialization() {
 
     unifiedChronosOptions = std::make_shared<program_options::options_description>("Chronos(Injection and Reply) Options");
     unifiedChronosOptions->add_options()
-            ("wait", "Block command execution service until task finished")
             ("mode", po::value<std::string>(), "Working mode [injector, chronos-responder, chronos-injector]");
     unifiedChronosOptions->add(*injectionOptions).add(*chronosOptions);
 }
@@ -232,10 +231,6 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
         } else if (boost::iequals("long", giString)) {
            parameters->chronos_ack_sgi = 0;
         }
-    }
-
-    if (vm.count("wait")) {
-        parameters->wait = true;
     }
 
     if (vm.size() > 0)
