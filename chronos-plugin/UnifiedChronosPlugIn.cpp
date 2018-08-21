@@ -206,7 +206,6 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     if (vm.size() > 0)
         parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
 
-    if (hal->parameters->workingMode != ChronosResponder)
         initiator->blockWait();
 
     return false;
