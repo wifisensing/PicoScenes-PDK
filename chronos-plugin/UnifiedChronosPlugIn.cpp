@@ -28,26 +28,27 @@ void UnifiedChronosPlugIn::initialization() {
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
     injectionOptions->add_options()
-            ("inj-target-interface", po::value<std::string>(), "PhyId of the injection target")
-            ("inj-target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
-            ("inj-for-intel5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
-            ("inj-freq-begin", po::value<std::string>(), "The starting CF of a scan(unit in Hz, working CF as default)")
-            ("inj-freq-end", po::value<std::string>(), "The ending CF of a scan(unit in Hz, working CF as default)")
-            ("inj-freq-step", po::value<std::string>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
-            ("inj-freq-repeat", po::value<std::string>(), "The repeating injection number for each CF, 1 as default")
-            ("inj-delay", po::value<std::string>(), "The delay between successive injections(unit in us, 1000000 as default)")
-            ("inj-delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
-            ("inj-bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40]")
-            ("inj-gi", po::value<std::string>(), "guarding-interval [short, long]")
-            ("inj-mcs", po::value<uint32_t>(), "mcs value [0-23]");
+            ("target-interface", po::value<std::string>(), "PhyId of the injection target")
+            ("target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
+            ("target-intel5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
+            ("freq-begin", po::value<std::string>(), "The starting CF of a scan(unit in Hz, working CF as default)")
+            ("freq-end", po::value<std::string>(), "The ending CF of a scan(unit in Hz, working CF as default)")
+            ("freq-step", po::value<std::string>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
+            ("freq-repeat", po::value<std::string>(), "The repeating injection number for each CF, 1 as default")
+            ("freq-range", po::value<std::string>(), "MATLAB-style setting for freq-begin/end/step")
+            ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 1000000 as default)")
+            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
+            ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40]")
+            ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
+            ("mcs", po::value<uint32_t>(), "mcs value [0-23]");
 
     chronosOptions = std::make_shared<po::options_description>("Chronos(Injection and Reply) Options");
     chronosOptions->add_options()
             ("ack-freq-gap", po::value<std::string>(), "The CF gap between Chronos Initiator and Responder(unit in Hz, 0 as default)")
             ("ack-additional-delay", po::value<uint32_t>(), "Additional delay between Rx and Tx in responder side(unit in us, 0 as default)")
-            ("ack-mcs",  po::value<uint32_t>(), "mcs value for Chronos ACK [0-23]")
-            ("ack-bw", po::value<uint32_t>(), "bandwidth for Chronos ACK(unit in MHz) [20, 40]")
-            ("ack-gi", po::value<std::string>(), "guarding-interval for Chronos ACK [short, long]");
+            ("ack-mcs",  po::value<uint32_t>(), "mcs value for Chronos ACK [0-23], unspecified as default")
+            ("ack-bw", po::value<uint32_t>(), "bandwidth for Chronos ACK(unit in MHz) [20, 40], unspecified as default")
+            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for Chronos ACK [1 for on, 0 for off], unspecified as default");
 
     unifiedChronosOptions = std::make_shared<program_options::options_description>("Chronos(Injection and Reply) Options");
     unifiedChronosOptions->add_options()
@@ -87,8 +88,8 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
         }
     }
 
-    if (vm.count("inj-target-interface")) {
-        auto interfaceName = vm["inj-target-interface"].as<std::string>();
+    if (vm.count("target-interface")) {
+        auto interfaceName = vm["target-interface"].as<std::string>();
         boost::trim(interfaceName);
         parameters->inj_target_interface = interfaceName;
         auto targetHAL = AtherosNicHAL::halForInterface(interfaceName);
@@ -96,13 +97,13 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
             parameters->inj_target_mac_address = targetHAL->macAddress_MON;
     }
 
-    if (vm.count("inj-target-mac-address")) {
-        auto macAddressString = vm["inj-target-mac-address"].as<std::string>();
+    if (vm.count("target-mac-address")) {
+        auto macAddressString = vm["target-mac-address"].as<std::string>();
         std::vector<std::string> eachHexs;
         boost::split(eachHexs, macAddressString, boost::is_any_of(":-"), boost::token_compress_on);
         std::array<uint8_t, 6> address;
         if (eachHexs.size() != 6)
-            LoggingService::warning_print("[inj-target-mac-address] Specified mac address has wrong number of digits.\n");
+            LoggingService::warning_print("[target-mac-address] Specified mac address has wrong number of digits.\n");
         else {
             for(auto i = 0 ; i < eachHexs.size() && i < 6; i++) {
                 boost::trim(eachHexs[i]);
@@ -114,56 +115,58 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
         }
     }
 
-    if (vm.count("inj-for-intel5300")) {
+    if (vm.count("target-intel5300")) {
         parameters->inj_for_intel5300 = true;
     }
 
-    if (vm.count("inj-freq-begin")) {
-       parameters->inj_freq_begin = boost::lexical_cast<double>(vm["inj-freq-begin"].as<std::string>());
+    if (vm.count("freq-begin")) {
+       parameters->inj_freq_begin = boost::lexical_cast<double>(vm["freq-begin"].as<std::string>());
     }
 
-    if (vm.count("inj-freq-end")) {
-       parameters->inj_freq_end = boost::lexical_cast<double>(vm["inj-freq-end"].as<std::string>());
+    if (vm.count("freq-end")) {
+       parameters->inj_freq_end = boost::lexical_cast<double>(vm["freq-end"].as<std::string>());
     }
 
-    if (vm.count("inj-freq-step")) {
-       parameters->inj_freq_step = boost::lexical_cast<double>(vm["inj-freq-step"].as<std::string>());
+    if (vm.count("freq-step")) {
+       parameters->inj_freq_step = boost::lexical_cast<double>(vm["freq-step"].as<std::string>());
     }
 
-    if (vm.count("inj-freq-repeat")) {
-       parameters->inj_freq_repeat = boost::lexical_cast<double>(vm["inj-freq-repeat"].as<std::string>());
+    if (vm.count("freq-repeat")) {
+       parameters->inj_freq_repeat = boost::lexical_cast<double>(vm["freq-repeat"].as<std::string>());
     }
 
-    if (vm.count("inj-delay")) {
-       parameters->inj_delay_us = boost::lexical_cast<double>(vm["inj-delay"].as<std::string>());
+    if (vm.count("delay")) {
+       parameters->inj_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
     }
 
-    if (vm.count("inj-delayed-start")) {
-        parameters->inj_delayed_start_s = vm["inj-delayed-start"].as<uint32_t>();
+    if (vm.count("delayed-start")) {
+        parameters->inj_delayed_start_s = vm["delayed-start"].as<uint32_t>();
     }
 
-    if (vm.count("inj-bw")) {
-        auto bwValue = vm["inj-bw"].as<uint32_t>();
+    if (vm.count("bw")) {
+        auto bwValue = vm["bw"].as<uint32_t>();
         if (bwValue == 20) {
-           parameters->inj_bw = 20;
+            parameters->inj_bw = 20;
         } else if (bwValue == 40) {
-           parameters->inj_bw = 40;
-        }
+            parameters->inj_bw = 40;
+        } else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid bandwith value: {}.\n", bwValue));
     }
 
-    if (vm.count("inj-gi")) {
-        auto giString = vm["inj-gi"].as<std::string>();
-        if (boost::iequals("short", giString)) {
-           parameters->inj_sgi = 1;
-        } else if (boost::iequals("long", giString)) {
-           parameters->inj_sgi = 0;
-        }
+    if (vm.count("sgi")) {
+        auto sgi = vm["sgi"].as<uint32_t>();
+        if (sgi == 1 || sgi == 0)
+            parameters->inj_sgi = sgi;
+        else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid SGI value: {}.\n", sgi));
     }
 
-    if (vm.count("inj-mcs")) {
-        auto mcs = vm["inj-mcs"].as<uint32_t>();
+    if (vm.count("mcs")) {
+        auto mcs = vm["mcs"].as<uint32_t>();
         if (mcs < 23)
-           parameters->inj_mcs = mcs;
+            parameters->inj_mcs = mcs;
+        else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid MCS value: {}.\n", mcs));
     }
 
     if (vm.count("ack-freq-gap")) {
@@ -177,8 +180,9 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
         if (mcsValue <=23) {
-           parameters->chronos_ack_mcs = mcsValue;
-        }
+            parameters->chronos_ack_mcs = mcsValue;
+        } else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
     }
 
     if (vm.count("ack-bw")) {
@@ -187,22 +191,23 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
            parameters->chronos_ack_bw = 20;
         } else if (ack_bw == 40) {
            parameters->chronos_ack_bw = 40;
-        }
+        } else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
     }
 
-    if (vm.count("ack-gi")) {
-        auto giString= vm["ack-gi"].as<std::string>();
-        if (boost::iequals("short", giString)) {
-           parameters->chronos_ack_sgi = 1;
-        } else if (boost::iequals("long", giString)) {
-           parameters->chronos_ack_sgi = 0;
-        }
+    if (vm.count("ack-sgi")) {
+        auto sgi = vm["ack-sgi"].as<uint32_t>();
+        if (sgi == 1 || sgi == 0)
+            parameters->chronos_ack_sgi = sgi;
+        else 
+            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid SGI value: {}.\n", sgi));
     }
 
     if (vm.size() > 0)
         parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
 
-    initiator->blockWait();
+    if (hal->parameters->workingMode != ChronosResponder)
+        initiator->blockWait();
 
     return false;
 }
