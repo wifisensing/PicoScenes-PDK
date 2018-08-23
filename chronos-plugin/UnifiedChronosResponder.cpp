@@ -12,9 +12,9 @@ bool UnifiedChronosResponder::handle(const struct RXS_enhanced *received_rxs) {
     for(auto & reply: replies) {
         hal->transmitRawPacket(reply.get());
         if (received_rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeRequest) {
-            for (auto i = 1; i < *hal->parameters->tx_max_retry; i ++) { // send Freq Change ACK frame multiple times to ensure the reception at the Initiator
+            for (auto i = 1; i < *parameters->tx_max_retry; i ++) { // send Freq Change ACK frame multiple times to ensure the reception at the Initiator
                 hal->transmitRawPacket(reply.get());
-                std::this_thread::sleep_for(std::chrono::microseconds(*hal->parameters->tx_retry_delay_us));
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_retry_delay_us));
             }
         }
     }

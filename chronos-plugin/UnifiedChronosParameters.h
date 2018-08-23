@@ -33,6 +33,9 @@ public:
     optional<int64_t>  inj_freq_step;
     optional<uint32_t> inj_freq_repeat;
 
+    optional<uint32_t> tx_max_retry;
+    optional<uint32_t> tx_retry_delay_us;
+
     optional<uint8_t>  chronos_ack_mcs;
     optional<uint8_t>  chronos_ack_bw;
     optional<uint8_t>  chronos_ack_sgi;

@@ -30,7 +30,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             fp->chronosInfo->frequency = curFreq;
 
-            for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *hal->parameters->tx_max_retry; retryCount ++) {
+            for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *parameters->tx_max_retry; retryCount ++) {
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                 if (replyRXS = rxs) {
                     hal->setCarrierFreq(curFreq);
@@ -40,7 +40,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             if (replyRXS==nullptr) {
                 LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
                 hal->setCarrierFreq(curFreq, CFTuningByFastCC);
-                for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *hal->parameters->tx_max_retry; retryCount ++) {
+                for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *parameters->tx_max_retry; retryCount ++) {
                     auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                     if (replyRXS = rxs) {
                         hal->setCarrierFreq(curFreq);
@@ -96,7 +96,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                         }
                     }
                 } else {
-                    if (++continuousFailure > *hal->parameters->tx_max_retry) {
+                    if (++continuousFailure > *parameters->tx_max_retry) {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
                         LoggingService::warning_printf("Chronos Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
@@ -131,13 +131,13 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::t
     std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
-    while(retryCount++ < *hal->parameters->tx_max_retry) {
+    while(retryCount++ < *parameters->tx_max_retry) {
         hal->transmitRawPacket(packetFabricator, txTime);
         replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->chronos_timeout_us);
 
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
-        std::this_thread::sleep_for(std::chrono::microseconds(*hal->parameters->tx_retry_delay_us));
+        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_retry_delay_us));
     }
 
     return std::make_tuple(nullptr, retryCount);
@@ -198,6 +198,8 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
         if (frameType == UnifiedChronosFreqChangeRequest) {
             fp->setTxMCS(0);
             fp->setTxpower(30);
+            fp->setTxSGI(false);
+            fp->setTx40MHzBW(false);
         }
     }
 
