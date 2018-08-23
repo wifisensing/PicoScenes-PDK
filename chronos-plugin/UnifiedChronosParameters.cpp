@@ -33,6 +33,7 @@ void UnifiedChronosParameters::initializeSharedParameters() {
     sharedParameters->finishedSessionId = UINT64_MAX;
     sharedParameters->workingSessionId = UINT64_MAX;
     sharedParameters->chronos_timeout_us = 2e3;
+    sharedParameters->tx_max_retry = 2500;
     sharedParameters->chronos_ack_maxLengthPerPacket = 1200;
     sharedParameters->delay_after_freq_change_us = 50;
     sharedParameters->numOfPacketsPerDotDisplay = 10;

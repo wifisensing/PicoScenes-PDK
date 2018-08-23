@@ -30,19 +30,21 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             fp->chronosInfo->frequency = curFreq;
 
-            for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *parameters->tx_max_retry; retryCount ++) {
+            {
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                if (replyRXS = rxs) {
+                if (rxs) {
+                    replyRXS = rxs;
                     hal->setCarrierFreq(curFreq);
                 }
             }
-
-            if (replyRXS==nullptr) {
-                LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
-                hal->setCarrierFreq(curFreq, CFTuningByFastCC);
-                for(auto retryCount = 0; replyRXS==nullptr && retryCount <= *parameters->tx_max_retry; retryCount ++) {
+            
+            {
+                if (replyRXS==nullptr) {
+                    LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
+                    hal->setCarrierFreq(curFreq, CFTuningByFastCC);
                     auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                    if (replyRXS = rxs) {
+                    if (rxs) {
+                        replyRXS = rxs;
                         hal->setCarrierFreq(curFreq);
                     }
                 }
@@ -72,7 +74,8 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                 tx_count += retryPerTx;
 
-                if (replyRXS = rxs) {
+                if (rxs) {
+                    replyRXS = rxs;
                     acked_count++;
                     continuousFailure = 0;
                     if (LoggingService::localDisplayLevel <= Debug) {
@@ -137,7 +140,6 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::t
 
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
-        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_retry_delay_us));
     }
 
     return std::make_tuple(nullptr, retryCount);
