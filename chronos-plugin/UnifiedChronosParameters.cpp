@@ -25,7 +25,7 @@ std::shared_ptr<UnifiedChronosParameters> UnifiedChronosParameters::getInstance(
 void UnifiedChronosParameters::initializeSharedParameters() {
     sharedParameters->inj_target_mac_address = AthNicParameters::magicIntel123456;
     sharedParameters->inj_mcs = 0;
-    sharedParameters->inj_sgi = 1;
+    sharedParameters->inj_sgi = 0;
     sharedParameters->inj_freq_repeat = 10;
     sharedParameters->inj_freq_step = 1e3;
     sharedParameters->inj_bw = 20;
