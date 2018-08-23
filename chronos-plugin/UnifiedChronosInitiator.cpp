@@ -161,10 +161,12 @@ void UnifiedChronosInitiator::startDaemonTask() {
 }
 
 void UnifiedChronosInitiator::blockWait() {
-    std::unique_lock<std::mutex> lock(blockMutex);
-    blockCV.wait(lock, [&]()->bool {
-        return *parameters->finishedSessionId == *parameters->workingSessionId;
-    });
+    if (*hal->parameters->workingMode == ChronosInitiator || *hal->parameters->workingMode == Injector) {
+        std::unique_lock<std::mutex> lock(blockMutex);
+        blockCV.wait(lock, [&]()->bool {
+            return *parameters->finishedSessionId == *parameters->workingSessionId;
+        });
+    }
 }
 
 std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t taskId, const ChronosPacketFrameType & frameType) const {

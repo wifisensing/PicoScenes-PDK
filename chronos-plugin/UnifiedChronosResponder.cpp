@@ -11,10 +11,10 @@ bool UnifiedChronosResponder::handle(const struct RXS_enhanced *received_rxs) {
     auto replies = this->makePacket_chronosWithACK(received_rxs);
     for(auto & reply: replies) {
         hal->transmitRawPacket(reply.get());
-        if (received_rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeRequest) {
-            for (auto i = 0; i < 100; i ++) { // send Freq Change ACK frame 1000 times to ensure the reception at the Initiator
+        if (reply->packetHeader->header_info.frameType == UnifiedChronosFreqChangeRequest) {
+            for (auto i = 0; i < 60; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
                 hal->transmitRawPacket(reply.get());
-                std::this_thread::sleep_for(std::chrono::microseconds(10));
+                // std::this_thread::sleep_for(std::chrono::microseconds(10));
             }
         }
     }
@@ -33,7 +33,18 @@ std::vector<std::shared_ptr<PacketFabricator>> UnifiedChronosResponder::makePack
     std::vector<std::shared_ptr<PacketFabricator>> fps;
     auto packetLength = *parameters->chronos_ack_maxLengthPerPacket;
 
-    do {
+    // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
+    if (rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeRequest) {
+        auto txPacketFabricator = hal->packetFabricator->makePacket_ExtraInfo();
+        txPacketFabricator->setTaskId(rxs->txHeader.header_info.taskId);
+        txPacketFabricator->setFrameType(UnifiedChronosFreqChangeACK);
+        txPacketFabricator->setTxMCS(0);
+        txPacketFabricator->setTxpower(30);
+        txPacketFabricator->setTxSGI(false);
+        txPacketFabricator->setTx40MHzBW(false);
+        txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
+        fps.emplace_back(txPacketFabricator);
+    } else do {
         curLength = (rxs->rawBufferLength - curPos) <= packetLength ? (rxs->rawBufferLength - curPos) : packetLength;
         auto txPacketFabricator = hal->packetFabricator->makePacket_chronosWithData(curLength, rxs->rawBuffer + curPos, 0);
         if (curPos + curLength < rxs->rawBufferLength) {
@@ -46,14 +57,6 @@ std::vector<std::shared_ptr<PacketFabricator>> UnifiedChronosResponder::makePack
                 rxs->chronosInfo.ackBandWidth >= 0 ? (rxs->chronosInfo.ackBandWidth == 40) : (*parameters->inj_bw == 40));
         txPacketFabricator->setTxSGI(rxs->chronosInfo.ackSGI >= 0 ? rxs->chronosInfo.ackSGI : *parameters->inj_sgi);
         txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
-
-        // Use txpower(30) and MCS(0) to boost UnifiedChronosFreqChangeRequest
-        if (rxs->txHeader.header_info.frameType == UnifiedChronosFreqChangeRequest) {
-            txPacketFabricator->setFrameType(UnifiedChronosFreqChangeACK);
-            txPacketFabricator->setTxMCS(0);
-            txPacketFabricator->setTxpower(30);
-        }
-
         fps.emplace_back(txPacketFabricator);
         curPos += curLength;
     } while(curPos < rxs->rawBufferLength);
