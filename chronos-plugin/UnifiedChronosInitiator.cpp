@@ -176,10 +176,13 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
 
-    if (parameters->inj_for_intel5300) {
+    if (parameters->inj_for_intel5300 && *parameters->inj_for_intel5300 == true) {
         fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
         fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
         fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+        hal->setTxNotSounding(true);
+    } else {
+        hal->setTxNotSounding(false);
     }
     if(parameters->inj_mcs)
         fp->setTxMCS(*parameters->inj_mcs);
