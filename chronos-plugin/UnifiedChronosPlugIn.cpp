@@ -82,11 +82,13 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
+            hal->setDefaultLoggerStatus(true);
         } else if(modeString.find("chronos-initiator") != std::string::npos) {
            hal->parameters->workingMode = ChronosInitiator;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
+            hal->setDefaultLoggerStatus(false);
         }
     }
 
@@ -206,8 +208,6 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
 }
 
 bool UnifiedChronosPlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
-    if (*hal->parameters->workingMode == ChronosInitiator || *hal->parameters->workingMode == ChronosResponder)
-        hal->plugInManager->properties.put("bypass_platform_logging", true);
     return responder->handle(rxs);
 }
 
