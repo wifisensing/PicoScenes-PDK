@@ -5,7 +5,7 @@
 #include "UnifiedChronosPlugIn.h"
 
 std::string UnifiedChronosPlugIn::pluginName() {
-    return "Unified Chronos";
+    return "Unified_Chronos";
 }
 
 std::string UnifiedChronosPlugIn::pluginDescription() {

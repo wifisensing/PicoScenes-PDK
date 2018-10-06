@@ -5,7 +5,7 @@
 #include "DemoPlugIn.h"
 
 std::string DemoPlugIn::pluginName() {
-    return "Demo PlugIn";
+    return "Demo_PlugIn";
 }
 
 std::string DemoPlugIn::pluginDescription() {

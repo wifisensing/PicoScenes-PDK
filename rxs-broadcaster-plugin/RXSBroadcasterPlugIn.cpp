@@ -5,7 +5,7 @@
 #include "RXSBroadcasterPlugIn.h"
 
 std::string RXSBroadcasterPlugIn::pluginName() {
-    return "RXS-Broadcaster";
+    return "RXS_Broadcaster";
 }
 
 std::string RXSBroadcasterPlugIn::pluginDescription() {
