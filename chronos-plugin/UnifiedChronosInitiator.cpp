@@ -41,7 +41,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             {
                 if (replyRXS==nullptr) {
                     LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
-                    hal->setCarrierFreq(curFreq, CFTuningByFastCC);
+                    hal->setCarrierFreq(curFreq);
                     auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                     if (rxs) {
                         replyRXS = rxs;
