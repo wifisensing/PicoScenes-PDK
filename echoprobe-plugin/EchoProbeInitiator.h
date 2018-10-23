@@ -2,25 +2,27 @@
 // Created by Zhiping Jiang on 10/27/17.
 //
 
-#ifndef PICOSCENES_UNIFIEDCHRONOSACTIONRULE_H
-#define PICOSCENES_UNIFIEDCHRONOSACTIONRULE_H
+#ifndef PICOSCENES_ECHOPROBEINITIATOR_H
+#define PICOSCENES_ECHOPROBEINITIATOR_H
 
 #include <unordered_map>
 #include <PicoScenes/AtherosNicHAL.h>
 #include <PicoScenes/PropertyJSONDescriptable.hxx>
-#include "UnifiedChronos.h"
-#include "UnifiedChronosParameters.h"
+#include "EchoProbe.h"
+#include "EchoProbeParameters.h"
 
 
-class UnifiedChronosInitiator : public PropertyJSONDescriptable {
+class EchoProbeInitiator : public PropertyJSONDescriptable {
 public:
-    UnifiedChronosInitiator(std::shared_ptr<AtherosNicHAL> hal): hal(hal) {}
+    EchoProbeInitiator(std::shared_ptr<AtherosNicHAL> hal): hal(hal) {}
     void startDaemonTask();
     void blockWait();
 
-    std::shared_ptr<UnifiedChronosParameters> parameters;
+    std::shared_ptr<EchoProbeParameters> parameters;
 
     void serialize() override;
+
+    void finalize();
 
 private:
     std::shared_ptr<AtherosNicHAL> hal;
@@ -28,12 +30,12 @@ private:
     std::mutex blockMutex;
 
     int daemonTask();
-    void unifiedChronosWork();
+    void unifiedEchoProbeWork();
 
     std::tuple<std::shared_ptr<struct RXS_enhanced>, int> transmitAndSyncRxUnified(
             const PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime = nullptr);
 
-    std::shared_ptr<PacketFabricator> buildPacket(uint16_t taskId, const ChronosPacketFrameType & frameType) const;
+    std::shared_ptr<PacketFabricator> buildPacket(uint16_t taskId, const EchoProbePacketFrameType & frameType) const;
 };
 
-#endif //PICOSCENES_UNIFIEDCHRONOSACTIONRULE_H
+#endif //PICOSCENES_ECHOPROBEINITIATOR_H

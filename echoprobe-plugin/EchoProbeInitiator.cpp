@@ -2,33 +2,33 @@
 // Created by Zhiping Jiang on 10/27/17.
 //
 
-#include "UnifiedChronosInitiator.h"
+#include "EchoProbeInitiator.h"
 
-void UnifiedChronosInitiator::unifiedChronosWork() {
+void EchoProbeInitiator::unifiedEchoProbeWork() {
     { // initialization if necessary
-        if (!parameters->inj_freq_begin)
-            parameters->inj_freq_begin = hal->getCarrierFreq();
-        if (!parameters->inj_freq_end)
-            parameters->inj_freq_end = parameters->inj_freq_begin;
+        if (!parameters->cf_begin)
+            parameters->cf_begin = hal->getCarrierFreq();
+        if (!parameters->cf_end)
+            parameters->cf_end = parameters->cf_begin;
     }
 
-    if (parameters->inj_delayed_start_s)
-        std::this_thread::sleep_for(std::chrono::seconds(*parameters->inj_delayed_start_s));
+    if (parameters->delayed_start_seconds)
+        std::this_thread::sleep_for(std::chrono::seconds(*parameters->delayed_start_seconds));
 
     auto total_acked_count =0, total_tx_count = 0;
-    auto freqGrowthDirection = *parameters->inj_freq_begin > *parameters->inj_freq_end;
+    auto freqGrowthDirection = *parameters->cf_begin > *parameters->cf_end;
     auto continue2Work = true;
-    for(auto curFreq = *parameters->inj_freq_begin;(freqGrowthDirection ? curFreq >= *parameters->inj_freq_end : curFreq <=*parameters->inj_freq_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->inj_freq_step)) {
-        if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == Injector) {
+    for(auto curFreq = *parameters->cf_begin;(freqGrowthDirection ? curFreq >= *parameters->cf_end : curFreq <=*parameters->cf_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->cf_step)) {
+        if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == MODE_Injector) {
             hal->setCarrierFreq(curFreq);
-            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_freq_change_us));
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
 
-        if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == ChronosInitiator) { // should initiate freq shifting work.
+        if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == MODE_EchoProbeInitiator) { // should initiate freq shifting work.
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-            auto fp = buildPacket(taskId, UnifiedChronosFreqChangeRequest);
+            auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-            fp->chronosInfo->frequency = curFreq;
+            fp->echoProbeInfo->frequency = curFreq;
 
             {
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
@@ -51,26 +51,26 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
             }
 
             if (!replyRXS) {
-                LoggingService::warning_print("Chronos Job Error: max retry times reached in frequency changing stage...\n");
+                LoggingService::warning_print("EchoProbe Job Error: max retry times reached in frequency changing stage...\n");
                 continue2Work = false;
                 break;
             } else { // successfully changed the frequency
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_freq_change_us));
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
             }
         }
 
         auto acked_count = 0, tx_count = 0, countPerDot = 0, continuousFailure = 0;
-        for(;continue2Work && acked_count < *parameters->inj_freq_repeat;) {
+        for(;continue2Work && acked_count < *parameters->cf_repeat;) {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
             std::shared_ptr<PacketFabricator> fp = nullptr;
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
 
-            if (*hal->parameters->workingMode == Injector) {
+            if (*hal->parameters->workingMode == MODE_Injector) {
                 fp = buildPacket(taskId, SimpleInjection);
                 hal->transmitRawPacket(fp.get());
                 acked_count++; // this is an ad-hoc solution, not good, but work.
-            } else if (*hal->parameters->workingMode == ChronosInitiator) {
-                fp = buildPacket(taskId, UnifiedChronosProbeRequest);
+            } else if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
+                fp = buildPacket(taskId, EchoProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                 tx_count += retryPerTx;
 
@@ -102,13 +102,13 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
                     if (++continuousFailure > *parameters->tx_max_retry) {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
-                        LoggingService::warning_printf("Chronos Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
+                        LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", curFreq);
                         break;
                     }
                 }
             }
-            if (parameters->inj_delay_us)
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->inj_delay_us));
+            if (parameters->tx_delay_us)
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
         }
 
         total_acked_count += acked_count;
@@ -116,7 +116,7 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
 
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
-            LoggingService::trace_print("Chronos in {}Hz, tx = {}, acked = {}, success rate = {}\%.\n", curFreq, tx_count, acked_count, 100.0 * acked_count / tx_count);
+            LoggingService::trace_print("EchoProbe in {}Hz, tx = {}, acked = {}, success rate = {}\%.\n", curFreq, tx_count, acked_count, 100.0 * acked_count / tx_count);
         }
 
     }
@@ -129,14 +129,14 @@ void UnifiedChronosInitiator::unifiedChronosWork() {
     blockCV.notify_all();
 }
 
-std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::transmitAndSyncRxUnified(
+std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transmitAndSyncRxUnified(
         const PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime) {
     std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
     while(retryCount++ < *parameters->tx_max_retry) {
         hal->transmitRawPacket(packetFabricator, txTime);
-        replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->chronos_timeout_us);
+        replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->timeout_us);
 
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
@@ -145,23 +145,23 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> UnifiedChronosInitiator::t
     return std::make_tuple(nullptr, retryCount);
 }
 
-int UnifiedChronosInitiator::daemonTask() {
+int EchoProbeInitiator::daemonTask() {
     while(true) {
-        if (*parameters->workingSessionId != *parameters->finishedSessionId && (*hal->parameters->workingMode == ChronosInitiator || *hal->parameters->workingMode == Injector)) {
-            unifiedChronosWork();
+        if (*parameters->workingSessionId != *parameters->finishedSessionId && (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector)) {
+            unifiedEchoProbeWork();
         }
         std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 }
 
-void UnifiedChronosInitiator::startDaemonTask() {
+void EchoProbeInitiator::startDaemonTask() {
     ThreadPoolSingleton::getInstance().AddJob([this] {
         this->daemonTask();
     });
 }
 
-void UnifiedChronosInitiator::blockWait() {
-    if (*hal->parameters->workingMode == ChronosInitiator || *hal->parameters->workingMode == Injector) {
+void EchoProbeInitiator::blockWait() {
+    if (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector) {
         std::unique_lock<std::mutex> lock(blockMutex);
         blockCV.wait(lock, [&]()->bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
@@ -169,7 +169,7 @@ void UnifiedChronosInitiator::blockWait() {
     }
 }
 
-std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t taskId, const ChronosPacketFrameType & frameType) const {
+std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskId, const EchoProbePacketFrameType & frameType) const {
     auto fp= hal->packetFabricator->makePacket_ExtraInfo();
     
     fp->setTaskId(taskId);
@@ -184,25 +184,25 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
     } else {
         hal->setTxNotSounding(false);
     }
-    if(parameters->inj_mcs)
-        fp->setTxMCS(*parameters->inj_mcs);
-    if(parameters->inj_bw)
-        fp->setTx40MHzBW((*parameters->inj_bw == 40 ? true : false));
+    if(parameters->mcs)
+        fp->setTxMCS(*parameters->mcs);
+    if(parameters->bw)
+        fp->setTx40MHzBW((*parameters->bw == 40 ? true : false));
     if(hal->parameters->tx_power)
         fp->setTxpower(*hal->parameters->tx_power);
-    if(parameters->inj_sgi)
-        fp->setTxSGI(*parameters->inj_sgi == 1 ? true : false);
+    if(parameters->sgi)
+        fp->setTxSGI(*parameters->sgi == 1 ? true : false);
 
-    if (*hal->parameters->workingMode == ChronosInitiator) {
-        fp->addChronosInfoWithData(0, nullptr, 0);
-        if(parameters->chronos_ack_mcs)
-            fp->chronosInfo->ackMCS = *parameters->chronos_ack_mcs;
-        if(parameters->chronos_ack_bw)
-            fp->chronosInfo->ackBandWidth = *parameters->chronos_ack_bw;
-        if(parameters->chronos_ack_sgi)
-            fp->chronosInfo->ackSGI = *parameters->chronos_ack_sgi;
+    if (*hal->parameters->workingMode == MODE_EchoProbeResponder) {
+        fp->addEchoProbeInfoWithData(0, nullptr, 0);
+        if(parameters->ack_mcs)
+            fp->echoProbeInfo->ackMCS = *parameters->ack_mcs;
+        if(parameters->ack_bw)
+            fp->echoProbeInfo->ackBandWidth = *parameters->ack_bw;
+        if(parameters->ack_sgi)
+            fp->echoProbeInfo->ackSGI = *parameters->ack_sgi;
 
-        if (frameType == UnifiedChronosFreqChangeRequest) {
+        if (frameType == EchoProbeFreqChangeRequest) {
             fp->setTxMCS(0);
             fp->setTxpower(30);
             fp->setTxSGI(false);
@@ -213,38 +213,38 @@ std::shared_ptr<PacketFabricator> UnifiedChronosInitiator::buildPacket(uint16_t 
     return fp;
 }
 
-void UnifiedChronosInitiator::serialize() {
+void EchoProbeInitiator::serialize() {
     propertyDescriptionTree.clear();
-    if (parameters->inj_delay_us) {
-        propertyDescriptionTree.put("delay", *parameters->inj_delay_us);
+    if (parameters->tx_delay_us) {
+        propertyDescriptionTree.put("delay", *parameters->tx_delay_us);
     }
 
-    if (parameters->inj_mcs) {
-        propertyDescriptionTree.put("mcs", *parameters->inj_mcs);
+    if (parameters->mcs) {
+        propertyDescriptionTree.put("mcs", *parameters->mcs);
     }
 
-    if (parameters->inj_bw) {
-        propertyDescriptionTree.put("bw", *parameters->inj_bw);
+    if (parameters->bw) {
+        propertyDescriptionTree.put("bw", *parameters->bw);
     }
 
-    if (parameters->inj_sgi) {
-        propertyDescriptionTree.put("sgi", *parameters->inj_sgi);
+    if (parameters->sgi) {
+        propertyDescriptionTree.put("sgi", *parameters->sgi);
     }
 
-    if (parameters->inj_freq_begin) {
-        propertyDescriptionTree.put("freq-begin", *parameters->inj_freq_begin);
+    if (parameters->cf_begin) {
+        propertyDescriptionTree.put("freq-begin", *parameters->cf_begin);
     }
 
-    if (parameters->inj_freq_end) {
-        propertyDescriptionTree.put("freq-end", *parameters->inj_freq_end);
+    if (parameters->cf_end) {
+        propertyDescriptionTree.put("freq-end", *parameters->cf_end);
     }
 
-    if (parameters->inj_freq_step) {
-        propertyDescriptionTree.put("freq-step", *parameters->inj_freq_step);
+    if (parameters->cf_step) {
+        propertyDescriptionTree.put("freq-step", *parameters->cf_step);
     }
 
-    if (parameters->inj_freq_repeat) {
-        propertyDescriptionTree.put("freq-repeat", *parameters->inj_freq_repeat);
+    if (parameters->cf_repeat) {
+        propertyDescriptionTree.put("freq-repeat", *parameters->cf_repeat);
     }
 
     if (parameters->inj_target_interface) {
@@ -259,19 +259,22 @@ void UnifiedChronosInitiator::serialize() {
         propertyDescriptionTree.put("target-intel5300", *parameters->inj_for_intel5300);
     }
 
-    if (parameters->inj_delayed_start_s) {
-        propertyDescriptionTree.put("delay-start", *parameters->inj_delayed_start_s);
+    if (parameters->delayed_start_seconds) {
+        propertyDescriptionTree.put("delay-start", *parameters->delayed_start_seconds);
     }
 
-    if (parameters->chronos_ack_mcs) {
-        propertyDescriptionTree.put("ack-mcs", *parameters->chronos_ack_mcs);
+    if (parameters->ack_mcs) {
+        propertyDescriptionTree.put("ack-mcs", *parameters->ack_mcs);
     }
 
-    if (parameters->chronos_ack_bw) {
-        propertyDescriptionTree.put("ack-bw", *parameters->chronos_ack_bw);
+    if (parameters->ack_bw) {
+        propertyDescriptionTree.put("ack-bw", *parameters->ack_bw);
     }
 
-    if (parameters->chronos_ack_sgi) {
-        propertyDescriptionTree.put("ack-sgi", *parameters->chronos_ack_sgi);
+    if (parameters->ack_sgi) {
+        propertyDescriptionTree.put("ack-sgi", *parameters->ack_sgi);
     }
+}
+
+void EchoProbeInitiator::finalize() {
 }

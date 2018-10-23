@@ -20,7 +20,7 @@ INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # make plug-ins
 add_subdirectory(plugin-demo)
-add_subdirectory(chronos-plugin)
+add_subdirectory(echoprobe-plugin)
 add_subdirectory(rxs-broadcaster-plugin)
 
 # include CPack settings

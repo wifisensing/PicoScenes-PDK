@@ -2,24 +2,24 @@
 // Created by Zhiping Jiang on 11/18/17.
 //
 
-#include "UnifiedChronosPlugIn.h"
+#include "EchoProbePlugIn.h"
 
-std::string UnifiedChronosPlugIn::pluginName() {
-    return "Unified_Chronos";
+std::string EchoProbePlugIn::pluginName() {
+    return "Echo_Probe";
 }
 
-std::string UnifiedChronosPlugIn::pluginDescription() {
+std::string EchoProbePlugIn::pluginDescription() {
     return "Round-Trip Measurement";
 }
 
-std::string UnifiedChronosPlugIn::pluginStatus() {
+std::string EchoProbePlugIn::pluginStatus() {
     return "";
 }
 
-void UnifiedChronosPlugIn::initialization() {
-    initiator = std::make_shared<UnifiedChronosInitiator>(hal);
-    responder = std::make_shared<UnifiedChronosResponder>(hal);
-    parameters = UnifiedChronosParameters::getInstance(hal->phyId);
+void EchoProbePlugIn::initialization() {
+    initiator = std::make_shared<EchoProbeInitiator>(hal);
+    responder = std::make_shared<EchoProbeResponder>(hal);
+    parameters = EchoProbeParameters::getInstance(hal->phyId);
 
     initiator->parameters = parameters;
     responder->parameters = parameters;
@@ -42,29 +42,29 @@ void UnifiedChronosPlugIn::initialization() {
             ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]");
 
-    chronosOptions = std::make_shared<po::options_description>("Chronos(Injection and Reply) Options");
-    chronosOptions->add_options()
-            ("ack-mcs",  po::value<uint32_t>(), "mcs value for Chronos ACK [0-23], unspecified as default")
-            ("ack-bw", po::value<uint32_t>(), "bandwidth for Chronos ACK(unit in MHz) [20, 40], unspecified as default")
-            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for Chronos ACK [1 for on, 0 for off], unspecified as default");
+    echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
+    echoOptions->add_options()
+            ("ack-mcs",  po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
+            ("ack-bw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40], unspecified as default")
+            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
 
-    unifiedChronosOptions = std::make_shared<program_options::options_description>("Chronos(Injection and Reply) Options");
-    unifiedChronosOptions->add_options()
+    echoProbeOptions = std::make_shared<program_options::options_description>("Echo Probe Options");
+    echoProbeOptions->add_options()
             ("mode", po::value<std::string>(), "Working mode [injector, chronos-responder, chronos-injector]");
-    unifiedChronosOptions->add(*injectionOptions).add(*chronosOptions);
+    echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
 
-std::shared_ptr<program_options::options_description> UnifiedChronosPlugIn::pluginOptionsDescription() {
-    return unifiedChronosOptions;
+std::shared_ptr<program_options::options_description> EchoProbePlugIn::pluginOptionsDescription() {
+    return echoProbeOptions;
 }
 
-bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
+bool EchoProbePlugIn::handleCommandString(std::string commandString) {
     po::variables_map vm;
     auto style = pos::allow_long | pos::allow_dash_for_short |
             pos::long_allow_adjacent | pos::long_allow_next |
             pos::short_allow_adjacent | pos::short_allow_next;
 
-    po::store(po::command_line_parser(po::split_unix(commandString)).options(*unifiedChronosOptions).style(style).allow_unregistered().run(), vm);
+    po::store(po::command_line_parser(po::split_unix(commandString)).options(*echoProbeOptions).style(style).allow_unregistered().run(), vm);
     po::notify(vm);
 
     if(vm.count("mode")) {
@@ -73,18 +73,18 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
         boost::trim(modeString);
 
         if(modeString.find("injector") != std::string::npos) {
-           hal->parameters->workingMode = Injector;
+           hal->parameters->workingMode = MODE_Injector;
             hal->setRxChainStatus(false);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
-        } else if(modeString.find("chronos-responder") != std::string::npos) {
-           hal->parameters->workingMode = ChronosResponder;
+        } else if(modeString.find("responder") != std::string::npos) {
+           hal->parameters->workingMode = MODE_EchoProbeResponder;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
             hal->setDefaultLoggerStatus(true);
-        } else if(modeString.find("chronos-initiator") != std::string::npos) {
-           hal->parameters->workingMode = ChronosInitiator;
+        } else if(modeString.find("initiator") != std::string::npos) {
+           hal->parameters->workingMode = MODE_EchoProbeInitiator;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
@@ -124,79 +124,79 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("freq-begin")) {
-       parameters->inj_freq_begin = boost::lexical_cast<double>(vm["freq-begin"].as<std::string>());
+       parameters->cf_begin = boost::lexical_cast<double>(vm["freq-begin"].as<std::string>());
     }
 
     if (vm.count("freq-end")) {
-       parameters->inj_freq_end = boost::lexical_cast<double>(vm["freq-end"].as<std::string>());
+       parameters->cf_end = boost::lexical_cast<double>(vm["freq-end"].as<std::string>());
     }
 
     if (vm.count("freq-step")) {
-       parameters->inj_freq_step = boost::lexical_cast<double>(vm["freq-step"].as<std::string>());
+       parameters->cf_step = boost::lexical_cast<double>(vm["freq-step"].as<std::string>());
     }
 
     if (vm.count("repeat")) {
-       parameters->inj_freq_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
+       parameters->cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
     }
 
     if (vm.count("delay")) {
-       parameters->inj_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
+       parameters->tx_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
     }
 
     if (vm.count("delayed-start")) {
-        parameters->inj_delayed_start_s = vm["delayed-start"].as<uint32_t>();
+        parameters->delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
     }
 
     if (vm.count("bw")) {
         auto bwValue = vm["bw"].as<uint32_t>();
         if (bwValue == 20) {
-            parameters->inj_bw = 20;
+            parameters->bw = 20;
         } else if (bwValue == 40) {
-            parameters->inj_bw = 40;
+            parameters->bw = 40;
         } else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid bandwith value: {}.\n", bwValue));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid bandwith value: {}.\n", bwValue));
     }
 
     if (vm.count("sgi")) {
         auto sgi = vm["sgi"].as<uint32_t>();
         if (sgi == 1 || sgi == 0)
-            parameters->inj_sgi = sgi;
+            parameters->sgi = sgi;
         else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid SGI value: {}.\n", sgi));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid SGI value: {}.\n", sgi));
     }
 
     if (vm.count("mcs")) {
         auto mcs = vm["mcs"].as<uint32_t>();
         if (mcs < 23)
-            parameters->inj_mcs = mcs;
+            parameters->mcs = mcs;
         else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid MCS value: {}.\n", mcs));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
     }
 
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
         if (mcsValue <=23) {
-            parameters->chronos_ack_mcs = mcsValue;
+            parameters->ack_mcs = mcsValue;
         } else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
     }
 
     if (vm.count("ack-bw")) {
         auto ack_bw = vm["ack-bw"].as<uint32_t>();
         if (ack_bw == 20) {
-           parameters->chronos_ack_bw = 20;
+           parameters->ack_bw = 20;
         } else if (ack_bw == 40) {
-           parameters->chronos_ack_bw = 40;
+           parameters->ack_bw = 40;
         } else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
     }
 
     if (vm.count("ack-sgi")) {
         auto sgi = vm["ack-sgi"].as<uint32_t>();
         if (sgi == 1 || sgi == 0)
-            parameters->chronos_ack_sgi = sgi;
+            parameters->ack_sgi = sgi;
         else 
-            throw std::invalid_argument(fmt::format("[Chronos Plugin]: invalid SGI value: {}.\n", sgi));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid SGI value: {}.\n", sgi));
     }
 
     if (vm.size() > 0)
@@ -207,12 +207,16 @@ bool UnifiedChronosPlugIn::handleCommandString(std::string commandString) {
     return false;
 }
 
-bool UnifiedChronosPlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
+bool EchoProbePlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
     return responder->handle(rxs);
 }
 
-void UnifiedChronosPlugIn::serialize() {
+void EchoProbePlugIn::serialize() {
     propertyDescriptionTree.clear();
     propertyDescriptionTree.add_child("initiator", initiator->getBoostPropertyTree());
     propertyDescriptionTree.add_child("responder", responder->getBoostPropertyTree());
+}
+
+void EchoProbePlugIn::finalize() {
+
 }
