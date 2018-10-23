@@ -16,7 +16,7 @@ class EchoProbeParameters {
 public:
     static std::shared_ptr<EchoProbeParameters> sharedParameters;
     static std::shared_ptr<EchoProbeParameters> getInstance(const std::string &phyId);
-
+    bool continue2Work = false;
     std::optional<uint64_t> workingSessionId;
     std::optional<uint64_t> finishedSessionId;
     std::optional<std::string> inj_target_interface;

@@ -17,7 +17,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     auto total_acked_count =0, total_tx_count = 0;
     auto freqGrowthDirection = *parameters->cf_begin > *parameters->cf_end;
-    auto continue2Work = true;
+    parameters->continue2Work = true;
     for(auto curFreq = *parameters->cf_begin;(freqGrowthDirection ? curFreq >= *parameters->cf_end : curFreq <=*parameters->cf_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->cf_step)) {
         if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == MODE_Injector) {
             hal->setCarrierFreq(curFreq);
@@ -52,7 +52,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             if (!replyRXS) {
                 LoggingService::warning_print("EchoProbe Job Error: max retry times reached in frequency changing stage...\n");
-                continue2Work = false;
+                parameters->continue2Work = false;
                 break;
             } else { // successfully changed the frequency
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -60,7 +60,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         }
 
         auto acked_count = 0, tx_count = 0, countPerDot = 0, continuousFailure = 0;
-        for(;continue2Work && acked_count < *parameters->cf_repeat;) {
+        for(;parameters->continue2Work && acked_count < *parameters->cf_repeat;) {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
             std::shared_ptr<PacketFabricator> fp = nullptr;
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
@@ -162,7 +162,7 @@ void EchoProbeInitiator::startDaemonTask() {
 
 void EchoProbeInitiator::blockWait() {
     if (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector) {
-        std::unique_lock<std::mutex> lock(blockMutex);
+        std::shared_lock<std::shared_mutex> lock(blockMutex);
         blockCV.wait(lock, [&]()->bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
         });
@@ -277,4 +277,12 @@ void EchoProbeInitiator::serialize() {
 }
 
 void EchoProbeInitiator::finalize() {
+    if (*parameters->workingSessionId != *parameters->finishedSessionId) {
+        parameters->continue2Work = false;
+        //std::this_thread::sleep_for(std::chrono::microseconds(5000 + *parameters->tx_delay_us));
+        std::shared_lock<std::shared_mutex> lock(blockMutex);
+        ctrlCCV.wait(lock, [&]()->bool {
+            return *parameters->finishedSessionId == *parameters->workingSessionId;
+        });
+    }
 }

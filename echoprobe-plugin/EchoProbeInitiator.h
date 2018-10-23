@@ -6,6 +6,7 @@
 #define PICOSCENES_ECHOPROBEINITIATOR_H
 
 #include <unordered_map>
+#include <shared_mutex>
 #include <PicoScenes/AtherosNicHAL.h>
 #include <PicoScenes/PropertyJSONDescriptable.hxx>
 #include "EchoProbe.h"
@@ -26,8 +27,9 @@ public:
 
 private:
     std::shared_ptr<AtherosNicHAL> hal;
-    std::condition_variable blockCV;
-    std::mutex blockMutex;
+    std::condition_variable_any blockCV;
+    std::condition_variable_any ctrlCCV;
+    std::shared_mutex blockMutex;
 
     int daemonTask();
     void unifiedEchoProbeWork();
