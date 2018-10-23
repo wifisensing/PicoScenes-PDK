@@ -50,7 +50,7 @@ void EchoProbePlugIn::initialization() {
 
     echoProbeOptions = std::make_shared<program_options::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
-            ("mode", po::value<std::string>(), "Working mode [injector, chronos-responder, chronos-injector]");
+            ("mode", po::value<std::string>(), "Working mode [injector, initiator, responder]");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
 

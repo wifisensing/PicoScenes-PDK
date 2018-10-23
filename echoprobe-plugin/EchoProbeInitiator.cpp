@@ -193,7 +193,7 @@ std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskI
     if(parameters->sgi)
         fp->setTxSGI(*parameters->sgi == 1 ? true : false);
 
-    if (*hal->parameters->workingMode == MODE_EchoProbeResponder) {
+    if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
         fp->addEchoProbeInfoWithData(0, nullptr, 0);
         if(parameters->ack_mcs)
             fp->echoProbeInfo->ackMCS = *parameters->ack_mcs;
