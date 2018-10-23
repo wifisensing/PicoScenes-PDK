@@ -18,7 +18,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto total_acked_count =0, total_tx_count = 0;
     auto freqGrowthDirection = *parameters->cf_begin > *parameters->cf_end;
     parameters->continue2Work = true;
-    for(auto curFreq = *parameters->cf_begin;(freqGrowthDirection ? curFreq >= *parameters->cf_end : curFreq <=*parameters->cf_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->cf_step)) {
+    for(auto curFreq = *parameters->cf_begin;parameters->continue2Work && (freqGrowthDirection ? curFreq >= *parameters->cf_end : curFreq <=*parameters->cf_end); curFreq += (freqGrowthDirection ? -1 : 1) * std::labs(*parameters->cf_step)) {
         if (curFreq != hal->getCarrierFreq() && *hal->parameters->workingMode == MODE_Injector) {
             hal->setCarrierFreq(curFreq);
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -59,7 +59,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             }
         }
 
-        auto acked_count = 0, tx_count = 0, countPerDot = 0, continuousFailure = 0;
+        auto acked_count = 0, tx_count = 0, continuousFailure = 0;
         for(;parameters->continue2Work && acked_count < *parameters->cf_repeat;) {
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
             std::shared_ptr<PacketFabricator> fp = nullptr;
@@ -68,7 +68,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (*hal->parameters->workingMode == MODE_Injector) {
                 fp = buildPacket(taskId, SimpleInjection);
                 hal->transmitRawPacket(fp.get());
-                printDots(tx_count++);
+                printDots(acked_count++);
             } else if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
                 fp = buildPacket(taskId, EchoProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
@@ -101,6 +101,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             }
             if (parameters->tx_delay_us)
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
+        }
+
+        if (*hal->parameters->workingMode == MODE_Injector) {
+            std::swap(acked_count, tx_count);
         }
 
         total_acked_count += acked_count;

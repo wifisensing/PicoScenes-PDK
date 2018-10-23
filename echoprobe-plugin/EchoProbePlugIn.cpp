@@ -34,8 +34,8 @@ void EchoProbePlugIn::initialization() {
             ("freq-begin", po::value<std::string>(), "The starting CF of a scan(unit in Hz, working CF as default)")
             ("freq-end", po::value<std::string>(), "The ending CF of a scan(unit in Hz, working CF as default)")
             ("freq-step", po::value<std::string>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
-            ("repeat", po::value<std::string>(), "The injection number per freq, 10 as default")
             ("freq-range", po::value<std::string>(), "MATLAB-style setting for freq-begin/end/step")
+            ("repeat", po::value<std::string>(), "The injection number per freq, 10 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
@@ -50,7 +50,7 @@ void EchoProbePlugIn::initialization() {
 
     echoProbeOptions = std::make_shared<program_options::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
-            ("mode", po::value<std::string>(), "Working mode [injector, initiator, responder]");
+            ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
 
@@ -138,6 +138,19 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
 
     if (vm.count("freq-step")) {
        parameters->cf_step = boost::lexical_cast<double>(vm["freq-step"].as<std::string>());
+    }
+
+    if (vm.count("freq-range")) {
+        auto rangeString = vm["freq-range"].as<std::string>();
+        std::vector<std::string> rangeParts;
+        std::cout<<rangeString<<std::endl;
+        boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
+        if (!rangeParts[0].empty())
+            parameters->cf_begin = boost::lexical_cast<double>(rangeParts[0]);
+        if (!rangeParts[1].empty())
+            parameters->cf_step = boost::lexical_cast<double>(rangeParts[1]);
+        if (!rangeParts[2].empty())
+            parameters->cf_end = boost::lexical_cast<double>(rangeParts[2]);
     }
 
     if (vm.count("repeat")) {
