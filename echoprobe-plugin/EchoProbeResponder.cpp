@@ -5,6 +5,15 @@
 #include "EchoProbeResponder.h"
 
 bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
+    if (*hal->parameters->workingMode == MODE_Injector || *hal->parameters->workingMode == MODE_EchoProbeInitiator)
+        return false;
+
+    if (*hal->parameters->workingMode == MODE_Logger) {
+        RXSDumper::getInstance("rx_"+hal->phyId).dumpRXS(received_rxs->rawBuffer, received_rxs->rawBufferLength);
+        return true;
+    }
+
+
     if (*hal->parameters->workingMode != MODE_EchoProbeResponder || !received_rxs->txHeader.header_info.hasEchoProbeInfo)
         return false;
 
@@ -14,7 +23,6 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         if (reply->packetHeader->header_info.frameType == EchoProbeFreqChangeRequest) {
             for (auto i = 0; i < 60; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
                 hal->transmitRawPacket(reply.get());
-                // std::this_thread::sleep_for(std::chrono::microseconds(10));
             }
         }
     }

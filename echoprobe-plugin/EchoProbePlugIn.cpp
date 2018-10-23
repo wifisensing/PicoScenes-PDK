@@ -77,8 +77,13 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             hal->setRxChainStatus(false);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
+        } else if(modeString.find("logger") != std::string::npos) {
+            hal->parameters->workingMode = MODE_Logger;
+            hal->setRxChainStatus(true);
+            hal->setTxSChainStatus(false);
+            hal->setTxChainStatus(false);
         } else if(modeString.find("responder") != std::string::npos || modeString.find("chronos-responder") != std::string::npos) {
-           hal->parameters->workingMode = MODE_EchoProbeResponder;
+            hal->parameters->workingMode = MODE_EchoProbeResponder;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
             hal->setTxSChainStatus(true);
