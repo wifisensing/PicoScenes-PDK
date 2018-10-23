@@ -68,7 +68,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (*hal->parameters->workingMode == MODE_Injector) {
                 fp = buildPacket(taskId, SimpleInjection);
                 hal->transmitRawPacket(fp.get());
-                tx_count++;
+                printDots(tx_count++);
             } else if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
                 fp = buildPacket(taskId, EchoProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
@@ -88,15 +88,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     LoggingService::detail_print("TaskId {} done!\n", taskId);
 
                     if (LoggingService::localDisplayLevel == Trace) {
-                        if (parameters->numOfPacketsPerDotDisplay && *parameters->numOfPacketsPerDotDisplay > 0) {
-                            countPerDot = ++countPerDot % *parameters->numOfPacketsPerDotDisplay;
-                            if (countPerDot == 0) {
-                                printf(".");
-                                fflush(stdout);
-                            }
-                            if (acked_count % (*parameters->numOfPacketsPerDotDisplay * 50) == 0 && acked_count > *parameters->numOfPacketsPerDotDisplay)
-                                printf("\n");
-                        }
+                        printDots(acked_count);
                     }
                 } else {
                     if (++continuousFailure > *parameters->tx_max_retry) {
@@ -283,5 +275,17 @@ void EchoProbeInitiator::finalize() {
         ctrlCCV.wait_for(lock, std::chrono::microseconds(1000 + *parameters->tx_delay_us), [&]()->bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
         });
+    }
+}
+
+void EchoProbeInitiator::printDots(int count) {
+
+    if (auto numOfPacketsPerDotDisplay = parameters->numOfPacketsPerDotDisplay.value_or(10)) {
+        if (count % numOfPacketsPerDotDisplay == 0) {
+            printf(".");
+            fflush(stdout);
+        }
+        if (count % (numOfPacketsPerDotDisplay * 50) == 0 && count > numOfPacketsPerDotDisplay)
+            printf("\n");
     }
 }

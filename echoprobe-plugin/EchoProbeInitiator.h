@@ -18,7 +18,7 @@ public:
     EchoProbeInitiator(std::shared_ptr<AtherosNicHAL> hal): hal(hal) {}
     void startDaemonTask();
     void blockWait();
-
+    void printDots(int count);
     std::shared_ptr<EchoProbeParameters> parameters;
 
     void serialize() override;
