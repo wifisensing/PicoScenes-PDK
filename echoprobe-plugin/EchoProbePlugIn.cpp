@@ -218,6 +218,6 @@ void EchoProbePlugIn::serialize() {
 }
 
 void EchoProbePlugIn::finalize() {
-    if (*hal->parameters->workingMode == MODE_EchoProbeInitiator)
+    if (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector)
         initiator->finalize();
 }

@@ -68,7 +68,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (*hal->parameters->workingMode == MODE_Injector) {
                 fp = buildPacket(taskId, SimpleInjection);
                 hal->transmitRawPacket(fp.get());
-                acked_count++; // this is an ad-hoc solution, not good, but work.
+                tx_count++;
             } else if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
                 fp = buildPacket(taskId, EchoProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
@@ -279,9 +279,8 @@ void EchoProbeInitiator::serialize() {
 void EchoProbeInitiator::finalize() {
     if (*parameters->workingSessionId != *parameters->finishedSessionId) {
         parameters->continue2Work = false;
-        //std::this_thread::sleep_for(std::chrono::microseconds(5000 + *parameters->tx_delay_us));
         std::shared_lock<std::shared_mutex> lock(blockMutex);
-        ctrlCCV.wait(lock, [&]()->bool {
+        ctrlCCV.wait_for(lock, std::chrono::microseconds(1000 + *parameters->tx_delay_us), [&]()->bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
         });
     }
