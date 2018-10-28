@@ -27,9 +27,20 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         }
     }
 
-    if (received_rxs->echoProbeInfo.frequency > 0 && hal->getCarrierFreq() != received_rxs->echoProbeInfo.frequency) {
+    if (auto cf = received_rxs->echoProbeInfo.frequency; cf > 0 && hal->getCarrierFreq() != cf) {
         std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-        hal->setCarrierFreq(received_rxs->echoProbeInfo.frequency);
+        hal->setCarrierFreq(cf);
+    }
+
+    auto pll_rate   = received_rxs->echoProbeInfo.pll_rate;
+    auto pll_refdiv = received_rxs->echoProbeInfo.pll_refdiv;
+    auto pll_clksel = received_rxs->echoProbeInfo.pll_clock_select;
+    if (pll_rate > 0 || pll_refdiv > 0 || pll_clksel > 0) {
+        pll_rate   = pll_rate   > 0 ? pll_rate   : hal->getPLLMultipler();
+        pll_refdiv = pll_refdiv > 0 ? pll_refdiv : hal->getPLLRefDiv();
+        pll_clksel = pll_clksel > 0 ? pll_clksel : hal->getPLLClockSelect();
+
+        hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
     }
 
     return true;

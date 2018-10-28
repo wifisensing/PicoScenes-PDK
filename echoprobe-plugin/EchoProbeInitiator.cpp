@@ -34,6 +34,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             fp->echoProbeInfo->pll_rate = cur_pll;
+            fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
+            fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
 
             if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                 replyRXS = rxs;
