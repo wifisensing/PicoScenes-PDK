@@ -27,10 +27,15 @@ public:
     std::optional<uint8_t>  mcs;
     std::optional<uint8_t>  bw;
     std::optional<uint8_t>  sgi;
+
     std::optional<int64_t>  cf_begin;
     std::optional<int64_t>  cf_end;
     std::optional<int64_t>  cf_step;
     std::optional<uint32_t> cf_repeat;
+
+    std::optional<int32_t>  pll_rate_begin;
+    std::optional<int32_t>  pll_rate_end;
+    std::optional<int32_t>  pll_rate_step;
 
     std::optional<uint32_t> tx_max_retry;
     std::optional<uint8_t>  ack_mcs;

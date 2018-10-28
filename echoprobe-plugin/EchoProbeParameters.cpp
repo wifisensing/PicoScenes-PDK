@@ -26,8 +26,6 @@ void EchoProbeParameters::initializeSharedParameters() {
     sharedParameters->inj_target_mac_address = AthNicParameters::magicIntel123456;
     sharedParameters->mcs = 0;
     sharedParameters->sgi = 0;
-    sharedParameters->cf_repeat = 10;
-    sharedParameters->cf_step = 1e3;
     sharedParameters->bw = 20;
     sharedParameters->tx_delay_us = 5e5;
     sharedParameters->finishedSessionId = UINT64_MAX;
