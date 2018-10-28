@@ -12,8 +12,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
     auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
     auto pll_step = parameters->pll_rate_step.value_or(0);
-    auto pll_refdiv = parameters->pll_refdiv.value_or(hal->getPLLRefDiv());
-    auto pll_clksel = parameters->pll_clksel.value_or(hal->getPLLClockSelect());
     auto cur_pll = pll_begin;
     auto pll_is_inversed_direction = pll_begin > pll_end;
 

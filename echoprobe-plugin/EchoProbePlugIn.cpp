@@ -30,14 +30,14 @@ void EchoProbePlugIn::initialization() {
     injectionOptions->add_options()
             ("target-interface", po::value<std::string>(), "PhyId of the injection target")
             ("target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
-            ("target-intel5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
-            ("freq-begin", po::value<std::string>(), "The starting CF of a scan(unit in Hz, working CF as default)")
-            ("freq-end", po::value<std::string>(), "The ending CF of a scan(unit in Hz, working CF as default)")
-            ("freq-step", po::value<std::string>(), "The freq step length for CF tuning(unit in Hz, 0 as default)")
-            ("freq-range", po::value<std::string>(), "MATLAB-style setting for freq-begin/end/step")
-            ("repeat", po::value<std::string>(), "The injection number per freq, 10 as default")
+            ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
+
+            ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
+            ("bw", po::value<std::string>(), "MATLAB-style specification for baseband PLL multipler scan range, format begin:step:end, e.g., 11:11:88")
+            ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
+
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
             ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]");
@@ -122,24 +122,12 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         }
     }
 
-    if (vm.count("target-intel5300")) {
+    if (vm.count("5300")) {
         parameters->inj_for_intel5300 = true;
     }
 
-    if (vm.count("freq-begin")) {
-       parameters->cf_begin = boost::lexical_cast<double>(vm["freq-begin"].as<std::string>());
-    }
-
-    if (vm.count("freq-end")) {
-       parameters->cf_end = boost::lexical_cast<double>(vm["freq-end"].as<std::string>());
-    }
-
-    if (vm.count("freq-step")) {
-       parameters->cf_step = boost::lexical_cast<double>(vm["freq-step"].as<std::string>());
-    }
-
-    if (vm.count("freq-range")) {
-        auto rangeString = vm["freq-range"].as<std::string>();
+    if (vm.count("cf")) {
+        auto rangeString = vm["cf"].as<std::string>();
         std::vector<std::string> rangeParts;
         std::cout<<rangeString<<std::endl;
         boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
