@@ -33,7 +33,7 @@ void EchoProbePlugIn::initialization() {
             ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
 
             ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
-            ("bw", po::value<std::string>(), "MATLAB-style specification for baseband PLL multipler scan range, format begin:step:end, e.g., 11:11:88")
+            ("pll", po::value<std::string>(), "MATLAB-style specification for baseband PLL multipler scan range, format begin:step:end, e.g., 11:11:88")
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
@@ -129,7 +129,6 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
     if (vm.count("cf")) {
         auto rangeString = vm["cf"].as<std::string>();
         std::vector<std::string> rangeParts;
-        std::cout<<rangeString<<std::endl;
         boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
         if (!rangeParts[0].empty())
             parameters->cf_begin = boost::lexical_cast<double>(rangeParts[0]);
@@ -137,6 +136,18 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->cf_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
             parameters->cf_end = boost::lexical_cast<double>(rangeParts[2]);
+    }
+
+    if (vm.count("pll")) {
+        auto rangeString = vm["pll"].as<std::string>();
+        std::vector<std::string> rangeParts;
+        boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
+        if (!rangeParts[0].empty())
+            parameters->pll_rate_begin = boost::lexical_cast<double>(rangeParts[0]);
+        if (!rangeParts[1].empty())
+            parameters->pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
+        if (!rangeParts[2].empty())
+            parameters->pll_rate_begin = boost::lexical_cast<double>(rangeParts[2]);
     }
 
     if (vm.count("repeat")) {
