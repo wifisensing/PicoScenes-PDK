@@ -147,7 +147,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         if (!rangeParts[1].empty())
             parameters->pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
-            parameters->pll_rate_begin = boost::lexical_cast<double>(rangeParts[2]);
+            parameters->pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
     }
 
     if (vm.count("repeat")) {

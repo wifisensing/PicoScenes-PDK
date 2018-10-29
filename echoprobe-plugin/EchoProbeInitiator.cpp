@@ -90,8 +90,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             }
 
             auto acked_count = 0, tx_count = 0, continuousFailure = 0;
-            for(;parameters->continue2Work && acked_count < cf_repeat;) {
-                auto taskId = uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
+            do {
+                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PacketFabricator> fp = nullptr;
                 std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
 
@@ -131,7 +131,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
                 if (parameters->tx_delay_us)
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
-            }
+
+            } while(parameters->continue2Work && acked_count < cf_repeat);
 
             if (*hal->parameters->workingMode == MODE_Injector) {
                 std::swap(acked_count, tx_count);
@@ -142,15 +143,15 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
-                LoggingService::trace_print("EchoProbe in {}Hz, tx = {}, acked = {}, success rate = {}\%.\n", cur_cf, tx_count, acked_count, 100.0 * acked_count / tx_count);
+                LoggingService::trace_print("EchoProbe in {}Hz CF @ {}Hz BW, tx = {}, acked = {}, success rate = {}\%.\n", cur_cf, hal->getPLLRate(), tx_count, acked_count, 100.0 * acked_count / tx_count);
             }
 
-            cur_cf += (cf_is_inversed_direction ? -1 : 1) * cf_step ;
+            cur_cf += (cf_is_inversed_direction ? -1 : 1) * cf_step;
         } while (parameters->continue2Work && (cf_is_inversed_direction ? cur_cf < cf_begin : cur_cf < cf_end));
 
         cur_pll += (cf_is_inversed_direction ? -1 : 1) * pll_step;
 
-    } while(parameters->continue2Work && (pll_is_inversed_direction ? cur_pll < pll_begin : cur_cf < pll_end));
+    } while(parameters->continue2Work && (pll_is_inversed_direction ? cur_pll < pll_begin : cur_pll < pll_end));
 
     if (LoggingService::localDisplayLevel == Trace) {
         LoggingService::trace_print("Job done! total_tx = {}, total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);

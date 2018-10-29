@@ -20,7 +20,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
     auto replies = this->makePacket_EchoProbeWithACK(received_rxs);
     for(auto & reply: replies) {
         hal->transmitRawPacket(reply.get());
-        if (reply->packetHeader->header_info.frameType == EchoProbeFreqChangeRequest) {
+        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
             for (auto i = 0; i < 60; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
                 hal->transmitRawPacket(reply.get());
             }
@@ -39,7 +39,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         pll_rate   = pll_rate   > 0 ? pll_rate   : hal->getPLLMultipler();
         pll_refdiv = pll_refdiv > 0 ? pll_refdiv : hal->getPLLRefDiv();
         pll_clksel = pll_clksel > 0 ? pll_clksel : hal->getPLLClockSelect();
-
+        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
     }
 
