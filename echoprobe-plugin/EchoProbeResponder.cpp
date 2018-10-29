@@ -20,12 +20,12 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
     auto replies = this->makePacket_EchoProbeWithACK(received_rxs);
     for(auto & reply: replies) {
         hal->transmitRawPacket(reply.get());
-        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
+//        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
 //            for (auto i = 0; i < 3; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
-////                std::this_thread::sleep_for(std::chrono::microseconds(100));
+//                std::this_thread::sleep_for(std::chrono::microseconds(100));
 //                hal->transmitRawPacket(reply.get());
 //            }
-        }
+//        }
     }
 
     if (auto cf = received_rxs->echoProbeInfo.frequency; cf > 0 && hal->getCarrierFreq() != cf) {
