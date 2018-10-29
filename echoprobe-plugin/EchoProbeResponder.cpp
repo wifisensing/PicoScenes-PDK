@@ -21,9 +21,10 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
     for(auto & reply: replies) {
         hal->transmitRawPacket(reply.get());
         if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-            for (auto i = 0; i < 60; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
-                hal->transmitRawPacket(reply.get());
-            }
+//            for (auto i = 0; i < 3; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
+////                std::this_thread::sleep_for(std::chrono::microseconds(100));
+//                hal->transmitRawPacket(reply.get());
+//            }
         }
     }
 
@@ -54,13 +55,13 @@ std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_Ec
 
     // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     if (rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-        auto txPacketFabricator = hal->packetFabricator->makePacket_ExtraInfo();
+        auto txPacketFabricator = hal->packetFabricator->makePacket_headerOnly();
         txPacketFabricator->setTaskId(rxs->txHeader.header_info.taskId);
         txPacketFabricator->setFrameType(EchoProbeFreqChangeACK);
         txPacketFabricator->setTxMCS(0);
-        txPacketFabricator->setTxpower(30);
+        txPacketFabricator->setTxpower(20);
         txPacketFabricator->setTxSGI(false);
-        txPacketFabricator->setTx40MHzBW(false);
+//        txPacketFabricator->setTx40MHzBW(false);
         txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
         fps.emplace_back(txPacketFabricator);
     } else do {

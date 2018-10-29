@@ -222,29 +222,24 @@ std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskI
     } else {
         hal->setTxNotSounding(false);
     }
-    if(parameters->mcs)
-        fp->setTxMCS(*parameters->mcs);
+    fp->setTxMCS(parameters->mcs.value_or(0));
     if(parameters->bw)
         fp->setTx40MHzBW((*parameters->bw == 40 ? true : false));
     if(hal->parameters->tx_power)
         fp->setTxpower(*hal->parameters->tx_power);
-    if(parameters->sgi)
-        fp->setTxSGI(*parameters->sgi == 1 ? true : false);
+        fp->setTxSGI(parameters->sgi.value_or(false));
 
     if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
         fp->addEchoProbeInfoWithData(0, nullptr, 0);
-        if(parameters->ack_mcs)
-            fp->echoProbeInfo->ackMCS = *parameters->ack_mcs;
-        if(parameters->ack_bw)
-            fp->echoProbeInfo->ackBandWidth = *parameters->ack_bw;
-        if(parameters->ack_sgi)
-            fp->echoProbeInfo->ackSGI = *parameters->ack_sgi;
+        fp->echoProbeInfo->ackMCS = parameters->ack_mcs.value_or(-1);
+        fp->echoProbeInfo->ackBandWidth = parameters->ack_bw.value_or(-1);
+        fp->echoProbeInfo->ackSGI = parameters->ack_sgi.value_or(-1);
 
         if (frameType == EchoProbeFreqChangeRequest) {
             fp->setTxMCS(0);
-            fp->setTxpower(30);
+            fp->setTxpower(20);
             fp->setTxSGI(false);
-            fp->setTx40MHzBW(false);
+//            fp->setTx40MHzBW(false);
         }
     }
 
