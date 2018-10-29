@@ -10,17 +10,18 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto workingMode = *hal->parameters->workingMode;
 
     auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
-    auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
-    auto pll_step = parameters->pll_rate_step.value_or(0);
-    auto cur_pll = pll_begin;
-    auto pll_is_inversed_direction = pll_begin > pll_end;
+    auto pll_end   = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
+    auto pll_step  = parameters->pll_rate_step.value_or(0);
+    auto cur_pll   = pll_begin;
 
-    auto cf_begin = parameters->cf_begin.value_or(hal->getCarrierFreq());
-    auto cf_end = parameters->cf_end.value_or(hal->getCarrierFreq());
-    auto cf_step = std::labs(parameters->cf_step.value_or(0));
+    auto cf_begin  = parameters->cf_begin.value_or(hal->getCarrierFreq());
+    auto cf_end    = parameters->cf_end.value_or(hal->getCarrierFreq());
+    auto cf_step   = parameters->cf_step.value_or(0);
     auto cf_repeat = parameters->cf_repeat.value_or(100);
-    auto cur_cf = cf_begin;
-    auto cf_is_inversed_direction = cf_begin > cf_end;
+    auto cur_cf    = cf_begin;
+
+    LoggingService::info_print("EchoProbe job parameters: pll--> {}:{}:{}, cf--> {}:{}:{} with {} repeat.\n",
+            pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat);
 
     parameters->continue2Work = true;
     do {
@@ -134,24 +135,26 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             } while(parameters->continue2Work && acked_count < cf_repeat);
 
-            if (*hal->parameters->workingMode == MODE_Injector) {
-                std::swap(acked_count, tx_count);
+            // tx/ack staticstics
+            {
+                if (*hal->parameters->workingMode == MODE_Injector) {
+                    std::swap(acked_count, tx_count);
+                }
+                total_acked_count += acked_count;
+                total_tx_count    += tx_count;
             }
-
-            total_acked_count += acked_count;
-            total_tx_count    += tx_count;
 
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
-                LoggingService::trace_print("EchoProbe in {}Hz CF @ {}Hz BW, tx = {}, acked = {}, success rate = {}\%.\n", cur_cf, hal->getPLLRate(), tx_count, acked_count, 100.0 * acked_count / tx_count);
+                LoggingService::trace_print("EchoProbe in {}MHz CF @ {}MHz BW, tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
             }
 
-            cur_cf += (cf_is_inversed_direction ? -1 : 1) * cf_step;
-        } while (parameters->continue2Work && (cf_is_inversed_direction ? cur_cf < cf_begin : cur_cf < cf_end));
+            cur_cf += cf_step;
+        } while (parameters->continue2Work && (cf_step < 0 ? cur_cf > cf_end + cf_step : cur_cf < cf_end + cf_step));
 
-        cur_pll += (cf_is_inversed_direction ? -1 : 1) * pll_step;
-
-    } while(parameters->continue2Work && (pll_is_inversed_direction ? cur_pll < pll_begin : cur_pll < pll_end));
+        cur_pll += pll_step;
+        cur_cf = cf_begin;
+    } while(parameters->continue2Work && (pll_step < 0 ? cur_pll > pll_end + pll_step : cur_pll < pll_end + pll_step));
 
     if (LoggingService::localDisplayLevel == Trace) {
         LoggingService::trace_print("Job done! total_tx = {}, total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
