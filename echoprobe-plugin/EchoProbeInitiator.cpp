@@ -146,7 +146,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
-                LoggingService::trace_print("EchoProbe in {}MHz CF @ {}MHz BW, tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
+                LoggingService::trace_print("EchoProbe in {}MHz f_c @ {}MHz f_s, tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
             }
 
             cur_cf += cf_step;
