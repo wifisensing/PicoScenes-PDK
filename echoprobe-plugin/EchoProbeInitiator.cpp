@@ -58,6 +58,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             }
         }
 
+        auto dumperId = fmt::sprintf("rxack_%s", hal->phyId);
+
         do {
             if (cur_cf != hal->getCarrierFreq() && workingMode == MODE_Injector) {
                 hal->setCarrierFreq(cur_cf);
@@ -115,7 +117,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
                             LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
                         }
-                        RXSDumper::getInstance("rxack_"+hal->phyId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
+                        RXSDumper::getInstance(dumperId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", taskId);
 
                         if (LoggingService::localDisplayLevel == Trace) {
@@ -146,15 +148,15 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
-                LoggingService::trace_print("EchoProbe in {}MHz f_c @ {}MHz f_s, tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
             }
+            LoggingService::info_print("EchoProbe @ cf={}MHz, bw={}MHz , tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
             cur_cf += cf_step;
         } while (parameters->continue2Work && (cf_step < 0 ? cur_cf > cf_end + cf_step : cur_cf < cf_end + cf_step));
+        RXSDumper::getInstance(dumperId).finishCurrentSession();
 
         cur_pll += pll_step;
         cur_cf = cf_begin;
-        RXSDumper::finishAllSessions();
     } while(parameters->continue2Work && (pll_step < 0 ? cur_pll > pll_end + pll_step : cur_pll < pll_end + pll_step));
 
     if (LoggingService::localDisplayLevel == Trace) {
