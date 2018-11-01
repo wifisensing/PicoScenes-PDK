@@ -154,6 +154,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
         cur_pll += pll_step;
         cur_cf = cf_begin;
+        RXSDumper::finishAllSessions();
     } while(parameters->continue2Work && (pll_step < 0 ? cur_pll > pll_end + pll_step : cur_pll < pll_end + pll_step));
 
     if (LoggingService::localDisplayLevel == Trace) {
