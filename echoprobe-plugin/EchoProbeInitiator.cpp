@@ -149,7 +149,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
             }
-            LoggingService::info_print("EchoProbe @ cf={}MHz, bw={}MHz , tx = {}, acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
+            LoggingService::info_print("EchoProbe @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
             cur_cf += cf_step;
         } while (parameters->continue2Work && (cf_step < 0 ? cur_cf > cf_end + cf_step : cur_cf < cf_end + cf_step));
@@ -160,7 +160,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     } while(parameters->continue2Work && (pll_step < 0 ? cur_pll > pll_end + pll_step : cur_pll < pll_end + pll_step));
 
     if (LoggingService::localDisplayLevel == Trace) {
-        LoggingService::trace_print("Job done! total_tx = {}, total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
+        LoggingService::trace_print("Job done! #.total_tx = {}, #.total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
     }
 
     parameters->finishedSessionId = *parameters->workingSessionId;
