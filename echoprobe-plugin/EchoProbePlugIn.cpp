@@ -76,7 +76,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
            hal->parameters->workingMode = MODE_Injector;
             hal->setRxChainStatus(false);
             hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(true);
+            hal->setTxSChainStatus(false);
         } else if(modeString.find("logger") != std::string::npos) {
             hal->parameters->workingMode = MODE_Logger;
             hal->setRxChainStatus(true);
@@ -86,12 +86,12 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             hal->parameters->workingMode = MODE_EchoProbeResponder;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(true);
+            hal->setTxSChainStatus(false);
         } else if(modeString.find("initiator") != std::string::npos || modeString.find("chronos-initiator") != std::string::npos) {
            hal->parameters->workingMode = MODE_EchoProbeInitiator;
             hal->setRxChainStatus(true);
             hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(true);
+            hal->setTxSChainStatus(false);
         }
     }
 
