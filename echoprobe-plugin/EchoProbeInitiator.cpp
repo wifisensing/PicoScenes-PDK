@@ -100,7 +100,22 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
                 if (workingMode == MODE_Injector) {
                     fp = buildPacket(taskId, SimpleInjection);
-                    hal->transmitRawPacket(fp.get());
+                    if (parameters->inj_for_intel5300.value_or(false) == true) {
+                        hal->setTxNotSounding(false);
+                        hal->transmitRawPacket(fp.get());
+
+                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
+
+                        fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+                        fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
+                        fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+                        hal->setTxNotSounding(true);
+                        hal->transmitRawPacket(fp.get());
+                    } else {
+                        hal->setTxNotSounding(false);
+                        hal->transmitRawPacket(fp.get());
+                    }
+
                     printDots(acked_count++);
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildPacket(taskId, EchoProbeRequest);
@@ -168,12 +183,37 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 }
 
 std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transmitAndSyncRxUnified(
-        const PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime) {
+        PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime) {
     std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
+    uint8_t	 origin_addr1[6], origin_addr2[6], origin_addr3[6];
+    memcpy(origin_addr1, packetFabricator->packetHeader->addr1, 6);
+    memcpy(origin_addr2, packetFabricator->packetHeader->addr2, 6);
+    memcpy(origin_addr3, packetFabricator->packetHeader->addr3, 6);
+
     while(retryCount++ < *parameters->tx_max_retry) {
-        hal->transmitRawPacket(packetFabricator, txTime);
+
+        if (parameters->inj_for_intel5300.value_or(false) == true) {
+
+            hal->setTxNotSounding(false);
+            packetFabricator->setDestinationAddress(origin_addr1);
+            packetFabricator->setSourceAddress(origin_addr2);
+            packetFabricator->set3rdAddress(origin_addr3);
+            hal->transmitRawPacket(packetFabricator, txTime);
+
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
+            hal->setTxNotSounding(true);
+            packetFabricator->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+            packetFabricator->setSourceAddress(AthNicParameters::magicIntel123456.data());
+            packetFabricator->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+            hal->transmitRawPacket(packetFabricator, txTime);
+
+        } else {
+            hal->setTxNotSounding(false);
+            hal->transmitRawPacket(packetFabricator, txTime);
+        }
+
         replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->timeout_us);
 
         if (replyRXS)
@@ -216,15 +256,6 @@ std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskI
     fp->setTaskId(taskId);
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
-
-    if (parameters->inj_for_intel5300 && *parameters->inj_for_intel5300 == true) {
-        fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
-        fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
-        fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
-        hal->setTxNotSounding(true);
-    } else {
-        hal->setTxNotSounding(false);
-    }
     fp->setTxMCS(parameters->mcs.value_or(0));
     if(parameters->bw)
         fp->setTx40MHzBW((*parameters->bw == 40 ? true : false));

@@ -35,7 +35,7 @@ private:
     void unifiedEchoProbeWork();
 
     std::tuple<std::shared_ptr<struct RXS_enhanced>, int> transmitAndSyncRxUnified(
-            const PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime = nullptr);
+            PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime = nullptr);
 
     std::shared_ptr<PacketFabricator> buildPacket(uint16_t taskId, const EchoProbePacketFrameType & frameType) const;
 };
