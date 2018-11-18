@@ -214,9 +214,8 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
             hal->setTxNotSounding(false);
             hal->transmitRawPacket(packetFabricator, txTime);
         }
-
+        
         replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->timeout_us);
-
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
     }
