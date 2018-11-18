@@ -81,6 +81,10 @@ std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_Ec
         curPos += curLength;
     } while(curPos < rxs->rawBufferLength);
 
+    auto segmentHeadSeq = fps[0]->packetHeader->seq;
+    for (auto & fabricator: fps)
+        fabricator->packetHeader->segment_head_seq = segmentHeadSeq;
+
     return fps;
 }
 
