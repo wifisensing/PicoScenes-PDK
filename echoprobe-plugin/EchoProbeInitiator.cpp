@@ -210,6 +210,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
             hal->transmitRawPacket(packetFabricator, txTime);
 
         } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
             hal->setTxNotSounding(false);
             hal->transmitRawPacket(packetFabricator, txTime);
         }
