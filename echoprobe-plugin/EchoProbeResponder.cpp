@@ -19,7 +19,29 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
 
     auto replies = this->makePacket_EchoProbeWithACK(received_rxs);
     for(auto & reply: replies) {
-        hal->transmitRawPacket(reply.get());
+
+        if (parameters->inj_for_intel5300.value_or(false) == true) {
+            if (hal->isAR9300) {
+                hal->setTxNotSounding(false);
+                hal->transmitRawPacket(reply.get());
+
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+            }
+            hal->setTxNotSounding(true);
+            reply->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+            reply->setSourceAddress(AthNicParameters::magicIntel123456.data());
+            reply->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+            hal->transmitRawPacket(reply.get());
+        } else {
+            hal->setTxNotSounding(false);
+            if (hal->isAR9300 == false) {
+                reply->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+                reply->setSourceAddress(AthNicParameters::magicIntel123456.data());
+                reply->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+            }
+            hal->transmitRawPacket(reply.get());
+        }
+
 //        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
 //            for (auto i = 0; i < 3; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
 //                std::this_thread::sleep_for(std::chrono::microseconds(100));
