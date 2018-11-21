@@ -101,11 +101,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 if (workingMode == MODE_Injector) {
                     fp = buildPacket(taskId, SimpleInjection);
                     if (parameters->inj_for_intel5300.value_or(false) == true) {
-                        hal->setTxNotSounding(false);
-                        hal->transmitRawPacket(fp.get());
+                        if (hal->isAR9300) {
+                            hal->setTxNotSounding(false);
+                            hal->transmitRawPacket(fp.get());
 
-                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-
+                            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+                        }
                         hal->setTxNotSounding(true);
                         fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
                         fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
@@ -113,6 +114,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         hal->transmitRawPacket(fp.get());
                     } else {
                         hal->setTxNotSounding(false);
+                        if (hal->isAR9300 == false) {
+                            fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+                            fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
+                            fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+                        }
                         hal->transmitRawPacket(fp.get());
                     }
 
@@ -194,14 +200,16 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
 
     while(retryCount++ < *parameters->tx_max_retry) {
 
-        if (parameters->inj_for_intel5300.value_or(false) == true) {
-            hal->setTxNotSounding(false);
-            packetFabricator->setDestinationAddress(origin_addr1);
-            packetFabricator->setSourceAddress(origin_addr2);
-            packetFabricator->set3rdAddress(origin_addr3);
-            hal->transmitRawPacket(packetFabricator, txTime);
+        if (parameters->inj_for_intel5300.value_or(false) == true && hal->isAR9300) {
+            if (hal->isAR9300) {
+                hal->setTxNotSounding(false);
+                packetFabricator->setDestinationAddress(origin_addr1);
+                packetFabricator->setSourceAddress(origin_addr2);
+                packetFabricator->set3rdAddress(origin_addr3);
+                hal->transmitRawPacket(packetFabricator, txTime);
 
-            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+            }
 
             hal->setTxNotSounding(true);
             packetFabricator->setDestinationAddress(AthNicParameters::magicIntel123456.data());
@@ -210,6 +218,11 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
             hal->transmitRawPacket(packetFabricator, txTime);
         } else {
             hal->setTxNotSounding(false);
+            if (hal->isAR9300 == false) {
+                packetFabricator->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+                packetFabricator->setSourceAddress(AthNicParameters::magicIntel123456.data());
+                packetFabricator->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+            }
             hal->transmitRawPacket(packetFabricator, txTime);
         }
         
