@@ -200,7 +200,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
 
     while(retryCount++ < *parameters->tx_max_retry) {
 
-        if (parameters->inj_for_intel5300.value_or(false) == true && hal->isAR9300) {
+        if (parameters->inj_for_intel5300.value_or(false) == true) {
             if (hal->isAR9300) {
                 hal->setTxNotSounding(false);
                 packetFabricator->setDestinationAddress(origin_addr1);
