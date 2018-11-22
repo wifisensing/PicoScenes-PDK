@@ -40,7 +40,9 @@ void EchoProbePlugIn::initialization() {
 
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
             ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
-            ("mcs", po::value<uint32_t>(), "mcs value [0-23]");
+            ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
+            ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)")
+            ("dup", "Enable 20MHz channel duplication in HT40+/- mode (Intel 5300AGN Only)");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -186,6 +188,14 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->mcs = mcs;
         else 
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
+    }
+
+    if (vm.count("gf")) {
+        parameters->inj_5300_gf = true;
+    }
+
+    if (vm.count("dup")) {
+        parameters->inj_5300_duplication = true;
     }
 
     if (vm.count("ack-mcs")) {

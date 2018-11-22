@@ -22,6 +22,8 @@ public:
     std::optional<std::string> inj_target_interface;
     std::optional<std::array<uint8_t, 6>> inj_target_mac_address;
     std::optional<bool>     inj_for_intel5300;
+    std::optional<bool>     inj_5300_gf;
+    std::optional<bool>     inj_5300_duplication;
     std::optional<uint32_t> tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
     std::optional<uint8_t>  mcs;
