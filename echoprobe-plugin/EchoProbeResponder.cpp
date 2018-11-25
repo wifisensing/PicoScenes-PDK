@@ -98,6 +98,8 @@ std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_Ec
         txPacketFabricator->setTx40MHzBW(
                 rxs->echoProbeInfo.ackBandWidth >= 0 ? (rxs->echoProbeInfo.ackBandWidth == 40) : (*parameters->bw == 40));
         txPacketFabricator->setTxSGI(rxs->echoProbeInfo.ackSGI >= 0 ? rxs->echoProbeInfo.ackSGI : *parameters->sgi);
+        txPacketFabricator->setTxGreenField(parameters->inj_5300_gf.value_or(false));
+        txPacketFabricator->setTxDuplicationOn40MHz(parameters->inj_5300_duplication.value_or(false));
         txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
         fps.emplace_back(txPacketFabricator);
         curPos += curLength;

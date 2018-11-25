@@ -270,6 +270,8 @@ std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskI
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
     fp->setTxMCS(parameters->mcs.value_or(0));
+    fp->setTxGreenField(parameters->inj_5300_gf.value_or(false));
+    fp->setTxDuplicationOn40MHz(parameters->inj_5300_duplication.value_or(false));
     if(parameters->bw)
         fp->setTx40MHzBW((*parameters->bw == 40 ? true : false));
     if(hal->parameters->tx_power)
