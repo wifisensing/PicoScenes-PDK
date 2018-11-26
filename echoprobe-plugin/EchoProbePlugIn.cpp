@@ -39,7 +39,7 @@ void EchoProbePlugIn::initialization() {
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
 
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
-            ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
+            ("sgi", "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
             ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)")
             ("dup", "Enable 20MHz channel duplication in HT40+/- mode (Intel 5300AGN Only)");
@@ -48,7 +48,7 @@ void EchoProbePlugIn::initialization() {
     echoOptions->add_options()
             ("ack-mcs",  po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
             ("ack-bw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40], unspecified as default")
-            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
+            ("ack-sgi", "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
 
     echoProbeOptions = std::make_shared<program_options::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
@@ -175,11 +175,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("sgi")) {
-        auto sgi = vm["sgi"].as<uint32_t>();
-        if (sgi == 1 || sgi == 0)
-            parameters->sgi = sgi;
-        else 
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid SGI value: {}.\n", sgi));
+        parameters->sgi = 1;
     }
 
     if (vm.count("mcs")) {
@@ -217,11 +213,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("ack-sgi")) {
-        auto sgi = vm["ack-sgi"].as<uint32_t>();
-        if (sgi == 1 || sgi == 0)
-            parameters->ack_sgi = sgi;
-        else 
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid SGI value: {}.\n", sgi));
+        parameters->ack_sgi = 1;
     }
 
     if (vm.size() > 0)
