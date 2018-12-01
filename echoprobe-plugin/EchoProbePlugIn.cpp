@@ -138,6 +138,14 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->cf_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
             parameters->cf_end = boost::lexical_cast<double>(rangeParts[2]);
+
+        if (hal->isAR9300 == false && parameters->cf_step.value_or(0) != 0) {
+            if (*parameters->cf_step > 0)
+                parameters->cf_step = 5e6;
+            else
+                parameters->cf_step = -5e6;
+            LoggingService::warning_print("CF step (currently {}Hz) is forced to be +/-5MHz for Intel 5300 NIC.\n", parameters->cf_step);
+        }
     }
 
     if (vm.count("sf")) {
