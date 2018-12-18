@@ -40,7 +40,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
 
             LoggingService::info_print("EchoProbe shifting to next PLL rate {}MHz...\n", (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6);
-            if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
+            if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                 replyRXS = rxs;
                 hal->setPLLMultipler(cur_pll);
             } else {
@@ -76,7 +76,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 fp->echoProbeInfo->frequency = cur_cf;
 
                 LoggingService::info_print("EchoProbe shifting to next cf {}MHz...\n", (double)cur_cf / 1e6);
-                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
+                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                     LoggingService::info_print("EchoProbe cf shifting confirmed by responder.\n");
                     replyRXS = rxs;
                     hal->setCarrierFreq(cur_cf);
@@ -191,7 +191,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 }
 
 std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transmitAndSyncRxUnified(
-        PacketFabricator *packetFabricator, const std::chrono::steady_clock::time_point *txTime) {
+        PacketFabricator *packetFabricator, int maxRetry, const std::chrono::steady_clock::time_point *txTime) {
     std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
@@ -199,8 +199,9 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
     memcpy(origin_addr1, packetFabricator->packetHeader->addr1, 6);
     memcpy(origin_addr2, packetFabricator->packetHeader->addr2, 6);
     memcpy(origin_addr3, packetFabricator->packetHeader->addr3, 6);
+    maxRetry = (maxRetry == 0 ? *parameters->tx_max_retry : maxRetry);
 
-    while(retryCount++ < *parameters->tx_max_retry) {
+    while(retryCount++ < maxRetry) {
 
         if (parameters->inj_for_intel5300.value_or(false) == true) {
             if (hal->isAR9300) {
