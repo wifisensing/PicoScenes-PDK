@@ -26,6 +26,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     parameters->continue2Work = true;
     do {
         if (cur_pll != hal->getPLLMultipler() && workingMode == MODE_Injector) {
+            LoggingService::info_print("EchoProbe shifting {} to next PLL rate {}MHz...\n", (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6);
             hal->setPLLMultipler(cur_pll);
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
@@ -38,11 +39,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
             fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
 
+            LoggingService::info_print("EchoProbe shifting to next PLL rate {}MHz...\n", (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6);
             if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                 replyRXS = rxs;
                 hal->setPLLMultipler(cur_pll);
             } else {
-                LoggingService::warning_print("{} shift to next PLL freq to recovery connection.\n", hal->phyId);
+                LoggingService::warning_print("EchoProbe shifts {} to next PLL rate to recovery connection.\n", hal->phyId);
                 hal->setPLLMultipler(cur_pll);
                 if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                     replyRXS = rxs;
@@ -62,6 +64,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
         do {
             if (cur_cf != hal->getCarrierFreq() && workingMode == MODE_Injector) {
+                LoggingService::info_print("EchoProbe shifting to next cf {}MHz...\n", (double)cur_cf / 1e6);
                 hal->setCarrierFreq(cur_cf);
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
             }
@@ -72,11 +75,13 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
                 fp->echoProbeInfo->frequency = cur_cf;
 
+                LoggingService::info_print("EchoProbe shifting to next cf {}MHz...\n", (double)cur_cf / 1e6);
                 if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
+                    LoggingService::info_print("EchoProbe cf shifting confirmed by responder.\n");
                     replyRXS = rxs;
                     hal->setCarrierFreq(cur_cf);
                 } else {
-                    LoggingService::warning_print("{} shift to next freq to recovery connection.\n", hal->phyId);
+                    LoggingService::warning_print("EchoProbe shifts {} to next cf to recovery connection.\n", hal->phyId);
                     hal->setCarrierFreq(cur_cf);
                     if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                         replyRXS = rxs;
@@ -170,7 +175,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (LoggingService::localDisplayLevel == Trace) {
                 printf("\n");
             }
-            LoggingService::info_print("EchoProbe @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
+            LoggingService::info_print("EchoProbe @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", (double)cur_cf / 1e6, (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
             cur_cf += cf_step;
         } while (parameters->continue2Work && (cf_step < 0 ? cur_cf > cf_end + cf_step : cur_cf < cf_end + cf_step));
