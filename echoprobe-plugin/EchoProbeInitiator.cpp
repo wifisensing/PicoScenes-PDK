@@ -97,7 +97,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
             }
 
-            auto acked_count = 0, tx_count = 0, continuousFailure = 0;
+            auto acked_count = 0, tx_count = 0;
             do {
                 auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PacketFabricator> fp = nullptr;
@@ -136,7 +136,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     if (rxs) {
                         replyRXS = rxs;
                         acked_count++;
-                        continuousFailure = 0;
                         if (LoggingService::localDisplayLevel <= Debug) {
                             struct RXS_enhanced rxs_acked_tx;
                             parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
@@ -149,18 +148,16 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (LoggingService::localDisplayLevel == Trace) {
                             printDots(acked_count);
                         }
+
+                        if (parameters->tx_delay_us)
+                            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
                     } else {
-                        if (++continuousFailure > *parameters->tx_max_retry) {
-                            if (LoggingService::localDisplayLevel == Trace)
-                                printf("\n");
-                            LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", cur_cf);
-                            break;
-                        }
+                        if (LoggingService::localDisplayLevel == Trace)
+                            printf("\n");
+                        LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", cur_cf);
+                        break;
                     }
                 }
-                if (parameters->tx_delay_us)
-                    std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
-
             } while(parameters->continue2Work && acked_count < cf_repeat);
 
             // tx/ack staticstics
