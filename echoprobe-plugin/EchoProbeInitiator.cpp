@@ -20,7 +20,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto cf_repeat = parameters->cf_repeat.value_or(100);
     auto cur_cf    = cf_begin;
 
-    LoggingService::info_print("EchoProbe job parameters: pll--> {}:{}:{}, cf--> {}:{}:{} with {} repeat.\n",
+    LoggingService::info_print("EchoProbe job parameters: pll--> {}:{}:{}, cf--> {}:{}:{} with {} repeats.\n",
             pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat);
 
     parameters->continue2Work = true;
@@ -377,11 +377,12 @@ void EchoProbeInitiator::printDots(int count) {
             printf("*");
             fflush(stdout);
         }
+        if (count % (numOfPacketsPerDotDisplay * 50) == 1 && count > numOfPacketsPerDotDisplay)
+            printf("\n ");
+
         if (count % numOfPacketsPerDotDisplay == 0) {
             printf(".");
             fflush(stdout);
         }
-        if (count % (numOfPacketsPerDotDisplay * 50) == 0 && count > numOfPacketsPerDotDisplay)
-            printf("\n ");
     }
 }
