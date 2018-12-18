@@ -229,7 +229,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
         else
-            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us / 2));
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_retry_delay_us));
     }
 
     return std::make_tuple(nullptr, retryCount);
