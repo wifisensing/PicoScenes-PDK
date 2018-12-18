@@ -52,7 +52,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
 
     if (auto cf = received_rxs->echoProbeInfo.frequency; cf > 0 && hal->getCarrierFreq() != cf) {
         std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-        LoggingService::info_print("EchoProbe shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
+        LoggingService::info_print("EchoProbe responder shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
         hal->setCarrierFreq(cf);
     }
 
@@ -63,7 +63,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         pll_rate   = pll_rate   > 0 ? pll_rate   : hal->getPLLMultipler();
         pll_refdiv = pll_refdiv > 0 ? pll_refdiv : hal->getPLLRefDiv();
         pll_clksel = pll_clksel > 0 ? pll_clksel : hal->getPLLClockSelect();
-        LoggingService::info_print("EchoProbe shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
+        LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
         std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
     }
