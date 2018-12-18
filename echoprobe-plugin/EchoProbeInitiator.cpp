@@ -155,6 +155,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
                         LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", cur_cf);
+                        parameters->continue2Work = false;
                         break;
                     }
                 }
