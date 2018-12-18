@@ -373,11 +373,15 @@ void EchoProbeInitiator::finalize() {
 void EchoProbeInitiator::printDots(int count) {
 
     if (auto numOfPacketsPerDotDisplay = parameters->numOfPacketsPerDotDisplay.value_or(10)) {
+        if (count == 1) {
+            printf("*");
+            fflush(stdout);
+        }
         if (count % numOfPacketsPerDotDisplay == 0) {
             printf(".");
             fflush(stdout);
         }
         if (count % (numOfPacketsPerDotDisplay * 50) == 0 && count > numOfPacketsPerDotDisplay)
-            printf("\n");
+            printf("\n ");
     }
 }
