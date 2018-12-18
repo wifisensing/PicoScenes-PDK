@@ -4,6 +4,25 @@
 
 #include "EchoProbePlugIn.h"
 
+static int closest(std::vector<int> const& vec, int value) {
+    if (value <= vec[0])
+        return vec[0];
+
+    if (value >= vec[vec.size()-1])
+        return vec[vec.size()-1];
+
+
+    auto const it = std::lower_bound(vec.begin(), vec.end(), value);
+    if (it == vec.end()) {
+        auto const it2 = std::upper_bound(vec.begin(), vec.end(), value);
+        if (it2 == vec.end()) {
+            return -1;
+        }
+        return *it2;
+    }
+    return *it;
+}
+
 std::string EchoProbePlugIn::pluginName() {
     return "Echo_Probe";
 }
@@ -138,6 +157,32 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->cf_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
             parameters->cf_end = boost::lexical_cast<double>(rangeParts[2]);
+
+        if (hal->isAR9300 == false) {
+            if (parameters->cf_begin) {
+                auto closestFreq = closest(hal->systemSupportedFrequencies, *parameters->cf_begin / 1e6);
+                if (*parameters->cf_begin/1e6 != closestFreq) {
+                    LoggingService::warning_print("CF begin (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_begin, closestFreq);
+                    parameters->cf_begin = (int64_t)closestFreq * 1e6;
+                }
+            }
+
+//            if (*parameters->cf_step != 0 && std::abs(*parameters->cf_step) != 5e6 && std::abs(*parameters->cf_step) != 20e6) {
+//                LoggingService::warning_print("CF step (currently {}Hz) is forced to be +/- (5 or 20)MHz for Intel 5300 NIC.\n", *parameters->cf_step);
+//                if (*parameters->cf_step > 0)
+//                    parameters->cf_step = 5e6;
+//                else
+//                    parameters->cf_step = -5e6;
+//            }
+
+            if (parameters->cf_end) {
+                auto closestFreq = closest(hal->systemSupportedFrequencies, *parameters->cf_end / 1e6);
+                if (*parameters->cf_end/1e6 != closestFreq) {
+                    LoggingService::warning_print("CF end (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_end, closestFreq);
+                    parameters->cf_end = (int64_t)closestFreq * 1e6;
+                }
+            }
+        }
     }
 
     if (vm.count("sf")) {
@@ -150,6 +195,13 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
             parameters->pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
+
+        if (hal->isAR9300 == false) {
+            LoggingService::warning_print("Intel 5300 NIC does not support PLL configuration. Your PLL settings are ignored.\n");
+            parameters->pll_rate_begin = 0;
+            parameters->pll_rate_end = 0;
+            parameters->pll_rate_step = 0;
+        }
     }
 
     if (vm.count("repeat")) {
