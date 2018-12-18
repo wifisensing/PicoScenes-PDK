@@ -30,9 +30,9 @@ void EchoProbeParameters::initializeSharedParameters() {
     sharedParameters->tx_delay_us = 5e5;
     sharedParameters->finishedSessionId = UINT64_MAX;
     sharedParameters->workingSessionId = UINT64_MAX;
-    sharedParameters->timeout_us = 8e3;
-    sharedParameters->tx_retry_delay_us = 3e3;
-    sharedParameters->tx_max_retry = 6000;
+    sharedParameters->timeout_us = 6e3;
+    sharedParameters->tx_retry_delay_us = 4e3;
+    sharedParameters->tx_max_retry = 1000;
     sharedParameters->ack_maxLengthPerPacket = 1200;
     sharedParameters->delay_after_cf_change_us = 5e3;
     sharedParameters->numOfPacketsPerDotDisplay = 10;
