@@ -25,8 +25,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     parameters->continue2Work = true;
     do {
+        auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect()) / 1e6 * (*parameters->bw == 40 ? 2 : 1);
         if (cur_pll != hal->getPLLMultipler() && workingMode == MODE_Injector) {
-            auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect()) / 1e6;
             LoggingService::info_print("EchoProbe injector shifting {} to next bandwidth {}MHz...\n", hal->phyId, bb_rate_mhz);
             hal->setPLLMultipler(cur_pll);
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -40,7 +40,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
             fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
 
-            auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect()) / 1e6;
             LoggingService::info_print("EchoProbe initiator shifting {} to next bandwidth {}Mhz...\n", hal->phyId, bb_rate_mhz);
             if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                 replyRXS = rxs;
