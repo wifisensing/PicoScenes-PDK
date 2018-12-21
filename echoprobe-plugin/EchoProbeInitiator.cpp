@@ -26,7 +26,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     parameters->continue2Work = true;
     do {
         if (cur_pll != hal->getPLLMultipler() && workingMode == MODE_Injector) {
-            LoggingService::info_print("EchoProbe injector shifting {} to next PLL rate {}MHz...\n", hal->phyId, (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6);
+            LoggingService::info_print("EchoProbe injector shifting {} to next PLL multipler {}...\n", hal->phyId,cur_pll);
             hal->setPLLMultipler(cur_pll);
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
@@ -39,12 +39,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
             fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
 
-            LoggingService::info_print("EchoProbe initiator shifting {} to next PLL rate {}MHz...\n", hal->phyId, (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6);
+            LoggingService::info_print("EchoProbe initiator shifting {} to next PLL multipler {}...\n", hal->phyId, cur_pll);
             if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                 replyRXS = rxs;
                 hal->setPLLMultipler(cur_pll);
             } else {
-                LoggingService::warning_print("EchoProbe initiator shifting {} to next PLL rate to recovery connection.\n", hal->phyId);
+                LoggingService::warning_print("EchoProbe initiator shifting {} to next PLL multipler to recovery connection.\n", hal->phyId);
                 hal->setPLLMultipler(cur_pll);
                 if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                     replyRXS = rxs;
