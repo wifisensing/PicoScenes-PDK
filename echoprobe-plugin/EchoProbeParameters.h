@@ -44,7 +44,6 @@ public:
     std::optional<uint8_t>  ack_bw;
     std::optional<uint8_t>  ack_sgi;
     std::optional<uint32_t> timeout_us;
-    std::optional<uint32_t> tx_retry_delay_us;
     std::optional<uint32_t> ack_maxLengthPerPacket;
     std::optional<uint32_t> delay_after_cf_change_us;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;
