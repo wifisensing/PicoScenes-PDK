@@ -23,166 +23,154 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     LoggingService::info_print("EchoProbe job parameters: pll--> {}:{}:{}, cf--> {}:{}:{} with {} repeats.\n",
             pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat);
 
+    if (cf_step == 0 && cf_begin == cf_end) {
+        cf_step = 1;
+    }
+
+    if (pll_step == 0 && pll_begin == pll_end) {
+        pll_step = 1;
+    }
+
     parameters->continue2Work = true;
+    auto dumperId = fmt::sprintf("rxack_%s", hal->phyId);
     do {
         auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect()) / 1e6 * (*parameters->bw == 40 ? 2 : 1);
-        if (cur_pll != hal->getPLLMultipler() && workingMode == MODE_Injector) {
-            LoggingService::info_print("EchoProbe injector shifting {} to next bandwidth {}MHz...\n", hal->phyId, bb_rate_mhz);
-            hal->setPLLMultipler(cur_pll);
+        if (workingMode == MODE_Injector) {
+            if (cur_pll != hal->getPLLMultipler()) {
+                LoggingService::info_print("EchoProbe injector shifting {} to next bandwidth {}MHz...\n", hal->phyId, bb_rate_mhz);
+                hal->setPLLMultipler(cur_pll);
+            }
+            if (cur_cf != hal->getCarrierFreq()) {
+                LoggingService::info_print("EchoProbe injector shifting {} to next cf {}MHz...\n", hal->phyId, (double)cur_cf / 1e6);
+                hal->setCarrierFreq(cur_cf);
+            }
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
 
-        if (cur_pll != hal->getPLLMultipler() && workingMode == MODE_EchoProbeInitiator) { // should initiate freq shifting work.
+        if (workingMode == MODE_EchoProbeInitiator) {
+            std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
-            std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-            fp->echoProbeInfo->pll_rate = cur_pll;
-            fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
-            fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
+            if (cur_pll != hal->getPLLMultipler()) {
+                LoggingService::info_print("EchoProbe initiator shifting {} to next bandwidth {}Mhz...\n", hal->phyId, bb_rate_mhz);
+                fp->echoProbeInfo->pll_rate = cur_pll;
+                fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
+                fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
+            }
+            if (cur_cf != hal->getCarrierFreq()) {
+                LoggingService::info_print("EchoProbe initiator shifting {} to next cf {}MHz...\n", hal->phyId, (double)cur_cf / 1e6);
+                fp->echoProbeInfo->frequency = cur_cf;
+            }
 
-            LoggingService::info_print("EchoProbe initiator shifting {} to next bandwidth {}Mhz...\n", hal->phyId, bb_rate_mhz);
             if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                 replyRXS = rxs;
                 hal->setPLLMultipler(cur_pll);
+                hal->setCarrierFreq(cur_cf);
             } else {
-                LoggingService::warning_print("EchoProbe initiator shifting {} to next PLL multipler to recovery connection.\n", hal->phyId);
+                LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", hal->phyId);
                 hal->setPLLMultipler(cur_pll);
+                hal->setCarrierFreq(cur_cf);
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
                 if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                     replyRXS = rxs;
+                } else { // still fails
+                    LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
+                    parameters->continue2Work = false;
+                    break;
                 }
-            }
-
-            if (!replyRXS) {
-                LoggingService::warning_print("EchoProbe Job Error: max retry times reached in PLL frequency changing stage...\n");
-                parameters->continue2Work = false;
-                break;
-            } else { // successfully changed the frequency
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
             }
         }
 
-        auto dumperId = fmt::sprintf("rxack_%s", hal->phyId);
-
+        auto acked_count = 0, tx_count = 0;
         do {
-            if (cur_cf != hal->getCarrierFreq() && workingMode == MODE_Injector) {
-                LoggingService::info_print("EchoProbe injector shifting {} to next cf {}MHz...\n", hal->phyId, (double)cur_cf / 1e6);
-                hal->setCarrierFreq(cur_cf);
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-            }
+            auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+            std::shared_ptr<PacketFabricator> fp = nullptr;
+            std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
 
-            if (cur_cf != hal->getCarrierFreq() && workingMode == MODE_EchoProbeInitiator) { // should initiate freq shifting work.
-                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
-                std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-                fp->echoProbeInfo->frequency = cur_cf;
-
-                LoggingService::info_print("EchoProbe initiator shifting {} to next cf {}MHz...\n", hal->phyId, (double)cur_cf / 1e6);
-                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
-                    LoggingService::info_print("EchoProbe cf shifting confirmed by responder.\n");
-                    replyRXS = rxs;
-                    hal->setCarrierFreq(cur_cf);
-                } else {
-                    LoggingService::warning_print("EchoProbe initiator shifting {} to next cf to recovery connection.\n", hal->phyId);
-                    hal->setCarrierFreq(cur_cf);
-                    if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
-                        replyRXS = rxs;
+            if (workingMode == MODE_Injector) {
+                fp = buildPacket(taskId, SimpleInjection);
+                if (parameters->inj_for_intel5300.value_or(false) == true) {
+                    if (hal->isAR9300) {
+                        hal->setTxNotSounding(false);
+                        hal->transmitRawPacket(fp.get());
+                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+                        hal->setTxNotSounding(true);
                     }
-                }
-
-                if (!replyRXS) {
-                    LoggingService::warning_print("EchoProbe Job Error: max retry times reached in frequency changing stage...\n");
-                    parameters->continue2Work = false;
-                    break;
-                } else { // successfully changed the frequency
-                    std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-                }
-            }
-
-            auto acked_count = 0, tx_count = 0;
-            do {
-                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                std::shared_ptr<PacketFabricator> fp = nullptr;
-                std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-
-                if (workingMode == MODE_Injector) {
-                    fp = buildPacket(taskId, SimpleInjection);
-                    if (parameters->inj_for_intel5300.value_or(false) == true) {
-                        if (hal->isAR9300) {
-                            hal->setTxNotSounding(false);
-                            hal->transmitRawPacket(fp.get());
-                            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-                            hal->setTxNotSounding(true);
-                        }
+                    fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
+                    fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
+                    fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+                    hal->transmitRawPacket(fp.get());
+                } else {
+                    if (hal->isAR9300) {
+                        hal->setTxNotSounding(false);
+                    } else {
                         fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
                         fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
                         fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
-                        hal->transmitRawPacket(fp.get());
-                    } else {
-                        if (hal->isAR9300) {
-                            hal->setTxNotSounding(false);
-                        } else {
-                            fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
-                            fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
-                            fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
-                        }
-                        hal->transmitRawPacket(fp.get());
+                    }
+                    hal->transmitRawPacket(fp.get());
+                }
+
+                printDots(acked_count++);
+            } else if (workingMode == MODE_EchoProbeInitiator) {
+                fp = buildPacket(taskId, EchoProbeRequest);
+                auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                tx_count += retryPerTx;
+
+                if (rxs) {
+                    replyRXS = rxs;
+                    acked_count++;
+                    if (LoggingService::localDisplayLevel <= Debug) {
+                        struct RXS_enhanced rxs_acked_tx;
+                        parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
+                        LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
+                        LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
+                    }
+                    RXSDumper::getInstance(dumperId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
+                    LoggingService::detail_print("TaskId {} done!\n", taskId);
+
+                    if (LoggingService::localDisplayLevel == Trace) {
+                        printDots(acked_count);
                     }
 
-                    printDots(acked_count++);
-                } else if (workingMode == MODE_EchoProbeInitiator) {
-                    fp = buildPacket(taskId, EchoProbeRequest);
-                    auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-                    tx_count += retryPerTx;
-
-                    if (rxs) {
-                        replyRXS = rxs;
-                        acked_count++;
-                        if (LoggingService::localDisplayLevel <= Debug) {
-                            struct RXS_enhanced rxs_acked_tx;
-                            parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
-                            LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
-                            LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
-                        }
-                        RXSDumper::getInstance(dumperId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
-                        LoggingService::detail_print("TaskId {} done!\n", taskId);
-
-                        if (LoggingService::localDisplayLevel == Trace) {
-                            printDots(acked_count);
-                        }
-
-                        if (parameters->tx_delay_us)
-                            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
-                    } else {
-                        if (LoggingService::localDisplayLevel == Trace)
-                            printf("\n");
-                        LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", cur_cf);
-                        parameters->continue2Work = false;
-                        break;
-                    }
+                    if (parameters->tx_delay_us)
+                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
+                } else {
+                    if (LoggingService::localDisplayLevel == Trace)
+                        printf("\n");
+                    LoggingService::warning_printf("EchoProbe Job Warning: max retry times reached during measurement @ %luHz...\n", cur_cf);
+                    parameters->continue2Work = false;
+                    break;
                 }
-            } while(parameters->continue2Work && acked_count < cf_repeat);
-
-            // tx/ack staticstics
-            {
-                if (*hal->parameters->workingMode == MODE_Injector) {
-                    std::swap(acked_count, tx_count);
-                }
-                total_acked_count += acked_count;
-                total_tx_count    += tx_count;
             }
+        } while(parameters->continue2Work && acked_count < cf_repeat);
 
-            if (LoggingService::localDisplayLevel == Trace) {
-                printf("\n");
+        // tx/ack staticstics
+        {
+            if (*hal->parameters->workingMode == MODE_Injector) {
+                std::swap(acked_count, tx_count);
             }
-            LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->phyId, (double)cur_cf / 1e6, (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
+            total_acked_count += acked_count;
+            total_tx_count    += tx_count;
+        }
 
-            cur_cf += cf_step;
-        } while (parameters->continue2Work && (cf_step < 0 ? cur_cf > cf_end + cf_step : cur_cf < cf_end + cf_step));
-        RXSDumper::getInstance(dumperId).finishCurrentSession();
+        if (LoggingService::localDisplayLevel == Trace) {
+            printf("\n");
+        }
+        LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->phyId, (double)cur_cf / 1e6, (double)hal->getPLLRate() * (*parameters->bw == 40 ? 2 : 1) / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
-        cur_pll += pll_step;
-        cur_cf = cf_begin;
-    } while(parameters->continue2Work && (pll_step < 0 ? cur_pll > pll_end + pll_step : cur_pll < pll_end + pll_step));
+        cur_cf += cf_step;
+        if (cf_step < 0 ? (cur_cf < cf_end) : (cur_cf > cf_end)) {
+            
+            cur_pll += pll_step;
+            cur_cf = cf_begin;
+
+            if (pll_step < 0 ? (cur_pll < pll_end) : (cur_pll > pll_end)) {
+                parameters->continue2Work = false;
+            } else
+                RXSDumper::getInstance(dumperId).finishCurrentSession();
+        }
+    } while(parameters->continue2Work);
 
     if (LoggingService::localDisplayLevel == Trace) {
         LoggingService::trace_print("Job done! #.total_tx = {}, #.total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
