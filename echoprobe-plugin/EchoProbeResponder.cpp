@@ -24,7 +24,6 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
             if (hal->isAR9300) {
                 hal->setTxNotSounding(false);
                 hal->transmitRawPacket(reply.get());
-
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
             }
             hal->setTxNotSounding(true);
@@ -54,6 +53,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         LoggingService::info_print("EchoProbe responder shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
         hal->setCarrierFreq(cf);
+        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
     }
 
     auto pll_rate   = received_rxs->echoProbeInfo.pll_rate;
@@ -63,9 +63,12 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         pll_rate   = pll_rate   > 0 ? pll_rate   : hal->getPLLMultipler();
         pll_refdiv = pll_refdiv > 0 ? pll_refdiv : hal->getPLLRefDiv();
         pll_clksel = pll_clksel > 0 ? pll_clksel : hal->getPLLClockSelect();
-        LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
-        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-        hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
+        if (auto cur_pll = hal->getPLLMultipler(); cur_pll != pll_rate) {
+            LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+            hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
+        }
     }
 
     return true;
