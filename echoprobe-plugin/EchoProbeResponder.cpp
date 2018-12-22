@@ -19,7 +19,6 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
 
     auto replies = this->makePacket_EchoProbeWithACK(received_rxs);
     for(auto & reply: replies) {
-
         if (parameters->inj_for_intel5300.value_or(false) == true) {
             if (hal->isAR9300) {
                 hal->setTxNotSounding(false);
@@ -40,33 +39,27 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
             }
             hal->transmitRawPacket(reply.get());
         }
-
-//        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-//            for (auto i = 0; i < 3; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
-//                std::this_thread::sleep_for(std::chrono::microseconds(100));
-//                hal->transmitRawPacket(reply.get());
-//            }
-//        }
     }
 
-    if (auto cf = received_rxs->echoProbeInfo.frequency; cf > 0 && hal->getCarrierFreq() != cf) {
-        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-        LoggingService::info_print("EchoProbe responder shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
-        hal->setCarrierFreq(cf);
-        std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-    }
-
-    auto pll_rate   = received_rxs->echoProbeInfo.pll_rate;
-    auto pll_refdiv = received_rxs->echoProbeInfo.pll_refdiv;
-    auto pll_clksel = received_rxs->echoProbeInfo.pll_clock_select;
-    if (pll_rate > 0 || pll_refdiv > 0 || pll_clksel > 0) {
-        pll_rate   = pll_rate   > 0 ? pll_rate   : hal->getPLLMultipler();
-        pll_refdiv = pll_refdiv > 0 ? pll_refdiv : hal->getPLLRefDiv();
-        pll_clksel = pll_clksel > 0 ? pll_clksel : hal->getPLLClockSelect();
-        if (auto cur_pll = hal->getPLLMultipler(); cur_pll != pll_rate) {
-            LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
+    if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
+        // for (auto i = 0; i < 5; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
+        //        std::this_thread::sleep_for(std::chrono::microseconds(1e3));
+        //        hal->transmitRawPacket(reply.get());
+        // }
+        
+        auto cf = received_rxs->echoProbeInfo.frequency;
+        auto pll_rate = received_rxs->echoProbeInfo.pll_rate;
+        if ((cf > 0 && hal->getCarrierFreq() != cf) || (pll_rate > 0 && hal->getPLLMultipler() != pll_rate)) {
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-            hal->setPLLValues(pll_rate, pll_refdiv, pll_clksel);
+            if (cf > 0 && hal->getCarrierFreq() != cf) {
+                LoggingService::info_print("EchoProbe responder shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
+                hal->setCarrierFreq(cf);
+            }
+            if (pll_rate > 0 && hal->getPLLMultipler() != pll_rate) {
+                LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
+                hal->setPLLValues(pll_rate, received_rxs->echoProbeInfo.pll_refdiv, received_rxs->echoProbeInfo.pll_clock_select);
+            }
+            
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
     }
