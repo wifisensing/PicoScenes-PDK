@@ -56,7 +56,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
             
             if (pll_rate > 0 && hal->getPLLMultipler() != pll_rate) {
-                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select) / 1e6 * (*parameters->bw == 40 ? 2 : 1);
+                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, (*parameters->bw == 40 ? true : false)) / 1e6;
                 LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", hal->phyId, bb_rate_mhz);
                 hal->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
             }
