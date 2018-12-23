@@ -49,15 +49,20 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         
         auto cf = received_rxs->echoProbeInfo.frequency;
         auto pll_rate = received_rxs->echoProbeInfo.pll_rate;
+        auto pll_refdiv = received_rxs->echoProbeInfo.pll_refdiv;
+        auto pll_clock_select = received_rxs->echoProbeInfo.pll_clock_select;
         if ((cf > 0 && hal->getCarrierFreq() != cf) || (pll_rate > 0 && hal->getPLLMultipler() != pll_rate)) {
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-            if (cf > 0 && hal->getCarrierFreq() != cf) {
-                LoggingService::info_print("EchoProbe responder shifting {} to next cf {}MHz...\n", hal->phyId, (double)cf / 1e6);
-                hal->setCarrierFreq(cf);
-            }
+            
             if (pll_rate > 0 && hal->getPLLMultipler() != pll_rate) {
-                LoggingService::info_print("EchoProbe responder shifting {} to next PLL rate {}...\n", hal->phyId, pll_rate);
-                hal->setPLLValues(pll_rate, received_rxs->echoProbeInfo.pll_refdiv, received_rxs->echoProbeInfo.pll_clock_select);
+                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select) / 1e6 * (*parameters->bw == 40 ? 2 : 1);
+                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", hal->phyId, bb_rate_mhz);
+                hal->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
+            }
+
+            if (cf > 0 && hal->getCarrierFreq() != cf) {
+                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", hal->phyId, (double)cf / 1e6);
+                hal->setCarrierFreq(cf);
             }
             
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
