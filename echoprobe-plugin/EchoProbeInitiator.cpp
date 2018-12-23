@@ -35,7 +35,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto dumperId = fmt::sprintf("rxack_%s", hal->phyId);
     do {
         auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect()) / 1e6 * (*parameters->bw == 40 ? 2 : 1);
-        if (workingMode == MODE_Injector) {
+        if (workingMode == MODE_Injector && (cur_pll != hal->getPLLMultipler() || cur_cf != hal->getCarrierFreq())) {
             if (cur_pll != hal->getPLLMultipler()) {
                 LoggingService::info_print("EchoProbe injector shifting {} to next bandwidth {}MHz...\n", hal->phyId, bb_rate_mhz);
                 hal->setPLLMultipler(cur_pll);
@@ -47,7 +47,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
         }
 
-        if (workingMode == MODE_EchoProbeInitiator) {
+        if (workingMode == MODE_EchoProbeInitiator && (cur_pll != hal->getPLLMultipler() || cur_cf != hal->getCarrierFreq())) {
             std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
             auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
@@ -71,7 +71,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 hal->setPLLMultipler(cur_pll);
                 hal->setCarrierFreq(cur_cf);
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
+                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                     replyRXS = rxs;
                 } else { // still fails
                     LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
