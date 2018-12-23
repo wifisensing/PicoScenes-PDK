@@ -13,7 +13,6 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         return true;
     }
 
-
     if (*hal->parameters->workingMode != MODE_EchoProbeResponder || !received_rxs->txHeader.header_info.hasEchoProbeInfo)
         return false;
 
@@ -39,14 +38,16 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
             }
             hal->transmitRawPacket(reply.get());
         }
+
+        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
+            for (auto i = 0; i < 2; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
+                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+                hal->transmitRawPacket(reply.get());
+            }
+        }
     }
 
     if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-        // for (auto i = 0; i < 5; i ++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
-        //        std::this_thread::sleep_for(std::chrono::microseconds(1e3));
-        //        hal->transmitRawPacket(reply.get());
-        // }
-        
         auto cf = received_rxs->echoProbeInfo.frequency;
         auto pll_rate = received_rxs->echoProbeInfo.pll_rate;
         auto pll_refdiv = received_rxs->echoProbeInfo.pll_refdiv;
@@ -72,7 +73,6 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
     return true;
 }
 
-
 std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_EchoProbeWithACK(const struct RXS_enhanced *rxs) {
     uint16_t curPos = 0, curLength = 0;
     std::vector<std::shared_ptr<PacketFabricator>> fps;
@@ -86,7 +86,6 @@ std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_Ec
         txPacketFabricator->setTxMCS(0);
         txPacketFabricator->setTxpower(20);
         txPacketFabricator->setTxSGI(false);
-//        txPacketFabricator->setTx40MHzBW(false);
         txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
         fps.emplace_back(txPacketFabricator);
     } else do {
