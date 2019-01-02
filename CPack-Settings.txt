@@ -1,6 +1,6 @@
 if(${PICOSCENES_PLATFORM_VERSION})
     message(STATUS "Use given PICOSCENES_PLATFORM_VERSION=${PICOSCENES_PLATFORM_VERSION}")
-    set(picoscenes-platform-depencency "(==${PICOSCENES_PLATFORM_VERSION})")
+    set(picoscenes-platform-depencency "(=${PICOSCENES_PLATFORM_VERSION})")
 else(${PICOSCENES_PLATFORM_VERSION})
     message(STATUS "PICOSCENES_PLATFORM_VERSION not defined.")
     set(picoscenes-platform-depencency "")
