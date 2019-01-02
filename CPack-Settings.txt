@@ -1,9 +1,17 @@
+if(${PICOSCENES_PLATFORM_VERSION})
+    message(STATUS "Use given PICOSCENES_PLATFORM_VERSION=${PICOSCENES_PLATFORM_VERSION}")
+    set(picoscenes-platform-depencency "(==${PICOSCENES_PLATFORM_VERSION})")
+else(${PICOSCENES_PLATFORM_VERSION})
+    message(STATUS "PICOSCENES_PLATFORM_VERSION not defined.")
+    set(picoscenes-platform-depencency "")
+endif(${PICOSCENES_PLATFORM_VERSION})
+
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME "picoscenes-plugins-demo-rxsbroadcaster-echoprobe")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Three PicoScenes Plug-Ins. \n Demo, RXSBroadcaster and EchoProbe.")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "picoscenes-platform")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Three Sample Plug-Ins of PicoScenes System. \n The plug-ins are: EchoProbe, us-level round-trip CSI measurement in UWB spectrum; RXS-Broadcaster, RxS data forwarding to the remote via UDP protocol; and Demo, the sample code of PicoScenes Plug-In Development Kit (PSPDK).")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "picoscenes-platform${picoscenes-platform-depencency}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Zhiping Jiang<zpj@xidian.edu.cn>")
-set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://zpj.io")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://zpj.io/PicoScenes")
 
 include(CPack-AutoVersioning.cmake)
 
