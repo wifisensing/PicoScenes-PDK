@@ -9,7 +9,7 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
         return false;
 
     if (*hal->parameters->workingMode == MODE_Logger) {
-        RXSDumper::getInstance("rx_"+hal->phyId).dumpRXS(received_rxs->rawBuffer, received_rxs->rawBufferLength);
+        RXSDumper::getInstance("rx_"+hal->referredInterfaceName).dumpRXS(received_rxs->rawBuffer, received_rxs->rawBufferLength);
         return true;
     }
 
@@ -57,12 +57,12 @@ bool EchoProbeResponder::handle(const struct RXS_enhanced *received_rxs) {
             
             if (pll_rate > 0 && hal->getPLLMultipler() != pll_rate) {
                 auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, (*parameters->bw == 40 ? true : false)) / 1e6;
-                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", hal->phyId, bb_rate_mhz);
+                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
                 hal->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
             }
 
             if (cf > 0 && hal->getCarrierFreq() != cf) {
-                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", hal->phyId, (double)cf / 1e6);
+                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", hal->referredInterfaceName, (double)cf / 1e6);
                 hal->setCarrierFreq(cf);
             }
             
