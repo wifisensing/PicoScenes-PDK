@@ -197,7 +197,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
 
         if (hal->isAR9300 == false) {
-            LoggingService::warning_print("Intel 5300 NIC does not support PLL configuration. Your PLL settings are ignored.\n");
+            LoggingService::warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
             parameters->pll_rate_begin = 0;
             parameters->pll_rate_end = 0;
             parameters->pll_rate_step = 0;

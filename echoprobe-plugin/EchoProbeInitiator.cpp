@@ -20,7 +20,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto cf_repeat = parameters->cf_repeat.value_or(100);
     auto cur_cf    = cf_begin;
 
-    LoggingService::info_print("EchoProbe job parameters: pll--> {}:{}:{}, cf--> {}:{}:{} with {} repeats.\n",
+    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats.\n",
             pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat);
 
     if (cf_step == 0 && cf_begin == cf_end) {
