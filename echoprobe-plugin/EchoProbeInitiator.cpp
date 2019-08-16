@@ -19,9 +19,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto cf_step   = parameters->cf_step.value_or(0);
     auto cf_repeat = parameters->cf_repeat.value_or(100);
     auto cur_cf    = cf_begin;
+    auto tx_delay_us = *parameters->tx_delay_us;
 
-    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats.\n",
-            pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat);
+    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats and {}us interval.\n",
+            pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat, tx_delay_us);
 
     if (cf_step == 0 && cf_begin == cf_end) {
         cf_step = 1;
@@ -37,11 +38,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect(), (*parameters->bw == 40 ? true : false)) / 1e6;
         if (workingMode == MODE_Injector && (cur_pll != hal->getPLLMultipler() || cur_cf != hal->getCarrierFreq())) {
             if (cur_pll != hal->getPLLMultipler()) {
-                LoggingService::info_print("EchoProbe injector shifting {}'s BW to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
+                LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
                 hal->setPLLMultipler(cur_pll);
             }
             if (cur_cf != hal->getCarrierFreq()) {
-                LoggingService::info_print("EchoProbe injector shifting {}'s CF to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
+                LoggingService::info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
                 hal->setCarrierFreq(cur_cf);
             }
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -116,8 +117,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     }
                     hal->transmitRawPacket(fp.get());
                 }
-
                 printDots(acked_count++);
+                if (parameters->tx_delay_us)
+                    std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
+
             } else if (workingMode == MODE_EchoProbeInitiator) {
                 fp = buildPacket(taskId, EchoProbeRequest);
                 auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
