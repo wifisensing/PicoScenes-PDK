@@ -55,14 +55,14 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             auto shiftPLL = false;
             auto shiftCF = false;
             if (cur_pll != hal->getPLLMultipler()) {
-                LoggingService::info_print("EchoProbe initiator shifting {}'s BW to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
+                LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
                 fp->echoProbeInfo->pll_rate = cur_pll;
                 fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
                 fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
                 shiftPLL = true;
             }
             if (cur_cf != hal->getCarrierFreq()) {
-                LoggingService::info_print("EchoProbe initiator shifting {}'s CF to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
+                LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
                 fp->echoProbeInfo->frequency = cur_cf;
                 shiftCF = true;
             }
@@ -166,7 +166,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
         }
-        LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, bw={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->referredInterfaceName, (double)cur_cf / 1e6, bb_rate_mhz , tx_count, acked_count, 100.0 * acked_count / tx_count);
+        LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->referredInterfaceName, (double)cur_cf / 1e6, bb_rate_mhz , tx_count, acked_count, 100.0 * acked_count / tx_count);
 
         cur_cf += cf_step;
         if (cf_step < 0 ? (cur_cf < cf_end) : (cur_cf > cf_end)) {
