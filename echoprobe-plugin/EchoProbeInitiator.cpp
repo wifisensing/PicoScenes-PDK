@@ -226,8 +226,10 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
             }
             hal->transmitRawPacket(packetFabricator, txTime);
         }
-        
-        replyRXS = hal->rxSyncWaitTaskId(taskId, *parameters->timeout_us);
+
+        auto timeout_us_scaling = 20e6 / hal->getPLLRate();
+        timeout_us_scaling = timeout_us_scaling < 1 ? 1 : timeout_us_scaling;
+        replyRXS = hal->rxSyncWaitTaskId(taskId, uint32_t (timeout_us_scaling) * *parameters->timeout_us);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
     }
