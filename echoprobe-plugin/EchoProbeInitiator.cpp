@@ -117,7 +117,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     }
                     hal->transmitRawPacket(fp.get());
                 }
-                printDots(acked_count++);
+                printDots(++acked_count);
                 if (parameters->tx_delay_us)
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters->tx_delay_us));
 
