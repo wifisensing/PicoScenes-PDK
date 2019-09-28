@@ -35,7 +35,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     parameters->continue2Work = true;
     auto dumperId = fmt::sprintf("rxack_%s", hal->referredInterfaceName);
     do {
-        auto bb_rate_mhz = ath9kPLLBandwidthComputation(cur_pll, hal->getPLLRefDiv(), hal->getPLLClockSelect(), (*parameters->bw == 40 ? true : false)) / 1e6;
+        auto bb_rate_mhz = hal->getPLLRate() / 1e6;
         if (workingMode == MODE_Injector && (cur_pll != hal->getPLLMultipler() || cur_cf != hal->getCarrierFreq())) {
             if (cur_pll != hal->getPLLMultipler()) {
                 LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
@@ -229,6 +229,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
 
         auto timeout_us_scaling = 20e6 / hal->getPLLRate();
         timeout_us_scaling = timeout_us_scaling < 1 ? 1 : timeout_us_scaling;
+        LoggingService::debug_print("rate: {}, timeout_scale: {}, timeout: {}\n", hal->getPLLRate(), timeout_us_scaling, *parameters->timeout_us );
         replyRXS = hal->rxSyncWaitTaskId(taskId, uint32_t (timeout_us_scaling) * *parameters->timeout_us);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
