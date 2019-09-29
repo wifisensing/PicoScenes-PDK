@@ -437,7 +437,6 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     auto cf_begin = parameters->cf_begin.value_or(hal->getCarrierFreq());
     auto cf_end = parameters->cf_end.value_or(hal->getCarrierFreq());
     auto cf_step = parameters->cf_step.value_or(0);
-    auto cur_cf = cf_begin;
 
     if (std::abs(cf_step) % 5000000 != 0)
         throw std::invalid_argument("cf_step must be the multiply of 5MHz for Intel 5300AGN.");
@@ -457,6 +456,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         LoggingService::warning_print("CF begin (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
         cf_begin = (int64_t) closestFreq * 1e6;
     }
+    auto cur_cf = cf_begin;
 
     closestFreq = closest(hal->systemSupportedFrequencies, cf_end / 1e6);
     if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
