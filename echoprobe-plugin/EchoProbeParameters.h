@@ -39,7 +39,7 @@ public:
     std::optional<int32_t>  pll_rate_end;
     std::optional<int32_t>  pll_rate_step;
 
-    std::optional<uint32_t> tx_max_retry;
+    uint32_t tx_max_retry;
     std::optional<uint8_t>  ack_mcs;
     std::optional<uint8_t>  ack_bw;
     std::optional<uint8_t>  ack_sgi;

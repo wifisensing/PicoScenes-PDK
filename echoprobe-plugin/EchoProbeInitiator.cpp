@@ -76,7 +76,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
                     *fp->echoProbeInfo = echoProbeInfo;
-                    if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
+                    if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) hal->setPLLMultipler(pll_value);
                         if (shiftCF) hal->setCarrierFreq(cf_value);
@@ -86,7 +86,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (shiftPLL) hal->setPLLMultipler(pll_value);
                         if (shiftCF) hal->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-                        if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); !rxs) { // still fails
+                        if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxs) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             parameters->continue2Work = false;
                             break;
@@ -188,7 +188,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
     memcpy(origin_addr1, packetFabricator->packetHeader->addr1, 6);
     memcpy(origin_addr2, packetFabricator->packetHeader->addr2, 6);
     memcpy(origin_addr3, packetFabricator->packetHeader->addr3, 6);
-    maxRetry = (maxRetry == 0 ? *parameters->tx_max_retry : maxRetry);
+    maxRetry = (maxRetry == 0 ? parameters->tx_max_retry : maxRetry);
 
     while (retryCount++ < maxRetry) {
 
