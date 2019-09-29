@@ -412,6 +412,16 @@ std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
 
 std::vector<uint32_t> EchoProbeInitiator::enumerateSamplingFrequencies() {
     auto frequencies = std::vector<uint32_t>();
+
+    if (!hal->isAR9300) {
+        if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT20)
+            frequencies.emplace_back(20e6);
+        else
+            frequencies.emplace_back(40e6);
+
+        return frequencies;
+    }
+
     auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
     auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
     auto pll_step = parameters->pll_rate_step.value_or(0);
@@ -476,12 +486,20 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
 
     auto closestFreq = closest(hal->systemSupportedFrequencies, cf_begin / 1e6);
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
+        closestFreq += 10;
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
+        closestFreq -= 10;
     if (cf_begin / 1e6 != closestFreq) {
         LoggingService::warning_print("CF begin (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
         cf_begin = (int64_t) closestFreq * 1e6;
     }
 
     closestFreq = closest(hal->systemSupportedFrequencies, cf_end / 1e6);
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
+        closestFreq += 10;
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
+        closestFreq -= 10;
     if (cf_end / 1e6 != closestFreq) {
         LoggingService::warning_print("CF end (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_end, closestFreq);
         cf_end = (int64_t) closestFreq * 1e6;
@@ -493,6 +511,10 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         do {
             cur_cf += cf_step;
             closestFreq = closest(hal->systemSupportedFrequencies, cur_cf / 1e6);
+            if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
+                closestFreq += 10;
+            if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
+                closestFreq -= 10;
         } while (closestFreq == previous_closest);
         cur_cf = closestFreq * 1e6;
     } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
