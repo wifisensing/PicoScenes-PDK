@@ -4,25 +4,44 @@
 
 #include "EchoProbeInitiator.h"
 
+static int closest(std::vector<int> const &vec, int value) {
+    if (value <= vec[0])
+        return vec[0];
+
+    if (value >= vec[vec.size() - 1])
+        return vec[vec.size() - 1];
+
+
+    auto const it = std::lower_bound(vec.begin(), vec.end(), value);
+    if (it == vec.end()) {
+        auto const it2 = std::upper_bound(vec.begin(), vec.end(), value);
+        if (it2 == vec.end()) {
+            return -1;
+        }
+        return *it2;
+    }
+    return *it;
+}
+
 void EchoProbeInitiator::unifiedEchoProbeWork() {
 
-    auto total_acked_count =0, total_tx_count = 0;
+    auto total_acked_count = 0, total_tx_count = 0;
     auto workingMode = *hal->parameters->workingMode;
 
     auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
-    auto pll_end   = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
-    auto pll_step  = parameters->pll_rate_step.value_or(0);
-    auto cur_pll   = pll_begin;
+    auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
+    auto pll_step = parameters->pll_rate_step.value_or(0);
+    auto cur_pll = pll_begin;
 
-    auto cf_begin  = parameters->cf_begin.value_or(hal->getCarrierFreq());
-    auto cf_end    = parameters->cf_end.value_or(hal->getCarrierFreq());
-    auto cf_step   = parameters->cf_step.value_or(0);
+    auto cf_begin = parameters->cf_begin.value_or(hal->getCarrierFreq());
+    auto cf_end = parameters->cf_end.value_or(hal->getCarrierFreq());
+    auto cf_step = parameters->cf_step.value_or(0);
     auto cf_repeat = parameters->cf_repeat.value_or(100);
-    auto cur_cf    = cf_begin;
+    auto cur_cf = cf_begin;
     auto tx_delay_us = *parameters->tx_delay_us;
 
     LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats and {}us interval.\n",
-            pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat, tx_delay_us);
+                               pll_begin, pll_step, pll_end, cf_begin, cf_step, cf_end, cf_repeat, tx_delay_us);
 
     if (cf_step == 0 && cf_begin == cf_end) {
         cf_step = 1;
@@ -42,7 +61,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 hal->setPLLMultipler(cur_pll);
             }
             if (cur_cf != hal->getCarrierFreq()) {
-                LoggingService::info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
+                LoggingService::info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double) cur_cf / 1e6);
                 hal->setCarrierFreq(cur_cf);
             }
             std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -62,12 +81,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 shiftPLL = true;
             }
             if (cur_cf != hal->getCarrierFreq()) {
-                LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double)cur_cf / 1e6);
+                LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double) cur_cf / 1e6);
                 fp->echoProbeInfo->frequency = cur_cf;
                 shiftCF = true;
             }
 
-            if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
+            if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                 replyRXS = rxs;
                 LoggingService::info_print("EchoProbe responder's confirmation received.\n");
                 if (shiftPLL) hal->setPLLMultipler(cur_pll);
@@ -78,7 +97,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 if (shiftPLL) hal->setPLLMultipler(cur_pll);
                 if (shiftCF) hal->setCarrierFreq(cur_cf);
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
-                if (auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
+                if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), 500); rxs) {
                     replyRXS = rxs;
                 } else { // still fails
                     LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
@@ -123,7 +142,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             } else if (workingMode == MODE_EchoProbeInitiator) {
                 fp = buildPacket(taskId, EchoProbeRequest);
-                auto [rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                 tx_count += retryPerTx;
 
                 if (rxs) {
@@ -152,7 +171,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     break;
                 }
             }
-        } while(parameters->continue2Work && acked_count < cf_repeat);
+        } while (parameters->continue2Work && acked_count < cf_repeat);
 
         // tx/ack staticstics
         {
@@ -160,17 +179,17 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 std::swap(acked_count, tx_count);
             }
             total_acked_count += acked_count;
-            total_tx_count    += tx_count;
+            total_tx_count += tx_count;
         }
 
         if (LoggingService::localDisplayLevel == Trace) {
             printf("\n");
         }
-        LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->referredInterfaceName, (double)cur_cf / 1e6, bb_rate_mhz , tx_count, acked_count, 100.0 * acked_count / tx_count);
+        LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", hal->referredInterfaceName, (double) cur_cf / 1e6, bb_rate_mhz, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
         cur_cf += cf_step;
         if (cf_step < 0 ? (cur_cf < cf_end) : (cur_cf > cf_end)) {
-            
+
             cur_pll += pll_step;
             cur_cf = cf_begin;
 
@@ -179,7 +198,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             } else
                 RXSDumper::getInstance(dumperId).finishCurrentSession();
         }
-    } while(parameters->continue2Work);
+    } while (parameters->continue2Work);
 
     if (LoggingService::localDisplayLevel == Trace) {
         LoggingService::trace_print("Job done! #.total_tx = {}, #.total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
@@ -194,13 +213,13 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
     std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
     auto taskId = packetFabricator->packetHeader->header_info.taskId;
     auto retryCount = 0;
-    uint8_t	 origin_addr1[6], origin_addr2[6], origin_addr3[6];
+    uint8_t origin_addr1[6], origin_addr2[6], origin_addr3[6];
     memcpy(origin_addr1, packetFabricator->packetHeader->addr1, 6);
     memcpy(origin_addr2, packetFabricator->packetHeader->addr2, 6);
     memcpy(origin_addr3, packetFabricator->packetHeader->addr3, 6);
     maxRetry = (maxRetry == 0 ? *parameters->tx_max_retry : maxRetry);
 
-    while(retryCount++ < maxRetry) {
+    while (retryCount++ < maxRetry) {
 
         if (parameters->inj_for_intel5300.value_or(false) == true) {
             if (hal->isAR9300) {
@@ -229,8 +248,8 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
 
         auto timeout_us_scaling = 20e6 / hal->getPLLRate();
         timeout_us_scaling = timeout_us_scaling < 1 ? 1 : timeout_us_scaling;
-        LoggingService::debug_print("rate: {}, timeout_scale: {}, timeout: {}\n", hal->getPLLRate(), timeout_us_scaling, *parameters->timeout_us );
-        replyRXS = hal->rxSyncWaitTaskId(taskId, uint32_t (timeout_us_scaling) * *parameters->timeout_us);
+        LoggingService::debug_print("rate: {}, timeout_scale: {}, timeout: {}\n", hal->getPLLRate(), timeout_us_scaling, *parameters->timeout_us);
+        replyRXS = hal->rxSyncWaitTaskId(taskId, uint32_t(timeout_us_scaling) * *parameters->timeout_us);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
     }
@@ -239,7 +258,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
 }
 
 int EchoProbeInitiator::daemonTask() {
-    while(true) {
+    while (true) {
         if (*parameters->workingSessionId != *parameters->finishedSessionId &&
             (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector)) {
 
@@ -259,26 +278,26 @@ void EchoProbeInitiator::startDaemonTask() {
 void EchoProbeInitiator::blockWait() {
     if (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector) {
         std::shared_lock<std::shared_mutex> lock(blockMutex);
-        blockCV.wait(lock, [&]()->bool {
+        blockCV.wait(lock, [&]() -> bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
         });
     }
 }
 
-std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskId, const EchoProbePacketFrameType & frameType) const {
-    auto fp= hal->packetFabricator->makePacket_ExtraInfo();
-    
+std::shared_ptr<PacketFabricator> EchoProbeInitiator::buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
+    auto fp = hal->packetFabricator->makePacket_ExtraInfo();
+
     fp->setTaskId(taskId);
     fp->setFrameType(frameType);
     fp->setDestinationAddress(parameters->inj_target_mac_address->data());
     fp->setTxMCS(parameters->mcs.value_or(0));
     fp->setTxGreenField(parameters->inj_5300_gf.value_or(false));
     fp->setTxDuplicationOn40MHz(parameters->inj_5300_duplication.value_or(false));
-    if(parameters->bw)
+    if (parameters->bw)
         fp->setTx40MHzBW((*parameters->bw == 40 ? true : false));
-    if(hal->parameters->tx_power)
+    if (hal->parameters->tx_power)
         fp->setTxpower(*hal->parameters->tx_power);
-        fp->setTxSGI(parameters->sgi.value_or(false));
+    fp->setTxSGI(parameters->sgi.value_or(false));
 
     if (*hal->parameters->workingMode == MODE_EchoProbeInitiator) {
         fp->addEchoProbeInfoWithData(0, nullptr, 0);
@@ -364,7 +383,7 @@ void EchoProbeInitiator::finalize() {
     if (*parameters->workingSessionId != *parameters->finishedSessionId) {
         parameters->continue2Work = false;
         std::shared_lock<std::shared_mutex> lock(blockMutex);
-        ctrlCCV.wait_for(lock, std::chrono::microseconds(1000 + *parameters->tx_delay_us), [&]()->bool {
+        ctrlCCV.wait_for(lock, std::chrono::microseconds(1000 + *parameters->tx_delay_us), [&]() -> bool {
             return *parameters->finishedSessionId == *parameters->workingSessionId;
         });
     }
@@ -385,4 +404,98 @@ void EchoProbeInitiator::printDots(int count) {
             fflush(stdout);
         }
     }
+}
+
+std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
+    return hal->isAR9300 ? enumerateAtherosCarrierFrequencies() : enumerateIntelCarrierFrequencies();
+}
+
+std::vector<uint32_t> EchoProbeInitiator::enumerateSamplingFrequencies() {
+    auto frequencies = std::vector<double>();
+    auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
+    auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
+    auto pll_step = parameters->pll_rate_step.value_or(0);
+    auto cur_pll = pll_begin;
+
+    if (pll_step == 0)
+        throw std::invalid_argument("pll_step = 0");
+
+    if (pll_end < pll_begin && pll_step > 0)
+        throw std::invalid_argument("pll_step > 0, however pll_end < pll_begin.\n");
+
+    if (pll_end > pll_begin && pll_step < 0)
+        throw std::invalid_argument("pll_step < 0, however pll_end > pll_begin.\n");
+
+    do {
+        frequencies.emplace_back(cur_pll);
+        cur_pll += pll_step;
+    } while ((pll_step > 0 && cur_pll <= pll_end) || (pll_step < 0 && cur_pll >= pll_end));
+
+    return frequencies;
+}
+
+std::vector<double> EchoProbeInitiator::enumerateAtherosCarrierFrequencies() {
+    auto frequencies = std::vector<double>();
+    auto cf_begin = parameters->cf_begin.value_or(hal->getCarrierFreq());
+    auto cf_end = parameters->cf_end.value_or(hal->getCarrierFreq());
+    auto cf_step = parameters->cf_step.value_or(0);
+    auto cur_cf = cf_begin;
+
+    if (cf_step == 0)
+        throw std::invalid_argument("cf_step = 0");
+
+    if (cf_end < cf_begin && cf_step > 0)
+        throw std::invalid_argument("cf_step > 0, however cf_end < cf_begin.\n");
+
+    if (cf_end > cf_begin && cf_step < 0)
+        throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
+
+    do {
+        frequencies.emplace_back(cur_cf);
+        cur_cf += cf_step;
+    } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
+
+    return frequencies;
+}
+
+std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
+
+    auto frequencies = std::vector<double>();
+    auto cf_begin = parameters->cf_begin.value_or(hal->getCarrierFreq());
+    auto cf_end = parameters->cf_end.value_or(hal->getCarrierFreq());
+    auto cf_step = parameters->cf_step.value_or(0);
+    auto cur_cf = cf_begin;
+
+    if (std::abs(cf_step) % 5000000 != 0)
+        throw std::invalid_argument("cf_step must be the multiply of 5MHz for Intel 5300AGN.");
+
+    if (cf_end < cf_begin && cf_step > 0)
+        throw std::invalid_argument("cf_step > 0, however cf_end < cf_begin.\n");
+
+    if (cf_end > cf_begin && cf_step < 0)
+        throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
+
+    auto closestFreq = closest(hal->systemSupportedFrequencies, cf_begin / 1e6);
+    if (cf_begin / 1e6 != closestFreq) {
+        LoggingService::warning_print("CF begin (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
+        cf_begin = (int64_t) closestFreq * 1e6;
+    }
+
+    closestFreq = closest(hal->systemSupportedFrequencies, cf_end / 1e6);
+    if (cf_end / 1e6 != closestFreq) {
+        LoggingService::warning_print("CF end (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_end, closestFreq);
+        cf_end = (int64_t) closestFreq * 1e6;
+    }
+
+    do {
+        frequencies.emplace_back(cur_cf);
+        auto previous_closest = cur_cf / 1e6;
+        do {
+            cur_cf += cf_step;
+            closestFreq = closest(hal->systemSupportedFrequencies, cur_cf / 1e6);
+        } while (closestFreq == previous_closest);
+        cur_cf = closestFreq * 1e6;
+    } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
+
+    return frequencies;
 }

@@ -34,6 +34,11 @@ private:
     int daemonTask();
     void unifiedEchoProbeWork();
 
+    std::vector<double> enumerateCarrierFrequencies();
+    std::vector<double> enumerateAtherosCarrierFrequencies();
+    std::vector<double> enumerateIntelCarrierFrequencies();
+    std::vector<uint32_t> enumerateSamplingFrequencies();
+
     std::tuple<std::shared_ptr<struct RXS_enhanced>, int> transmitAndSyncRxUnified(
             PacketFabricator *packetFabricator, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);
 
