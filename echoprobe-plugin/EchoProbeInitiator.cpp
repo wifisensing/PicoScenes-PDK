@@ -55,27 +55,25 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-                EchoProbeInfo echoProbeInfo;
+                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
                 bool shiftPLL = false;
                 bool shiftCF = false;
                 if (hal->isAR9300 && pll_value != hal->getPLLMultipler()) {
                     bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20));
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
-                    echoProbeInfo.pll_rate = pll_value;
-                    echoProbeInfo.pll_refdiv = hal->getPLLRefDiv();
-                    echoProbeInfo.pll_clock_select = hal->getPLLClockSelect();
+                    fp->echoProbeInfo->pll_rate = pll_value;
+                    fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
+                    fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
                     shiftPLL = true;
                 }
                 if (cf_value != hal->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", hal->referredInterfaceName, (double) cf_value / 1e6);
-                    echoProbeInfo.frequency = cf_value;
+                    fp->echoProbeInfo->frequency = cf_value;
                     shiftCF = true;
                 }
 
                 if (shiftCF || shiftPLL) {
-                    auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
-                    *fp->echoProbeInfo = echoProbeInfo;
                     if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) hal->setPLLMultipler(pll_value);
@@ -453,7 +451,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
         closestFreq -= 10;
     if (cf_begin / 1e6 != closestFreq) {
-        LoggingService::warning_print("CF begin (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
+        LoggingService::warning_print("CF begin (desired {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
         cf_begin = (int64_t) closestFreq * 1e6;
     }
     auto cur_cf = cf_begin;
@@ -464,7 +462,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
         closestFreq -= 10;
     if (cf_end / 1e6 != closestFreq) {
-        LoggingService::warning_print("CF end (currently {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_end, closestFreq);
+        LoggingService::warning_print("CF end (desired {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters->cf_end, closestFreq);
         cf_end = (int64_t) closestFreq * 1e6;
     }
 
@@ -473,6 +471,8 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         auto previous_closest = cur_cf / 1e6;
         do {
             cur_cf += cf_step;
+            if (cur_cf > 5825e6 && cf_step > 0 || cur_cf < 2412e6 && cf_step < 0)
+                break;
             closestFreq = closest(hal->systemSupportedFrequencies, cur_cf / 1e6);
             if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
                 closestFreq += 10;
@@ -480,6 +480,8 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
                 closestFreq -= 10;
         } while (closestFreq == previous_closest);
         cur_cf = closestFreq * 1e6;
+        if (closestFreq == previous_closest)
+            break;
     } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
 
     return frequencies;
