@@ -411,7 +411,7 @@ std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
 }
 
 std::vector<uint32_t> EchoProbeInitiator::enumerateSamplingFrequencies() {
-    auto frequencies = std::vector<double>();
+    auto frequencies = std::vector<uint32_t>();
     auto pll_begin = parameters->pll_rate_begin.value_or(hal->getPLLMultipler());
     auto pll_end = parameters->pll_rate_end.value_or(hal->getPLLMultipler());
     auto pll_step = parameters->pll_rate_step.value_or(0);
