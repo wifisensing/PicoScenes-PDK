@@ -32,19 +32,19 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto tx_delay_us = parameters->tx_delay_us;
 
     parameters->continue2Work = true;
-    auto dumperId = fmt::sprintf("rxack_%s", hal->referredInterfaceName);
-    auto sfList = enumerateSamplingFrequencies();
+ww    auto sfList = enumerateSamplingFrequencies();
     auto cfList = enumerateCarrierFrequencies();
 
     LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats and {}us interval.\n",
                                sfList.front(), parameters->pll_rate_step.value_or(0), sfList.back(), cfList.front(), parameters->cf_step.value_or(0), cfList.back(), cf_repeat, tx_delay_us);
 
     for(const auto & pll_value: sfList) {
+        auto bb_rate_mhz = channelFlags2ChannelMode(hal->getChannelFlags()) == HT20 ? 20 : 40;
+        if (hal->isAR9300) {
+            bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20)) / 1e6;
+        }
+        auto dumperId = fmt::sprintf("rxack_%s_bb%u", hal->referredInterfaceName, bb_rate_mhz);
         for (const auto & cf_value: cfList) {
-            auto bb_rate_mhz = channelFlags2ChannelMode(hal->getChannelFlags()) == HT20 ? 20 : 40;
-            if (hal->isAR9300) {
-                bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20));
-            }
             if (workingMode == MODE_Injector) {
                 if (hal->isAR9300 && pll_value != hal->getPLLMultipler()) {
                     LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
@@ -162,10 +162,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (parameters->continue2Work == false)
                 break;
         }
+        RXSDumper::getInstance(dumperId).finishCurrentSession();
         if (parameters->continue2Work == false)
             break;
     }
-    RXSDumper::getInstance(dumperId).finishCurrentSession();
 
     if (LoggingService::localDisplayLevel == Trace) {
         if (workingMode == MODE_Injector)
