@@ -42,9 +42,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     for(const auto & pll_value: sfList) {
         for (const auto & cf_value: cfList) {
             auto bb_rate_mhz = channelFlags2ChannelMode(hal->getChannelFlags()) == HT20 ? 20 : 40;
+            if (hal->isAR9300) {
+                bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20));
+            }
             if (workingMode == MODE_Injector) {
                 if (hal->isAR9300 && pll_value != hal->getPLLMultipler()) {
-                    bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20));
                     LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
                     hal->setPLLMultipler(pll_value);
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters->delay_after_cf_change_us));
@@ -60,7 +62,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 bool shiftPLL = false;
                 bool shiftCF = false;
                 if (hal->isAR9300 && pll_value != hal->getPLLMultipler()) {
-                    bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, hal->getPLLRefDiv(), hal->getPLLClockSelect(), !(channelFlags2ChannelMode(hal->getChannelFlags()) == HT20));
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", hal->referredInterfaceName, bb_rate_mhz);
                     fp->echoProbeInfo->pll_rate = pll_value;
                     fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
@@ -445,6 +446,10 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
 
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
+        cf_begin -= 10e6;
+    if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_MINUS)
+        cf_begin += 10e6;
     auto closestFreq = closest(hal->systemSupportedFrequencies, cf_begin / 1e6);
     if (channelFlags2ChannelMode(hal->getChannelFlags()) == HT40_PLUS)
         closestFreq += 10;
