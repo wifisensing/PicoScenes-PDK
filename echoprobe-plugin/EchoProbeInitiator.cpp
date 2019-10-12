@@ -116,9 +116,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
                             fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
                             fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+                            hal->transmitRawPacket(fp.get());
                         }
                     }
-                    hal->transmitRawPacket(fp.get());
                     tx_count++;
                     total_tx_count++;
                     if (LoggingService::localDisplayLevel == Trace)
