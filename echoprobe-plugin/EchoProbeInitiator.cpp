@@ -32,7 +32,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto tx_delay_us = parameters->tx_delay_us;
 
     parameters->continue2Work = true;
-ww    auto sfList = enumerateSamplingFrequencies();
+    auto sfList = enumerateSamplingFrequencies();
     auto cfList = enumerateCarrierFrequencies();
 
     LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats and {}us interval.\n",
