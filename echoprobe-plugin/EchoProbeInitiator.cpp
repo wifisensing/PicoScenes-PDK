@@ -107,6 +107,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         fp->setDestinationAddress(AthNicParameters::magicIntel123456.data());
                         fp->setSourceAddress(AthNicParameters::magicIntel123456.data());
                         fp->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
+                        hal->transmitRawPacket(fp.get());
                     } else {
                         hal->setTxNotSounding(false);
                         hal->transmitRawPacket(fp.get());
