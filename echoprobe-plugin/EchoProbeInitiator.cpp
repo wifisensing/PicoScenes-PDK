@@ -218,13 +218,10 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
         }
 
         /* 
-        * TODO comments on this strange timeout scale.
+        * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = hal->getPLLRate() < 20e6 ? 11 : 1;
-        timeout_us_scaling = timeout_us_scaling < 1 ? 1 : timeout_us_scaling;
-        auto syncWaitTimeout = uint32_t(timeout_us_scaling) * *parameters->timeout_us;
-        LoggingService::debug_printf("initial timeout: %u, scaled timeout:%u.", *parameters->timeout_us, syncWaitTimeout);
-        replyRXS = hal->rxSyncWaitTaskId(taskId, syncWaitTimeout);
+        replyRXS = hal->rxSyncWaitTaskId(taskId, timeout_us_scaling * *parameters->timeout_us);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
     }
