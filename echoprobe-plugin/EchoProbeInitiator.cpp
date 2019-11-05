@@ -217,9 +217,14 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
             hal->transmitRawPacket(packetFabricator, txTime);
         }
 
-        auto timeout_us_scaling = 20e6 / hal->getPLLRate();
+        /* 
+        * TODO comments on this strange timeout scale.
+        */
+        auto timeout_us_scaling = hal->getPLLRate() < 20e6 ? 11 : 1;
         timeout_us_scaling = timeout_us_scaling < 1 ? 1 : timeout_us_scaling;
-        replyRXS = hal->rxSyncWaitTaskId(taskId, uint32_t(timeout_us_scaling) * *parameters->timeout_us);
+        auto syncWaitTimeout = uint32_t(timeout_us_scaling) * *parameters->timeout_us;
+        LoggingService::debug_printf("initial timeout: %u, scaled timeout:%u.", *parameters->timeout_us, syncWaitTimeout);
+        replyRXS = hal->rxSyncWaitTaskId(taskId, syncWaitTimeout);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
     }
