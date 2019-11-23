@@ -220,7 +220,7 @@ std::tuple<std::shared_ptr<struct RXS_enhanced>, int> EchoProbeInitiator::transm
         /* 
         * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
         */
-        auto timeout_us_scaling = hal->getPLLRate() < 20e6 ? 11 : 1;
+        auto timeout_us_scaling = hal->getPLLRate() < 20e6 ? 6 : 1;
         replyRXS = hal->rxSyncWaitTaskId(taskId, timeout_us_scaling * *parameters->timeout_us);
         if (replyRXS)
             return std::make_tuple(replyRXS, retryCount);
