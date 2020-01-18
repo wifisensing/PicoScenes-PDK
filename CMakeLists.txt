@@ -12,7 +12,7 @@ set(CMAKE_CXX_FLAGS_RELEASE  "-O3")
 set(PICOSCENES_BASE_DIR /usr/local/PicoScenes)
 include_directories(${PICOSCENES_BASE_DIR}/include/)
 link_directories(${PICOSCENES_BASE_DIR}/lib/)
-set(INSTALL_PLUGIN_DIR ${PICOSCENES_BASE_DIR}/plug-ins/)
+set(INSTALL_PLUGIN_DIR ${PICOSCENES_BASE_DIR}/plugins/)
 
 # boost
 find_package(Boost COMPONENTS filesystem system thread program_options regex REQUIRED)
@@ -20,8 +20,8 @@ INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # make plug-ins
 add_subdirectory(plugin-demo)
-add_subdirectory(echoprobe-plugin)
-add_subdirectory(rxs-broadcaster-plugin)
+#add_subdirectory(echoprobe-plugin)
+#add_subdirectory(rxs-broadcaster-plugin)
 
 # include CPack settings
 include(CPack-Settings.txt)
