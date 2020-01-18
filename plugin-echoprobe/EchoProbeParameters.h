@@ -9,7 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <optional>
-#include <PicoScenes/AtherosNicHAL.h>
+#include <PicoScenes/PicoScenesNIC.hxx>
 #include "EchoProbe.h"
 
 class EchoProbeParameters {

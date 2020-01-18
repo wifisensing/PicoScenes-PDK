@@ -23,7 +23,7 @@ std::shared_ptr<EchoProbeParameters> EchoProbeParameters::getInstance(const std:
 }
 
 void EchoProbeParameters::initializeSharedParameters() {
-    sharedParameters->inj_target_mac_address = AthNicParameters::magicIntel123456;
+    sharedParameters->inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;
     sharedParameters->mcs = 0;
     sharedParameters->sgi = 0;
     sharedParameters->bw = 20;

@@ -2,31 +2,30 @@
 // Created by Zhiping Jiang on 11/18/17.
 //
 
-#include "EchoProbePlugIn.h"
+#include "EchoProbePlugin.h"
 
 
-
-std::string EchoProbePlugIn::pluginName() {
+std::string EchoProbePlugin::getPluginName() {
     return "Echo_Probe";
 }
 
-std::string EchoProbePlugIn::pluginDescription() {
+std::string EchoProbePlugin::getPluginDescription() {
     return "Round-Trip Measurement";
 }
 
-std::string EchoProbePlugIn::pluginStatus() {
+std::string EchoProbePlugin::pluginStatus() {
     return "";
 }
 
-void EchoProbePlugIn::initialization() {
-    initiator = std::make_shared<EchoProbeInitiator>(hal);
-    responder = std::make_shared<EchoProbeResponder>(hal);
-    parameters = EchoProbeParameters::getInstance(hal->phyId);
+void EchoProbePlugin::initialization() {
+//    initiator = std::make_shared<EchoProbeInitiator>(hal);
+//    responder = std::make_shared<EchoProbeResponder>(hal);
+    parameters = EchoProbeParameters::getInstance(nic->getPhyId());
 
-    initiator->parameters = parameters;
-    responder->parameters = parameters;
-
-    initiator->startDaemonTask();
+//    initiator->parameters = parameters;
+//    responder->parameters = parameters;
+//
+//    initiator->startDaemonTask();
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
     injectionOptions->add_options()
@@ -48,54 +47,50 @@ void EchoProbePlugIn::initialization() {
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
-            ("ack-mcs",  po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
+            ("ack-mcs", po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
             ("ack-bw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40], unspecified as default")
             ("ack-sgi", "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
 
-    echoProbeOptions = std::make_shared<program_options::options_description>("Echo Probe Options");
+    echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
             ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
 
-std::shared_ptr<program_options::options_description> EchoProbePlugIn::pluginOptionsDescription() {
+std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescription() {
     return echoProbeOptions;
 }
 
-bool EchoProbePlugIn::handleCommandString(std::string commandString) {
+std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
+    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300};
+}
+
+void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) {
     po::variables_map vm;
     auto style = pos::allow_long | pos::allow_dash_for_short |
-            pos::long_allow_adjacent | pos::long_allow_next |
-            pos::short_allow_adjacent | pos::short_allow_next;
+                 pos::long_allow_adjacent | pos::long_allow_next |
+                 pos::short_allow_adjacent | pos::short_allow_next;
 
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*echoProbeOptions).style(style).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    if(vm.count("mode")) {
+    if (vm.count("mode")) {
         auto modeString = vm["mode"].as<std::string>();
         boost::algorithm::to_lower(modeString);
         boost::trim(modeString);
 
-        if(modeString.find("injector") != std::string::npos) {
-           hal->parameters->workingMode = MODE_Injector;
-            hal->setRxChainStatus(false);
-            hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(false);
-        } else if(modeString.find("logger") != std::string::npos) {
-            hal->parameters->workingMode = MODE_Logger;
-            hal->setRxChainStatus(true);
-            hal->setTxSChainStatus(false);
-            hal->setTxChainStatus(false);
-        } else if(modeString.find("responder") != std::string::npos || modeString.find("chronos-responder") != std::string::npos) {
-            hal->parameters->workingMode = MODE_EchoProbeResponder;
-            hal->setRxChainStatus(true);
-            hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(false);
-        } else if(modeString.find("initiator") != std::string::npos || modeString.find("chronos-initiator") != std::string::npos) {
-           hal->parameters->workingMode = MODE_EchoProbeInitiator;
-            hal->setRxChainStatus(true);
-            hal->setTxChainStatus(true);
-            hal->setTxSChainStatus(false);
+        if (modeString.find("injector") != std::string::npos) {
+            nic->stopRxService();
+            nic->startTxService();
+        } else if (modeString.find("logger") != std::string::npos) {
+            nic->stopTxService();
+            nic->startRxService();
+        } else if (modeString.find("responder") != std::string::npos) {
+            nic->startRxService();
+            nic->startTxService();
+        } else if (modeString.find("initiator") != std::string::npos) {
+            nic->startRxService();
+            nic->startTxService();;
         }
     }
 
@@ -103,9 +98,9 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         auto interfaceName = vm["target-interface"].as<std::string>();
         boost::trim(interfaceName);
         parameters->inj_target_interface = interfaceName;
-        auto targetHAL = AtherosNicHAL::halForInterface(interfaceName);
-        if (targetHAL)
-            parameters->inj_target_mac_address = targetHAL->macAddress_MON;
+//        auto targetHAL = NICPortal::getNIC<PicoScenesNIC>(interfaceName);
+//        if (targetHAL)
+//            parameters->inj_target_mac_address = targetHAL->getMacAddressMon();
     }
 
     if (vm.count("target-mac-address")) {
@@ -116,9 +111,9 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         if (eachHexs.size() != 6)
             LoggingService::warning_print("[target-mac-address] Specified mac address has wrong number of digits.\n");
         else {
-            for(auto i = 0 ; i < eachHexs.size() && i < 6; i++) {
+            for (auto i = 0; i < eachHexs.size() && i < 6; i++) {
                 boost::trim(eachHexs[i]);
-                auto hex = std::stod("0x"+eachHexs[i]);
+                auto hex = std::stod("0x" + eachHexs[i]);
                 address[i] = hex;
             }
 
@@ -153,7 +148,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         if (!rangeParts[2].empty())
             parameters->pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
 
-        if (hal->isAR9300 == false) {
+        if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
             LoggingService::warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
             parameters->pll_rate_begin = 0;
             parameters->pll_rate_end = 0;
@@ -162,11 +157,11 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
     }
 
     if (vm.count("repeat")) {
-       parameters->cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
+        parameters->cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
     }
 
     if (vm.count("delay")) {
-       parameters->tx_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
+        parameters->tx_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
     }
 
     if (vm.count("delayed-start")) {
@@ -179,7 +174,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
             parameters->bw = 20;
         } else if (bwValue == 40) {
             parameters->bw = 40;
-        } else 
+        } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid bandwith value: {}.\n", bwValue));
     }
 
@@ -191,7 +186,7 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
         auto mcs = vm["mcs"].as<uint32_t>();
         if (mcs < 23)
             parameters->mcs = mcs;
-        else 
+        else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
     }
 
@@ -205,19 +200,19 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
 
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
-        if (mcsValue <=23) {
+        if (mcsValue <= 23) {
             parameters->ack_mcs = mcsValue;
-        } else 
+        } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
     }
 
     if (vm.count("ack-bw")) {
         auto ack_bw = vm["ack-bw"].as<uint32_t>();
         if (ack_bw == 20) {
-           parameters->ack_bw = 20;
+            parameters->ack_bw = 20;
         } else if (ack_bw == 40) {
-           parameters->ack_bw = 40;
-        } else 
+            parameters->ack_bw = 40;
+        } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
     }
 
@@ -227,23 +222,8 @@ bool EchoProbePlugIn::handleCommandString(std::string commandString) {
 
     if (vm.size() > 0)
         parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
-
-        initiator->blockWait();
-
-    return false;
 }
 
-bool EchoProbePlugIn::RXSHandle(const struct RXS_enhanced *rxs) {
-    return responder->handle(rxs);
-}
-
-void EchoProbePlugIn::serialize() {
-    propertyDescriptionTree.clear();
-    propertyDescriptionTree.add_child("initiator", initiator->getBoostPropertyTree());
-    propertyDescriptionTree.add_child("responder", responder->getBoostPropertyTree());
-}
-
-void EchoProbePlugIn::finalize() {
-    if (*hal->parameters->workingMode == MODE_EchoProbeInitiator || *hal->parameters->workingMode == MODE_Injector)
-        initiator->finalize();
+void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxs) {
+//    return responder->handle(rxs);
 }
