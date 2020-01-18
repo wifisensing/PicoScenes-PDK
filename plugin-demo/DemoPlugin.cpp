@@ -4,15 +4,15 @@
 
 #include "DemoPlugin.h"
 
-const std::string DemoPlugin::getPluginName() {
+std::string DemoPlugin::getPluginName() {
     return "PicoScenes Demo Plugin";
 }
 
-const std::string DemoPlugin::getPluginDescription() {
+std::string DemoPlugin::getPluginDescription() {
     return "Demonstrate the PicoScenes Plugin functionality";
 }
 
-const std::string DemoPlugin::pluginStatus() {
+std::string DemoPlugin::pluginStatus() {
     return "this method returns the status of the plugin.";
 }
 

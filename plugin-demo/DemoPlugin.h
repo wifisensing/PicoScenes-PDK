@@ -12,11 +12,11 @@
 
 class DemoPlugin : public AbstractPicoScenesPlugin {
 public:
-    const std::string getPluginName() override;
+    std::string getPluginName() override;
 
-    const std::string getPluginDescription() override;
+    std::string getPluginDescription() override;
 
-    const std::string pluginStatus() override;
+    std::string pluginStatus() override;
 
     std::shared_ptr<boost::program_options::options_description> pluginOptionsDescription() override;
 
