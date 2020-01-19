@@ -63,6 +63,7 @@ std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescripti
 
 std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
     static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300};
+    return supportedDevices;
 }
 
 void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) {
