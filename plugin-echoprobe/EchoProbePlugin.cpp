@@ -99,9 +99,9 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         auto interfaceName = vm["target-interface"].as<std::string>();
         boost::trim(interfaceName);
         parameters->inj_target_interface = interfaceName;
-//        auto targetHAL = NICPortal::getNIC<PicoScenesNIC>(interfaceName);
-//        if (targetHAL)
-//            parameters->inj_target_mac_address = targetHAL->getMacAddressMon();
+        auto targetHAL = NICPortal::getTypedNIC<PicoScenesNIC>(interfaceName);
+        if (targetHAL)
+            parameters->inj_target_mac_address = targetHAL->getMacAddressMon();
     }
 
     if (vm.count("target-mac-address")) {
