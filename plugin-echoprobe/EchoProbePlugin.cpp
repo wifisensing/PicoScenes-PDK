@@ -18,8 +18,8 @@ std::string EchoProbePlugin::pluginStatus() {
 }
 
 void EchoProbePlugin::initialization() {
-//    initiator = std::make_shared<EchoProbeInitiator>(hal);
-//    responder = std::make_shared<EchoProbeResponder>(hal);
+//    initiator = std::make_shared<EchoProbeInitiator>(nic);
+//    responder = std::make_shared<EchoProbeResponder>(nic);
     parameters = EchoProbeParameters::getInstance(nic->getPhyId());
 
 //    initiator->parameters = parameters;
@@ -225,6 +225,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
 }
 
-void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxs) {
+void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxframe) {
 //    return responder->handle(rxs);
 }
