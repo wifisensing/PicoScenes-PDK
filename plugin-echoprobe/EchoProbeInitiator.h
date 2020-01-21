@@ -9,6 +9,7 @@
 #include <shared_mutex>
 #include <PicoScenes/PicoScenesNIC.hxx>
 #include <PicoScenes/PropertyJSONDescriptable.hxx>
+#include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
 
@@ -47,10 +48,10 @@ private:
 
     std::vector<uint32_t> enumerateSamplingFrequencies();
 
-    std::tuple<std::shared_ptr<struct RXS_enhanced>, int> transmitAndSyncRxUnified(
-            PacketFabricator *packetFabricator, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);
+    std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(
+            PicoScenesFrameBuilder *frameBuilder, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);
 
-    std::shared_ptr<PacketFabricator> buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
+    std::shared_ptr<PicoScenesFrameBuilder> buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
 };
 
 #endif //PICOSCENES_ECHOPROBEINITIATOR_H
