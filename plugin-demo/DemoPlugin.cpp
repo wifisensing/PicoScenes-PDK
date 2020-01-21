@@ -33,7 +33,7 @@ void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
     po::store(parsedOptions, vm);
     po::notify(vm);
 
-    if (vm.count("interface")) {
+    if (vm.count("option1")) {
         auto option1Value = vm["option1"].as<uint32_t>();
         LoggingService::info_print("Demo Plugin: option1={}.\n", int(option1Value));
     }
