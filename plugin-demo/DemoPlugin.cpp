@@ -21,7 +21,7 @@ std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginO
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [&] {
         instance->add_options()
-                ("option1", po::value<uint16_t>(), "You should refer Boost::Program_Options for the help on this thing.");
+                ("option1", po::value<uint32_t>(), "You should refer Boost::Program_Options for the help on this thing.");
     });
 
     return instance;
