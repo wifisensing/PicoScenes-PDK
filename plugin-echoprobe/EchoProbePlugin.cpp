@@ -18,11 +18,11 @@ std::string EchoProbePlugin::pluginStatus() {
 }
 
 void EchoProbePlugin::initialization() {
-//    initiator = std::make_shared<EchoProbeInitiator>(nic);
+    initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
 //    responder = std::make_shared<EchoProbeResponder>(nic);
     parameters = EchoProbeParameters::getInstance(nic->getPhyId());
 
-//    initiator->parameters = parameters;
+    initiator->parameters = parameters;
 //    responder->parameters = parameters;
 //
 //    initiator->startDaemonTask();

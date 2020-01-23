@@ -7,7 +7,7 @@
 
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include <PicoScenes/PicoScenesNIC.hxx>
-//#include "EchoProbeInitiator.h"
+#include "EchoProbeInitiator.h"
 //#include "EchoProbeResponder.h"
 #include "EchoProbeParameters.h"
 
@@ -30,7 +30,7 @@ public:
     void rxHandle(const PicoScenesRxFrameStructure &rxframe) override;
 
 private:
-//    std::shared_ptr<EchoProbeInitiator> initiator;
+    std::shared_ptr<EchoProbeInitiator> initiator;
 //    std::shared_ptr<EchoProbeResponder> responder;
     std::shared_ptr<EchoProbeParameters> parameters;
 
