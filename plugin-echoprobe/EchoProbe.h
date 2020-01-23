@@ -8,7 +8,7 @@
 #include <PicoScenes/rxs_enhanced.h>
 
 enum EchoProbeWorkingMode: uint8_t {
-    Standby = 14,
+    MODE_Standby = 14,
     MODE_Injector,
     MODE_Logger,
     MODE_EchoProbeInitiator,

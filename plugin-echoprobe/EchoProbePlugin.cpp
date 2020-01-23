@@ -22,10 +22,6 @@ void EchoProbePlugin::initialization() {
 //    responder = std::make_shared<EchoProbeResponder>(nic);
     parameters = EchoProbeParameters::getInstance(nic->getPhyId());
 
-    initiator->parameters = parameters;
-//    responder->parameters = parameters;
-//
-//    initiator->startDaemonTask();
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
     injectionOptions->add_options()
@@ -223,8 +219,12 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.size() > 0)
         parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
+
+    if (parameters->workingMode == MODE_EchoProbeInitiator || parameters->workingMode == MODE_Injector)
+        initiator->startJob(*parameters);
 }
 
 void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxframe) {
-//    return responder->handle(rxs);
+//    if (parameters->workingMode == MODE_EchoProbeResponder || parameters->workingMode == MODE_Logger)
+//        initiator->
 }

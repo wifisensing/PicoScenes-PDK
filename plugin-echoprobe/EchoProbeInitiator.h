@@ -16,25 +16,17 @@
 
 class EchoProbeInitiator {
 public:
+
     EchoProbeInitiator(std::shared_ptr<PicoScenesNIC> nic) : nic(nic) {}
 
-    void startDaemonTask();
-
-    void blockWait();
-
-    void printDots(int count);
-
-    std::shared_ptr<EchoProbeParameters> parameters;
-
-    void serialize();
-
-    void finalize();
+    void startJob(const EchoProbeParameters &parameters);
 
 private:
     std::shared_ptr<PicoScenesNIC> nic;
     std::condition_variable_any blockCV;
     std::condition_variable_any ctrlCCV;
     std::shared_mutex blockMutex;
+    EchoProbeParameters parameters;
 
     int daemonTask();
 
@@ -47,6 +39,8 @@ private:
     std::vector<double> enumerateIntelCarrierFrequencies();
 
     std::vector<uint32_t> enumerateSamplingFrequencies();
+
+    void printDots(int count);
 
     std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(
             PicoScenesFrameBuilder *frameBuilder, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);

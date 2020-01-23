@@ -18,7 +18,7 @@ public:
 
     static std::shared_ptr<EchoProbeParameters> getInstance(const std::string &phyId);
 
-    EchoProbeWorkingMode workingMode = Standby;
+    EchoProbeWorkingMode workingMode = MODE_Standby;
     bool continue2Work = false;
     std::optional<uint64_t> workingSessionId;
     std::optional<uint64_t> finishedSessionId;
