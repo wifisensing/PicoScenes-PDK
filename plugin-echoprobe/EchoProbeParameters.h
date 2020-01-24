@@ -14,9 +14,7 @@
 
 class EchoProbeParameters {
 public:
-    static std::shared_ptr<EchoProbeParameters> sharedParameters;
-
-    static std::shared_ptr<EchoProbeParameters> getInstance(const std::string &phyId);
+    EchoProbeParameters();
 
     EchoProbeWorkingMode workingMode = MODE_Standby;
     bool continue2Work = false;
@@ -50,9 +48,6 @@ public:
     std::optional<uint32_t> ack_maxLengthPerPacket;
     std::optional<uint32_t> delay_after_cf_change_us;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;
-
-private:
-    static void initializeSharedParameters();
 };
 
 

@@ -32,7 +32,7 @@ public:
 private:
     std::shared_ptr<EchoProbeInitiator> initiator;
 //    std::shared_ptr<EchoProbeResponder> responder;
-    std::shared_ptr<EchoProbeParameters> parameters;
+    EchoProbeParameters parameters;
 
     std::shared_ptr<po::options_description> echoProbeOptions;
     std::shared_ptr<po::options_description> injectionOptions;

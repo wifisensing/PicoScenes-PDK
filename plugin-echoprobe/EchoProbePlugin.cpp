@@ -20,7 +20,6 @@ std::string EchoProbePlugin::pluginStatus() {
 void EchoProbePlugin::initialization() {
     initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
 //    responder = std::make_shared<EchoProbeResponder>(nic);
-    parameters = EchoProbeParameters::getInstance(nic->getPhyId());
 
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
@@ -77,15 +76,19 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         boost::trim(modeString);
 
         if (modeString.find("injector") != std::string::npos) {
+            parameters.workingMode = MODE_Injector;
             nic->stopRxService();
             nic->startTxService();
         } else if (modeString.find("logger") != std::string::npos) {
+            parameters.workingMode = MODE_Logger;
             nic->stopTxService();
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
+            parameters.workingMode = MODE_EchoProbeResponder;
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("initiator") != std::string::npos) {
+            parameters.workingMode = MODE_EchoProbeInitiator;
             nic->startRxService();
             nic->startTxService();;
         }
@@ -94,10 +97,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     if (vm.count("target-interface")) {
         auto interfaceName = vm["target-interface"].as<std::string>();
         boost::trim(interfaceName);
-        parameters->inj_target_interface = interfaceName;
+        parameters.inj_target_interface = interfaceName;
         auto targetHAL = NICPortal::getTypedNIC<PicoScenesNIC>(interfaceName);
         if (targetHAL)
-            parameters->inj_target_mac_address = targetHAL->getMacAddressMon();
+            parameters.inj_target_mac_address = targetHAL->getMacAddressMon();
     }
 
     if (vm.count("target-mac-address")) {
@@ -114,12 +117,12 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
                 address[i] = hex;
             }
 
-            parameters->inj_target_mac_address = address;
+            parameters.inj_target_mac_address = address;
         }
     }
 
     if (vm.count("5300")) {
-        parameters->inj_for_intel5300 = true;
+        parameters.inj_for_intel5300 = true;
     }
 
     if (vm.count("cf")) {
@@ -127,11 +130,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         std::vector<std::string> rangeParts;
         boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
         if (!rangeParts[0].empty())
-            parameters->cf_begin = boost::lexical_cast<double>(rangeParts[0]);
+            parameters.cf_begin = boost::lexical_cast<double>(rangeParts[0]);
         if (!rangeParts[1].empty())
-            parameters->cf_step = boost::lexical_cast<double>(rangeParts[1]);
+            parameters.cf_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
-            parameters->cf_end = boost::lexical_cast<double>(rangeParts[2]);
+            parameters.cf_end = boost::lexical_cast<double>(rangeParts[2]);
     }
 
     if (vm.count("sf")) {
@@ -139,66 +142,66 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         std::vector<std::string> rangeParts;
         boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
         if (!rangeParts[0].empty())
-            parameters->pll_rate_begin = boost::lexical_cast<double>(rangeParts[0]);
+            parameters.pll_rate_begin = boost::lexical_cast<double>(rangeParts[0]);
         if (!rangeParts[1].empty())
-            parameters->pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
+            parameters.pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
-            parameters->pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
+            parameters.pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
 
         if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
             LoggingService::warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
-            parameters->pll_rate_begin = 0;
-            parameters->pll_rate_end = 0;
-            parameters->pll_rate_step = 0;
+            parameters.pll_rate_begin = 0;
+            parameters.pll_rate_end = 0;
+            parameters.pll_rate_step = 0;
         }
     }
 
     if (vm.count("repeat")) {
-        parameters->cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
+        parameters.cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
     }
 
     if (vm.count("delay")) {
-        parameters->tx_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
+        parameters.tx_delay_us = boost::lexical_cast<double>(vm["delay"].as<std::string>());
     }
 
     if (vm.count("delayed-start")) {
-        parameters->delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
+        parameters.delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
     }
 
     if (vm.count("bw")) {
         auto bwValue = vm["bw"].as<uint32_t>();
         if (bwValue == 20) {
-            parameters->bw = 20;
+            parameters.bw = 20;
         } else if (bwValue == 40) {
-            parameters->bw = 40;
+            parameters.bw = 40;
         } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid bandwith value: {}.\n", bwValue));
     }
 
     if (vm.count("sgi")) {
-        parameters->sgi = 1;
+        parameters.sgi = 1;
     }
 
     if (vm.count("mcs")) {
         auto mcs = vm["mcs"].as<uint32_t>();
         if (mcs < 23)
-            parameters->mcs = mcs;
+            parameters.mcs = mcs;
         else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
     }
 
     if (vm.count("gf")) {
-        parameters->inj_5300_gf = true;
+        parameters.inj_5300_gf = true;
     }
 
     if (vm.count("dup")) {
-        parameters->inj_5300_duplication = true;
+        parameters.inj_5300_duplication = true;
     }
 
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
         if (mcsValue <= 23) {
-            parameters->ack_mcs = mcsValue;
+            parameters.ack_mcs = mcsValue;
         } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
     }
@@ -206,25 +209,25 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     if (vm.count("ack-bw")) {
         auto ack_bw = vm["ack-bw"].as<uint32_t>();
         if (ack_bw == 20) {
-            parameters->ack_bw = 20;
+            parameters.ack_bw = 20;
         } else if (ack_bw == 40) {
-            parameters->ack_bw = 40;
+            parameters.ack_bw = 40;
         } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
     }
 
     if (vm.count("ack-sgi")) {
-        parameters->ack_sgi = 1;
+        parameters.ack_sgi = 1;
     }
 
     if (vm.size() > 0)
-        parameters->workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
+        parameters.workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
 
-    if (parameters->workingMode == MODE_EchoProbeInitiator || parameters->workingMode == MODE_Injector)
-        initiator->startJob(*parameters);
+    if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)
+        initiator->startJob(parameters);
 }
 
 void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxframe) {
-//    if (parameters->workingMode == MODE_EchoProbeResponder || parameters->workingMode == MODE_Logger)
+//    if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
 //        initiator->
 }
