@@ -238,7 +238,7 @@ std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> EchoProbeInitiator:
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
-
+    fp->makeFrame_withExtraInfo();
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
