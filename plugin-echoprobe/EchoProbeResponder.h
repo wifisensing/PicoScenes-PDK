@@ -16,18 +16,15 @@ class EchoProbeResponder {
 public:
     EchoProbeResponder(const std::shared_ptr<PicoScenesNIC> &nic) : nic(nic) {}
 
+    void startJob(const EchoProbeParameters & parameters);
+
     void handle(const struct PicoScenesRxFrameStructure &rxframe);
-
-    std::shared_ptr<EchoProbeParameters> parameters;
-
-    void serialize();
-
-    void finalize();
 
 private:
     std::shared_ptr<PicoScenesNIC> nic;
 
-//    std::vector<std::shared_ptr<PacketFabricator>> makePacket_EchoProbeWithACK(const struct RXS_enhanced *rxs);
+    EchoProbeParameters parameters;
+
 
 };
 

@@ -19,7 +19,7 @@ std::string EchoProbePlugin::pluginStatus() {
 
 void EchoProbePlugin::initialization() {
     initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
-//    responder = std::make_shared<EchoProbeResponder>(nic);
+    responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
 
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
@@ -225,9 +225,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)
         initiator->startJob(parameters);
+    else if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
+        responder->startJob(parameters);
 }
 
 void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxframe) {
-//    if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
-//        initiator->
+    if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
+        responder->handle(rxframe);
 }

@@ -8,7 +8,7 @@
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include <PicoScenes/PicoScenesNIC.hxx>
 #include "EchoProbeInitiator.h"
-//#include "EchoProbeResponder.h"
+#include "EchoProbeResponder.h"
 #include "EchoProbeParameters.h"
 
 class EchoProbePlugin : public AbstractPicoScenesPlugin {
@@ -31,7 +31,7 @@ public:
 
 private:
     std::shared_ptr<EchoProbeInitiator> initiator;
-//    std::shared_ptr<EchoProbeResponder> responder;
+    std::shared_ptr<EchoProbeResponder> responder;
     EchoProbeParameters parameters;
 
     std::shared_ptr<po::options_description> echoProbeOptions;
