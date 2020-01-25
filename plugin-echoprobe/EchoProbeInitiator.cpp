@@ -53,7 +53,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         auto dumperId = fmt::sprintf("rxack_%s_bb%u", nic->getReferredInterfaceName(), bb_rate_mhz);
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
-                if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultipler()) {
+                if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
                     LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
                     config->setPLLMultipler(pll_value);
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
@@ -294,8 +294,8 @@ std::vector<uint32_t> EchoProbeInitiator::enumerateSamplingFrequencies() {
         return frequencies;
     }
 
-    auto pll_begin = parameters.pll_rate_begin.value_or(nic->getConfiguration()->getPLLMultipler());
-    auto pll_end = parameters.pll_rate_end.value_or(nic->getConfiguration()->getPLLMultipler());
+    auto pll_begin = parameters.pll_rate_begin.value_or(nic->getConfiguration()->getPLLMultiplier());
+    auto pll_end = parameters.pll_rate_end.value_or(nic->getConfiguration()->getPLLMultiplier());
     auto pll_step = parameters.pll_rate_step.value_or(1);
     auto cur_pll = pll_begin;
 
