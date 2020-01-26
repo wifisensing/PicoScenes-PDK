@@ -46,9 +46,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                                sfList.front(), parameters.pll_rate_step.value_or(0), sfList.back(), cfList.front(), parameters.cf_step.value_or(0), cfList.back(), cf_repeat, tx_delay_us);
 
     for (const auto &pll_value: sfList) {
-        auto bb_rate_mhz = channelFlags2ChannelMode(config->getChannelFlags()) == HT20 ? 20 : 40;
+        auto bb_rate_mhz = channelFlags2ChannelMode(config->getChannelFlags()) == ChannelMode::HT20 ? 20 : 40;
         if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-            bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, config->getPLLRefDiv(), config->getPLLClockSelect(), !(channelFlags2ChannelMode(config->getChannelFlags()) == HT20)) / 1e6;
+            bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, config->getPLLRefDiv(), config->getPLLClockSelect(), !(channelFlags2ChannelMode(config->getChannelFlags()) == ChannelMode::HT20)) / 1e6;
         }
         auto dumperId = fmt::sprintf("rxack_%s_bb%u", nic->getReferredInterfaceName(), bb_rate_mhz);
         for (const auto &cf_value: cfList) {
@@ -356,16 +356,16 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
 
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_PLUS)
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
         cf_begin -= 10e6;
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_MINUS)
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
         cf_begin += 10e6;
     auto closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cf_begin / 1e6);
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_PLUS) {
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS) {
         closestFreq += 10;
         cf_begin += 10e6;
     }
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_MINUS) {
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS) {
         closestFreq -= 10;
         cf_begin -= 10e6;
     }
@@ -376,9 +376,9 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     auto cur_cf = cf_begin;
 
     closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cf_end / 1e6);
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_PLUS)
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
         closestFreq += 10;
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_MINUS)
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
         closestFreq -= 10;
     if (cf_end / 1e6 != closestFreq) {
         LoggingService::warning_print("CF end (desired {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters.cf_end, closestFreq);
@@ -393,9 +393,9 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
             if (cur_cf > 5825e6 && cf_step > 0 || cur_cf < 2412e6 && cf_step < 0)
                 break;
             closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
-            if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_PLUS)
+            if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
                 closestFreq += 10;
-            if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == HT40_MINUS)
+            if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
                 closestFreq -= 10;
         } while (closestFreq == previous_closest);
         cur_cf = closestFreq * 1e6;
