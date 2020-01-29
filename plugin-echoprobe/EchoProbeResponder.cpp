@@ -95,7 +95,6 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
         frameBuilder->setPicoScenesFrameType(EchoProbeFreqChangeACK);
         frameBuilder->setMCS(0);
-        frameBuilder->setChannelBonding(false);
         frameBuilder->setSGI(false);
         frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
         fps.emplace_back(frameBuilder);

@@ -12,12 +12,13 @@
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
+#include "EchoProbeHeader.hxx"
 
 
 class EchoProbeInitiator {
 public:
 
-    EchoProbeInitiator(std::shared_ptr<PicoScenesNIC> nic) : nic(nic) {}
+    explicit EchoProbeInitiator(const std::shared_ptr<PicoScenesNIC> &nic) : nic(nic) {}
 
     void startJob(const EchoProbeParameters &parameters);
 
@@ -27,8 +28,6 @@ private:
     std::condition_variable_any ctrlCCV;
     std::shared_mutex blockMutex;
     EchoProbeParameters parameters;
-
-    int daemonTask();
 
     void unifiedEchoProbeWork();
 
@@ -45,7 +44,7 @@ private:
     std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(
             PicoScenesFrameBuilder *frameBuilder, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);
 
-    std::shared_ptr<PicoScenesFrameBuilder> buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
+    [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
 };
 
 #endif //PICOSCENES_ECHOPROBEINITIATOR_H

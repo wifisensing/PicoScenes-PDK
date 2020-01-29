@@ -4,25 +4,6 @@
 
 #include "EchoProbeInitiator.h"
 
-static int closest(std::vector<int> const &vec, int value) {
-    if (value <= vec[0])
-        return vec[0];
-
-    if (value >= vec[vec.size() - 1])
-        return vec[vec.size() - 1];
-
-
-    auto const it = std::lower_bound(vec.begin(), vec.end(), value);
-    if (it == vec.end()) {
-        auto const it2 = std::upper_bound(vec.begin(), vec.end(), value);
-        if (it2 == vec.end()) {
-            return -1;
-        }
-        return *it2;
-    }
-    return *it;
-}
-
 
 void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
     this->parameters = parameters;
@@ -64,41 +45,43 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-//                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-//                auto fp = buildPacket(taskId, EchoProbeFreqChangeRequest);
-//                bool shiftPLL = false;
-//                bool shiftCF = false;
-//                if (hal->isAR9300 && pll_value != hal->getPLLMultipler()) {
-//                    LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
-//                    fp->echoProbeInfo->pll_rate = pll_value;
-//                    fp->echoProbeInfo->pll_refdiv = hal->getPLLRefDiv();
-//                    fp->echoProbeInfo->pll_clock_select = hal->getPLLClockSelect();
-//                    shiftPLL = true;
-//                }
-//                if (cf_value != hal->getCarrierFreq()) {
-//                    LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-//                    fp->echoProbeInfo->frequency = cf_value;
-//                    shiftCF = true;
-//                }
-//
-//                if (shiftCF || shiftPLL) {
-//                    if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxs) {
-//                        LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
-//                        if (shiftPLL) hal->setPLLMultipler(pll_value);
-//                        if (shiftCF) hal->setCarrierFreq(cf_value);
-//                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//                    } else {
-//                        LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", nic->getReferredInterfaceName());
-//                        if (shiftPLL) hal->setPLLMultipler(pll_value);
-//                        if (shiftCF) hal->setCarrierFreq(cf_value);
-//                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//                        if (auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxs) { // still fails
-//                            LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
-//                            parameters.continue2Work = false;
-//                            break;
-//                        }
-//                    }
-//                }
+                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
+                EchoProbeHeader epHeader{};
+                bool shiftPLL = false;
+                bool shiftCF = false;
+                if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
+                    LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
+                    epHeader.pll_rate = pll_value;
+                    epHeader.pll_refdiv = config->getPLLRefDiv();
+                    epHeader.pll_clock_select = config->getPLLClockSelect();
+                    shiftPLL = true;
+                }
+                if (cf_value != config->getCarrierFreq()) {
+                    LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
+                    epHeader.frequency = cf_value;
+                    shiftCF = true;
+                }
+                fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
+
+                if (shiftCF || shiftPLL) {
+                    if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxframe) {
+                        LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
+                        if (shiftPLL) config->setPLLMultipler(pll_value);
+                        if (shiftCF) config->setCarrierFreq(cf_value);
+                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                    } else {
+                        LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", nic->getReferredInterfaceName());
+                        if (shiftPLL) config->setPLLMultipler(pll_value);
+                        if (shiftCF) config->setCarrierFreq(cf_value);
+                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                        if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxframe) { // still fails
+                            LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
+                            parameters.continue2Work = false;
+                            break;
+                        }
+                    }
+                }
             }
 
             tx_count = 0;
@@ -109,7 +92,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 std::shared_ptr<PicoScenesRxFrameStructure> replyRXS = nullptr;
 
                 if (workingMode == MODE_Injector) {
-                    fp = buildPacket(taskId, SimpleInjection);
+                    fp = buildBasicFrame(taskId, SimpleInjection);
                     if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
                         fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                         fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -133,31 +116,32 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         printDots(tx_count);
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
-//                    fp = buildPacket(taskId, EchoProbeRequest);
-//                    auto[rxs, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
-//                    tx_count += retryPerTx;
-//                    if (rxs) {
-//                        replyRXS = rxs;
-//                        acked_count++;
-//                        if (LoggingService::localDisplayLevel <= Debug) {
-//                            struct RXS_enhanced rxs_acked_tx;
+                    fp = buildBasicFrame(taskId, EchoProbeRequest);
+                    EchoProbeHeader epHeader;
+                    auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                    tx_count += retryPerTx;
+                    if (rxframe) {
+                        replyRXS = rxframe;
+                        acked_count++;
+                        if (LoggingService::localDisplayLevel <= Debug) {
+                            struct RXS_enhanced rxs_acked_tx;
 //                            parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
 //                            LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
 //                            LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
-//                        }
+                        }
 //                        RXSDumper::getInstance(dumperId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
-//                        LoggingService::detail_print("TaskId {} done!\n", taskId);
-//
-//                        if (LoggingService::localDisplayLevel == Trace)
-//                            printDots(acked_count);
-//                        std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
-//                    } else {
-//                        if (LoggingService::localDisplayLevel == Trace)
-//                            printf("\n");
-//                        LoggingService::warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...\n", cf_value);
-//                        parameters.continue2Work = false;
-//                        break;
-//                    }
+                        LoggingService::detail_print("TaskId {} done!\n", taskId);
+
+                        if (LoggingService::localDisplayLevel == Trace)
+                            printDots(acked_count);
+                        std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
+                    } else {
+                        if (LoggingService::localDisplayLevel == Trace)
+                            printf("\n");
+                        LoggingService::warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...\n", cf_value);
+                        parameters.continue2Work = false;
+                        break;
+                    }
                 }
             }
             if (LoggingService::localDisplayLevel == Trace)
@@ -236,7 +220,7 @@ std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> EchoProbeInitiator:
     return std::make_tuple(nullptr, 0);
 }
 
-std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildPacket(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
+std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
     fp->makeFrame_withExtraInfo();
     fp->setTaskId(taskId);
@@ -245,22 +229,8 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildPacket(uint16_t
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     if (parameters.bw)
-        fp->setChannelBonding((*parameters.bw == 40 ? true : false));
+        fp->setChannelBonding(*parameters.bw == 40);
     fp->setSGI(parameters.sgi.value_or(false));
-
-    if (parameters.workingMode == MODE_EchoProbeInitiator) {
-//        fp->addEchoProbeInfoWithData(0, nullptr, 0);
-//        fp->echoProbeInfo->ackMCS = parameters.ack_mcs.value_or(-1);
-//        fp->echoProbeInfo->ackBandWidth = parameters.ack_bw.value_or(-1);
-//        fp->echoProbeInfo->ackSGI = parameters.ack_sgi.value_or(-1);
-//
-//        if (frameType == EchoProbeFreqChangeRequest) {
-//            fp->setTxMCS(0);
-//            fp->setTxpower(20);
-//            fp->setTxSGI(false);
-////            fp->setTx40MHzBW(false);
-//        }
-    }
 
     return fp;
 }
@@ -337,6 +307,25 @@ std::vector<double> EchoProbeInitiator::enumerateAtherosCarrierFrequencies() {
     return frequencies;
 }
 
+static int closest(std::vector<int> const &vec, int value) {
+    if (value <= vec[0])
+        return vec[0];
+
+    if (value >= vec[vec.size() - 1])
+        return vec[vec.size() - 1];
+
+
+    auto const it = std::lower_bound(vec.begin(), vec.end(), value);
+    if (it == vec.end()) {
+        auto const it2 = std::upper_bound(vec.begin(), vec.end(), value);
+        if (it2 == vec.end()) {
+            return -1;
+        }
+        return *it2;
+    }
+    return *it;
+}
+
 std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
 
     auto frequencies = std::vector<double>();
@@ -390,7 +379,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         auto previous_closest = cur_cf / 1e6;
         do {
             cur_cf += cf_step;
-            if (cur_cf > 5825e6 && cf_step > 0 || cur_cf < 2412e6 && cf_step < 0)
+            if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
                 break;
             closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
