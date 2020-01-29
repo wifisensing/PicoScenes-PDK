@@ -13,108 +13,121 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
         return;
     }
 
-//    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.txHeader.header_info.hasEchoProbeInfo)
-//        return;
-//
-//    auto replies = this->makePacket_EchoProbeWithACK(received_rxs);
-//    for (auto &reply: replies) {
-//        if (parameters.inj_for_intel5300.value_or(false) == true) {
-//            if (nic->isAR9300) {
-//                nic->setTxNotSounding(false);
-//                nic->transmitRawPacket(reply.get());
-//                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//            }
-//            nic->setTxNotSounding(true);
-//            reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-//            reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-//            reply->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-//            nic->transmitRawPacket(reply.get());
-//        } else {
-//            nic->setTxNotSounding(false);
-//            if (nic->isAR9300 == false) {
-//                reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-//                reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-//                reply->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-//            }
-//            nic->transmitRawPacket(reply.get());
-//        }
-//
-//        if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-//            for (auto i = 0; i < 2; i++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
-//                std::this_thread::sleep_for(std::chrono::microseconds(1000));
-//                nic->transmitRawPacket(reply.get());
-//            }
-//        }
-//    }
-//
-//    if (received_rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-//        auto cf = received_rxs->echoProbeInfo.frequency;
-//        auto pll_rate = received_rxs->echoProbeInfo.pll_rate;
-//        auto pll_refdiv = received_rxs->echoProbeInfo.pll_refdiv;
-//        auto pll_clock_select = received_rxs->echoProbeInfo.pll_clock_select;
-//        if ((cf > 0 && nic->getCarrierFreq() != cf) || (pll_rate > 0 && nic->getPLLMultipler() != pll_rate)) {
-//            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//
-//            if (pll_rate > 0 && nic->getPLLMultipler() != pll_rate) {
-//                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, (*parameters.bw == 40 ? true : false)) / 1e6;
-//                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->referredInterfaceName, bb_rate_mhz);
-//                nic->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
-//            }
-//
-//            if (cf > 0 && nic->getCarrierFreq() != cf) {
-//                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->referredInterfaceName, (double) cf / 1e6);
-//                nic->setCarrierFreq(cf);
-//            }
-//
-//            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//        }
-//    }
-//
-//    return true;
+    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequest && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequest))
+        return;
+
+    if (!rxframe.segmentMap || rxframe.segmentMap->find("EP") == rxframe.segmentMap->end())
+        return;
+
+    auto echoProbeHeader = EchoProbeHeader::fromBuffer(rxframe.segmentMap->at("EP").second.get(), rxframe.segmentMap->at("EP").first);
+    if (!echoProbeHeader) {
+        LoggingService::warning_print("EchoProbeHeader parser failed.");
+        return;
+    }
+
+    auto replies = this->makePacket_EchoProbeWithACK(rxframe, *echoProbeHeader);
+    for (auto &reply: replies) {
+        if (parameters.inj_for_intel5300.value_or(false)) {
+            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+                nic->getConfiguration()->setTxNotSounding(false);
+                reply->transmitSync();
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+            }
+            nic->getConfiguration()->setTxNotSounding(true);
+            reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            reply->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
+            reply->transmitSync();
+        } else {
+            nic->getConfiguration()->setTxNotSounding(false);
+            if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+                reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+                reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+                reply->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
+            }
+            reply->transmitSync();
+        }
+
+        if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
+            for (auto i = 0; i < 2; i++) { // send Freq Change ACK frame 60 times to ensure the reception at the Initiator
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                reply->transmitSync();
+            }
+        }
+    }
+
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
+        auto cf = echoProbeHeader->frequency;
+        auto pll_rate = echoProbeHeader->pll_rate;
+        auto pll_refdiv = echoProbeHeader->pll_refdiv;
+        auto pll_clock_select = echoProbeHeader->pll_clock_select;
+        if ((cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) || (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate)) {
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+
+            if (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate) {
+                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, *parameters.bw == 40) / 1e6;
+                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
+                nic->getConfiguration()->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
+            }
+
+            if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
+                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
+                nic->getConfiguration()->setCarrierFreq(cf);
+            }
+
+            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+        }
+    }
 }
 
 void EchoProbeResponder::startJob(const EchoProbeParameters &parameters) {
     this->parameters = parameters;
 }
 
-//std::vector<std::shared_ptr<PacketFabricator>> EchoProbeResponder::makePacket_EchoProbeWithACK(const struct RXS_enhanced *rxs) {
-//    uint16_t curPos = 0, curLength = 0;
-//    std::vector<std::shared_ptr<PacketFabricator>> fps;
-//    auto packetLength = *parameters.ack_maxLengthPerPacket;
-//
-//    // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
-//    if (rxs->txHeader.header_info.frameType == EchoProbeFreqChangeRequest) {
-//        auto txPacketFabricator = nic->packetFabricator->makePacket_headerOnly();
-//        txPacketFabricator->setTaskId(rxs->txHeader.header_info.taskId);
-//        txPacketFabricator->setFrameType(EchoProbeFreqChangeACK);
-//        txPacketFabricator->setTxMCS(0);
-//        txPacketFabricator->setTxpower(20);
-//        txPacketFabricator->setTxSGI(false);
-//        txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
-//        fps.emplace_back(txPacketFabricator);
-//    } else
-//        do {
-//            curLength = (rxs->rawBufferLength - curPos) <= packetLength ? (rxs->rawBufferLength - curPos) : packetLength;
-//            auto txPacketFabricator = nic->packetFabricator->makePacket_chronosWithData(curLength, rxs->rawBuffer + curPos, 0);
-//            if (curPos + curLength < rxs->rawBufferLength) {
-//                txPacketFabricator->packetHeader->header_info.moreIsComming = 1;
-//            }
-//            txPacketFabricator->setTaskId(rxs->txHeader.header_info.taskId);
-//            txPacketFabricator->setFrameType(EchoProbeReply);
-//            txPacketFabricator->setTxMCS(rxs->echoProbeInfo.ackMCS >= 0 ? rxs->echoProbeInfo.ackMCS : *parameters.mcs);
-//            txPacketFabricator->setTx40MHzBW(
-//                    rxs->echoProbeInfo.ackBandWidth >= 0 ? (rxs->echoProbeInfo.ackBandWidth == 40) : (*parameters.bw == 40));
-//            txPacketFabricator->setTxSGI(rxs->echoProbeInfo.ackSGI >= 0 ? rxs->echoProbeInfo.ackSGI : *parameters.sgi);
-//            txPacketFabricator->setTxGreenField(parameters.inj_5300_gf.value_or(false));
-//            txPacketFabricator->setTxDuplicationOn40MHz(parameters.inj_5300_duplication.value_or(false));
-//            txPacketFabricator->setDestinationAddress(rxs->txHeader.addr3);
-//            fps.emplace_back(txPacketFabricator);
-//            curPos += curLength;
-//        } while (curPos < rxs->rawBufferLength);
-//
+std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePacket_EchoProbeWithACK(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader) {
+
+    std::vector<std::shared_ptr<PicoScenesFrameBuilder>> fps;
+
+    // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
+        auto frameBuilder = std::make_shared<PicoScenesFrameBuilder>(nic);
+        frameBuilder->makeFrame_HeaderOnly();
+        frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
+        frameBuilder->setPicoScenesFrameType(EchoProbeFreqChangeACK);
+        frameBuilder->setMCS(0);
+        frameBuilder->setChannelBonding(false);
+        frameBuilder->setSGI(false);
+        frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
+        fps.emplace_back(frameBuilder);
+    }
+
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequest) {
+        uint16_t curPos = 0, curLength = 0;
+        auto packetLength = *parameters.ack_maxLengthPerPacket;
+
+        do {
+            curLength = (rxframe.rawBufferLength - curPos) <= packetLength ? (rxframe.rawBufferLength - curPos) : packetLength;
+            auto frameBuilder = std::make_shared<PicoScenesFrameBuilder>(nic);
+            frameBuilder->makeFrame_withExtraInfo();
+            frameBuilder->addSegment("EP", rxframe.rawBuffer.get() + curPos, packetLength);
+            if (curPos + curLength < rxframe.rawBufferLength)
+                frameBuilder->setMoreFragments();
+            frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
+            frameBuilder->setPicoScenesFrameType(EchoProbeReply);
+            frameBuilder->setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
+            frameBuilder->setChannelBonding(
+                    epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+            frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
+            frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
+            frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
+            fps.emplace_back(frameBuilder);
+            curPos += curLength;
+        } while (curPos < rxframe.rawBufferLength);
+    }
+
 //    auto segmentHeadSeq = fps[0]->packetHeader->seq;
 //    for (auto &fabricator: fps)
 //        fabricator->packetHeader->segment_head_seq = segmentHeadSeq;
-//
-//    return fps;
-//}
+
+    return fps;
+}

@@ -1,4 +1,4 @@
-ADD_LIBRARY(PDK-EchoProbe SHARED EchoProbePlugin.cpp EchoProbeParameters.cpp EchoProbeInitiator.cpp EchoProbeResponder.cpp)
+ADD_LIBRARY(PDK-EchoProbe SHARED EchoProbePlugin.cpp EchoProbeParameters.cpp EchoProbeInitiator.cpp EchoProbeResponder.cpp EchoProbeHeader.cxx EchoProbeHeader.hxx)
 if (APPLE)
     TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL Utilities fmt::fmt-header-only EnhancedConsoleText rxs_parsing ${Boost_LIBRARIES})
 else ()
