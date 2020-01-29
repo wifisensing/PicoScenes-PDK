@@ -122,9 +122,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     if (rxframe) {
                         acked_count++;
                         if (LoggingService::localDisplayLevel <= Debug) {
-//                            parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
-//                            LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
-//                            LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
+                            auto segment = rxframe->segmentMap->at("EP");
+                            auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first);
+                            LoggingService::debug_print("Raw ACK: {}\n", *rxframe);
+                            LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
                         }
                         RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", taskId);
@@ -207,7 +208,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
         */
         auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_us)) {
-            return std::make_tuple(replyFrame, retryCount);
+            if (replyFrame->segmentMap && replyFrame->segmentMap->find("EP") != replyFrame->segmentMap->end())
+                return std::make_tuple(replyFrame, retryCount);
         }
     }
 
