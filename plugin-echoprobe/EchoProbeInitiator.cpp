@@ -65,7 +65,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
 
                 if (shiftCF || shiftPLL) {
-                    if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxframe) {
+                    if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
@@ -75,7 +75,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-                        if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxframe) { // still fails
+                        if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             parameters.continue2Work = false;
                             break;
@@ -117,19 +117,16 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequest);
-                    EchoProbeHeader epHeader;
-                    auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                    auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>());
                     tx_count += retryPerTx;
                     if (rxframe) {
-                        replyRXS = rxframe;
                         acked_count++;
                         if (LoggingService::localDisplayLevel <= Debug) {
-                            struct RXS_enhanced rxs_acked_tx;
 //                            parse_rxs_enhanced(replyRXS->chronosACKBody, &rxs_acked_tx, EXTRA_NOCSI);
 //                            LoggingService::debug_print("Raw ACK: {}\n", printRXS(*replyRXS.get()));
 //                            LoggingService::debug_print("ACKed Tx: {}\n", printRXS(rxs_acked_tx));
                         }
-//                        RXSDumper::getInstance(dumperId).dumpRXS(replyRXS->rawBuffer, replyRXS->rawBufferLength);
+                        RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", taskId);
 
                         if (LoggingService::localDisplayLevel == Trace)
@@ -170,54 +167,51 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     blockCV.notify_all();
 }
 
-std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(
-        PicoScenesFrameBuilder *frameBuilder, int maxRetry, const std::chrono::steady_clock::time_point *txTime) {
-//    std::shared_ptr<RXS_enhanced> replyRXS = nullptr;
-//    auto taskId = packetFabricator->packetHeader->header_info.taskId;
-//    auto retryCount = 0;
-//    uint8_t origin_addr1[6], origin_addr2[6], origin_addr3[6];
-//    memcpy(origin_addr1, packetFabricator->packetHeader->addr1, 6);
-//    memcpy(origin_addr2, packetFabricator->packetHeader->addr2, 6);
-//    memcpy(origin_addr3, packetFabricator->packetHeader->addr3, 6);
-//    maxRetry = (maxRetry == 0 ? parameters.tx_max_retry : maxRetry);
-//
-//    while (retryCount++ < maxRetry) {
-//
-//        if (parameters.inj_for_intel5300.value_or(false)) {
-//            if (hal->isAR9300) {
-//                hal->setTxNotSounding(false);
-//                packetFabricator->setDestinationAddress(origin_addr1);
-//                packetFabricator->setSourceAddress(origin_addr2);
-//                packetFabricator->set3rdAddress(origin_addr3);
-//                hal->transmitRawPacket(packetFabricator, txTime);
-//                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
-//                hal->setTxNotSounding(true);
-//            }
-//            packetFabricator->setDestinationAddress(AthNicParameters::magicIntel123456.data());
-//            packetFabricator->setSourceAddress(AthNicParameters::magicIntel123456.data());
-//            packetFabricator->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
-//            hal->transmitRawPacket(packetFabricator, txTime);
-//        } else {
-//            if (hal->isAR9300) {
-//                hal->setTxNotSounding(false);
-//            } else {
-//                packetFabricator->setDestinationAddress(AthNicParameters::magicIntel123456.data());
-//                packetFabricator->setSourceAddress(AthNicParameters::magicIntel123456.data());
-//                packetFabricator->set3rdAddress(AthNicParameters::broadcastFFMAC.data());
-//            }
-//            hal->transmitRawPacket(packetFabricator, txTime);
-//        }
-//
-//        /*
-//        * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
-//        */
-//        auto timeout_us_scaling = hal->getPLLRate() < 20e6 ? 6 : 1;
-//        replyRXS = hal->rxSyncWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_us);
-//        if (replyRXS)
-//            return std::make_tuple(replyRXS, retryCount);
-//    }
+std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(PicoScenesFrameBuilder *frameBuilder, std::optional<uint32_t> maxRetry) {
+    auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
+    uint8_t origin_addr1[6], origin_addr2[6], origin_addr3[6];
+    memcpy(origin_addr1, frameBuilder->getFrame()->standardHeader.addr1, 6);
+    memcpy(origin_addr2, frameBuilder->getFrame()->standardHeader.addr2, 6);
+    memcpy(origin_addr3, frameBuilder->getFrame()->standardHeader.addr3, 6);
+    auto retryCount = 0;
+    maxRetry = (*maxRetry ? parameters.tx_max_retry : maxRetry);
 
-    return std::make_tuple(nullptr, 0);
+    while (retryCount++ < maxRetry) {
+        if (parameters.inj_for_intel5300.value_or(false)) {
+            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+                nic->getConfiguration()->setTxNotSounding(false);
+                frameBuilder->setDestinationAddress(origin_addr1);
+                frameBuilder->setSourceAddress(origin_addr2);
+                frameBuilder->set3rdAddress(origin_addr3);
+                frameBuilder->transmitSync();
+                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                nic->getConfiguration()->setTxNotSounding(true);
+            }
+            frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
+            frameBuilder->transmitSync();
+        } else {
+            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+                nic->getConfiguration()->setTxNotSounding(false);
+            } else {
+                frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+                frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+                frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
+            }
+            frameBuilder->transmitSync();
+        }
+
+        /*
+        * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
+        */
+        auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
+        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_us)) {
+            return std::make_tuple(replyFrame, retryCount);
+        }
+    }
+
+    return std::make_tuple(std::nullopt, 0);
 }
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
@@ -231,6 +225,19 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (parameters.bw)
         fp->setChannelBonding(*parameters.bw == 40);
     fp->setSGI(parameters.sgi.value_or(false));
+
+    if (frameType == EchoProbeRequest) {
+        EchoProbeHeader epHeader;
+        epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
+        epHeader.ackChannelBonding = parameters.ack_bw.value_or(-1);
+        epHeader.ackSGI = parameters.ack_sgi.value_or(-1);
+        fp->addSegment("EP", reinterpret_cast<const uint8_t *>(&epHeader), sizeof(EchoProbeHeader));
+    }
+
+    if (frameType == EchoProbeFreqChangeRequest) {
+        fp->setMCS(0);
+        fp->setSGI(false);
+    }
 
     return fp;
 }

@@ -110,7 +110,7 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->makeFrame_withExtraInfo();
             frameBuilder->addSegment("EP", rxframe.rawBuffer.get() + curPos, packetLength);
             if (curPos + curLength < rxframe.rawBufferLength)
-                frameBuilder->setMoreFragments();
+                frameBuilder->setMoreFrags();
             frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
             frameBuilder->setPicoScenesFrameType(EchoProbeReply);
             frameBuilder->setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);

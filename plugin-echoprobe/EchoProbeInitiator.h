@@ -41,8 +41,7 @@ private:
 
     void printDots(int count);
 
-    std::tuple<std::shared_ptr<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(
-            PicoScenesFrameBuilder *frameBuilder, int maxRetry = 0, const std::chrono::steady_clock::time_point *txTime = nullptr);
+    std::tuple<std::optional<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(PicoScenesFrameBuilder *frameBuilder, std::optional<uint32_t> maxRetry);
 
     [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
 };
