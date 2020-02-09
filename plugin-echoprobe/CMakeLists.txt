@@ -2,6 +2,6 @@ ADD_LIBRARY(PDK-EchoProbe SHARED EchoProbePlugin.cpp EchoProbeParameters.cpp Ech
 if (APPLE)
     TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL Utilities fmt::fmt-header-only EnhancedConsoleText rxs_parsing ${Boost_LIBRARIES})
 else ()
-    TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL Utilities fmt ${Boost_LIBRARIES})
+    TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL ${Boost_LIBRARIES})
 endif ()
 install(TARGETS PDK-EchoProbe DESTINATION ${INSTALL_PLUGIN_DIR})

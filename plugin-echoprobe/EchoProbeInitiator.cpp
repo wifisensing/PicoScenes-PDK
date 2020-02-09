@@ -23,7 +23,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingFrequencies();
     auto cfList = enumerateCarrierFrequencies();
 
-    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{} with {} repeats and {}us interval.\n",
+    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{}, {} repeats with {}us interval.\n",
                                sfList.front(), parameters.pll_rate_step.value_or(0), sfList.back(), cfList.front(), parameters.cf_step.value_or(0), cfList.back(), cf_repeat, tx_delay_us);
 
     for (const auto &pll_value: sfList) {
@@ -175,7 +175,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
     memcpy(origin_addr2, frameBuilder->getFrame()->standardHeader.addr2, 6);
     memcpy(origin_addr3, frameBuilder->getFrame()->standardHeader.addr3, 6);
     auto retryCount = 0;
-    maxRetry = (*maxRetry ? parameters.tx_max_retry : maxRetry);
+    maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < maxRetry) {
         if (parameters.inj_for_intel5300.value_or(false)) {
