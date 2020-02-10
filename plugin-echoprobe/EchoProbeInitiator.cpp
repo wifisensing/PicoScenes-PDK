@@ -128,7 +128,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
                         }
                         RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
-                        LoggingService::detail_print("TaskId {} done!\n", taskId);
+                        LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
 
                         if (LoggingService::localDisplayLevel == Trace)
                             printDots(acked_count);
