@@ -97,6 +97,8 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         frameBuilder->setMCS(0);
         frameBuilder->setSGI(false);
         frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
+        frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
+        frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
         fps.emplace_back(frameBuilder);
     }
 
@@ -119,6 +121,8 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
             frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
             frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
+            frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
+            frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
             fps.emplace_back(frameBuilder);
             curPos += curLength;
         } while (curPos < rxframe.rawBufferLength);
