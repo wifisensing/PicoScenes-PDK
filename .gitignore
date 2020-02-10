@@ -3,3 +3,6 @@
 build/
 cmake-build-debug/
 *.csi
+libPDK-demo.*
+libPDK-EchoProbe.*
+libPlugIn-RXSBroadcaster.*
