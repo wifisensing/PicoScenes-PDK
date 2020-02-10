@@ -184,14 +184,14 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
                 frameBuilder->setDestinationAddress(origin_addr1);
                 frameBuilder->setSourceAddress(origin_addr2);
                 frameBuilder->set3rdAddress(origin_addr3);
-                frameBuilder->transmitSync();
+                frameBuilder->transmit();
                 std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
                 nic->getConfiguration()->setTxNotSounding(true);
             }
             frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-            frameBuilder->transmitSync();
+            frameBuilder->transmit();
         } else {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
                 frameBuilder->setDestinationAddress(parameters.inj_target_mac_address->data());
@@ -203,7 +203,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
                 frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                 frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
             }
-            frameBuilder->transmitSync();
+            frameBuilder->transmit();
         }
 
         /*
