@@ -194,6 +194,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
             frameBuilder->transmitSync();
         } else {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+                frameBuilder->setDestinationAddress(parameters.inj_target_mac_address->data());
+                frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
+                frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
                 nic->getConfiguration()->setTxNotSounding(false);
             } else {
                 frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -222,6 +225,8 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
+    fp->setSourceAddress(nic->getMacAddressPhy().data());
+    fp->set3rdAddress(nic->getMacAddressDev().data());
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     if (parameters.bw)

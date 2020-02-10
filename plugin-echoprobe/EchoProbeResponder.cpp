@@ -102,13 +102,13 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequest) {
         uint16_t curPos = 0, curLength = 0;
-        auto packetLength = *parameters.ack_maxLengthPerPacket;
+        auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
 
         do {
-            curLength = (rxframe.rawBufferLength - curPos) <= packetLength ? (rxframe.rawBufferLength - curPos) : packetLength;
+            curLength = (rxframe.rawBufferLength - curPos) <= maxPacketLength ? (rxframe.rawBufferLength - curPos) : maxPacketLength;
             auto frameBuilder = std::make_shared<PicoScenesFrameBuilder>(nic);
             frameBuilder->makeFrame_withExtraInfo();
-            frameBuilder->addSegment("EP", rxframe.rawBuffer.get() + curPos, packetLength);
+            frameBuilder->addSegment("EP", rxframe.rawBuffer.get() + curPos, curLength);
             if (curPos + curLength < rxframe.rawBufferLength)
                 frameBuilder->setMoreFrags();
             frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
