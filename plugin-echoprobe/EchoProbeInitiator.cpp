@@ -45,11 +45,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                 EchoProbeHeader epHeader{};
-                bool shiftPLL = false;
-                bool shiftCF = false;
+                bool shiftPLL = false, shiftCF = false;
                 if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
                     epHeader.pll_rate = pll_value;
@@ -62,9 +59,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     epHeader.frequency = cf_value;
                     shiftCF = true;
                 }
-                fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
 
                 if (shiftCF || shiftPLL) {
+                    auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
+                    fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
                     if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) config->setPLLMultipler(pll_value);
@@ -211,7 +210,6 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
         */
         auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_us)) {
-            if (replyFrame->segmentMap && replyFrame->segmentMap->find("EP") != replyFrame->segmentMap->end())
                 return std::make_tuple(replyFrame, retryCount);
         }
     }
@@ -221,7 +219,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
-    fp->makeFrame_withExtraInfo();
+    fp->makeFrame_HeaderOnly();
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
@@ -234,6 +232,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setSGI(parameters.sgi.value_or(false));
 
     if (frameType == EchoProbeRequest) {
+        fp->addExtraInfo();
         EchoProbeHeader epHeader;
         epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
         epHeader.ackChannelBonding = parameters.ack_bw.value_or(-1);
