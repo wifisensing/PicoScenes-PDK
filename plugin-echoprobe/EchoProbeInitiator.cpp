@@ -37,12 +37,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
                     LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
                     config->setPLLMultipler(pll_value);
-                    std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), cf_value / 1e6);
                     config->setCarrierFreq(cf_value);
-                    std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
                 EchoProbeHeader epHeader{};
@@ -68,12 +68,12 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
-                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                     } else {
                         LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", nic->getReferredInterfaceName());
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
-                        std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                         if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             parameters.continue2Work = false;
@@ -101,7 +101,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         config->setTxNotSounding(false);
                         fp->transmit();
                         if (parameters.inj_for_intel5300.value_or(false)) {
-                            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                             config->setTxNotSounding(true);
                             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -184,7 +184,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
                 frameBuilder->setSourceAddress(origin_addr2);
                 frameBuilder->set3rdAddress(origin_addr3);
                 frameBuilder->transmit();
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 nic->getConfiguration()->setTxNotSounding(true);
             }
             frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -209,8 +209,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::t
         * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
-        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_us)) {
-                return std::make_tuple(replyFrame, retryCount);
+        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_ms)) {
+            return std::make_tuple(replyFrame, retryCount);
         }
     }
 

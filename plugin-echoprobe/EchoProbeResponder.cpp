@@ -31,7 +31,7 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
                 nic->getConfiguration()->setTxNotSounding(false);
                 reply->transmitSync();
-                std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             }
             nic->getConfiguration()->setTxNotSounding(true);
             reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -62,7 +62,7 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
         auto pll_refdiv = echoProbeHeader->pll_refdiv;
         auto pll_clock_select = echoProbeHeader->pll_clock_select;
         if ((cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) || (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate)) {
-            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
 
             if (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate) {
                 auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, *parameters.bw == 40) / 1e6;
@@ -75,7 +75,7 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
                 nic->getConfiguration()->setCarrierFreq(cf);
             }
 
-            std::this_thread::sleep_for(std::chrono::microseconds(*parameters.delay_after_cf_change_us));
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
     }
 }
