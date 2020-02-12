@@ -64,7 +64,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                     fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
-                    if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); rxframe) {
+                    if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
@@ -74,7 +74,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (shiftPLL) config->setPLLMultipler(pll_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                        if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>()); !rxframe) { // still fails
+                        if (auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             parameters.continue2Work = false;
                             break;
@@ -116,7 +116,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequest);
-                    auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get(), std::optional<uint32_t>());
+                    auto[rxframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                     tx_count += retryPerTx;
                     if (rxframe) {
                         acked_count++;
