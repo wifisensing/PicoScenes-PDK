@@ -116,8 +116,7 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->setTaskId(rxframe.PicoScenesHeader->taskId);
             frameBuilder->setPicoScenesFrameType(EchoProbeReply);
             frameBuilder->setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
-            frameBuilder->setChannelBonding(
-                    epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+            frameBuilder->setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
             frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
             frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
             frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);

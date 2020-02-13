@@ -235,7 +235,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         fp->addExtraInfo();
         EchoProbeHeader epHeader;
         epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
-        epHeader.ackChannelBonding = parameters.ack_bw.value_or(-1);
+        epHeader.ackChannelBonding = parameters.ack_bw ? (*parameters.ack_bw == 40) : -1;
         epHeader.ackSGI = parameters.ack_sgi.value_or(-1);
         fp->addSegment("EP", reinterpret_cast<const uint8_t *>(&epHeader), sizeof(EchoProbeHeader));
     }
