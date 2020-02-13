@@ -109,7 +109,9 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         do {
             curLength = (rxframe.rawBufferLength - curPos) <= maxPacketLength ? (rxframe.rawBufferLength - curPos) : maxPacketLength;
             auto frameBuilder = std::make_shared<PicoScenesFrameBuilder>(nic);
-            frameBuilder->makeFrame_withExtraInfo();
+            frameBuilder->makeFrame_HeaderOnly();
+            if (curPos == 0)
+                frameBuilder->addExtraInfo();
             frameBuilder->addSegment("EP", rxframe.rawBuffer.get() + curPos, curLength);
             if (curPos + curLength < rxframe.rawBufferLength)
                 frameBuilder->setMoreFrags();
@@ -126,10 +128,6 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             curPos += curLength;
         } while (curPos < rxframe.rawBufferLength);
     }
-
-//    auto segmentHeadSeq = fps[0]->packetHeader->seq;
-//    for (auto &fabricator: fps)
-//        fabricator->packetHeader->segment_head_seq = segmentHeadSeq;
-
+    
     return fps;
 }
