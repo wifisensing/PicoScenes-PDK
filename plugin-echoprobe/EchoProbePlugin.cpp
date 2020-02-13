@@ -35,7 +35,7 @@ void EchoProbePlugin::initialization() {
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
 
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
-            ("sgi", "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
+            ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
             ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)")
             ("dup", "Enable 20MHz channel duplication in HT40+/- mode (Intel 5300AGN Only)");
@@ -44,7 +44,7 @@ void EchoProbePlugin::initialization() {
     echoOptions->add_options()
             ("ack-mcs", po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
             ("ack-bw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40], unspecified as default")
-            ("ack-sgi", "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
+            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
 
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
@@ -179,7 +179,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     }
 
     if (vm.count("sgi")) {
-        parameters.sgi = 1;
+        auto sgiValue = vm["sgi"].as<uint32_t>();
+        parameters.sgi = sgiValue;
     }
 
     if (vm.count("mcs")) {
@@ -213,11 +214,12 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         } else if (ack_bw == 40) {
             parameters.ack_bw = 40;
         } else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwith value: {}.\n", ack_bw));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwidth value: {}.\n", ack_bw));
     }
 
     if (vm.count("ack-sgi")) {
-        parameters.ack_sgi = 1;
+        auto sgiValue = vm["sgi"].as<uint32_t>();
+        parameters.ack_sgi = sgiValue;
     }
 
     if (vm.size() > 0)

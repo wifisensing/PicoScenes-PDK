@@ -29,7 +29,7 @@ public:
     std::optional<uint32_t> delayed_start_seconds;
     std::optional<uint8_t> mcs;
     std::optional<uint8_t> bw;
-    std::optional<uint8_t> sgi;
+    std::optional<bool> sgi;
 
     std::optional<int64_t> cf_begin;
     std::optional<int64_t> cf_end;
@@ -43,7 +43,7 @@ public:
     uint32_t tx_max_retry;
     std::optional<uint8_t> ack_mcs;
     std::optional<uint8_t> ack_bw;
-    std::optional<uint8_t> ack_sgi;
+    std::optional<bool> ack_sgi;
     std::optional<uint32_t> timeout_ms;
     std::optional<uint32_t> ack_maxLengthPerPacket;
     std::optional<uint32_t> delay_after_cf_change_ms;
