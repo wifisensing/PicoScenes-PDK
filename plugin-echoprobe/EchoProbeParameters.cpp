@@ -15,7 +15,7 @@ EchoProbeParameters::EchoProbeParameters() {
     workingSessionId = UINT64_MAX;
     timeout_ms = 10;
     tx_max_retry = 600;
-    ack_maxLengthPerPacket = 1800;
+    ack_maxLengthPerPacket = 1200;
     delay_after_cf_change_ms = 5;
     numOfPacketsPerDotDisplay = 10;
 }
