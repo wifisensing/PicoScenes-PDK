@@ -211,7 +211,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
                 }
                 return std::make_tuple(replyFrame, ackFrame, retryCount);
             } else
-                LoggingService::debug_print("ACK frame received but decoding failed.\n");
+                LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
         }
     }
 
