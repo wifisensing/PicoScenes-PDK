@@ -203,15 +203,19 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         */
         auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_ms)) {
-            auto segment = replyFrame->segmentMap->at("EP");
-            if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
-                if (LoggingService::localDisplayLevel <= Debug) {
-                    LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
-                    LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-                }
-                return std::make_tuple(replyFrame, ackFrame, retryCount);
-            } else
-                LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
+            if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
+                auto segment = replyFrame->segmentMap->at("EP");
+                if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
+                    if (LoggingService::localDisplayLevel <= Debug) {
+                        LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
+                        LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
+                    }
+                    return std::make_tuple(replyFrame, ackFrame, retryCount);
+                } else
+                    LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
+            } else if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
+                return std::make_tuple(replyFrame, std::nullopt, retryCount);
+            }
         }
     }
 
