@@ -118,8 +118,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     fp = buildBasicFrame(taskId, EchoProbeRequest);
                     auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
                     tx_count += retryPerTx;
+                    total_tx_count += retryPerTx;
                     if (rxframe && ackframe) {
                         acked_count++;
+                        total_acked_count++;
                         RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
