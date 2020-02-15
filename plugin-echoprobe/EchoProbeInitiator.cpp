@@ -252,6 +252,9 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         fp->setChannelBonding(parameters.bw.value_or(20) == 40);
     }
 
+    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && fp->getFrame()->txParameters.channelBonding)
+        throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
+
     return fp;
 }
 

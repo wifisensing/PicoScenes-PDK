@@ -96,6 +96,9 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         frameBuilder->setPicoScenesFrameType(EchoProbeFreqChangeACK);
         frameBuilder->setMCS(0);
         frameBuilder->setSGI(false);
+        frameBuilder->setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+        if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder->getFrame()->txParameters.channelBonding)
+            throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
         frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
         frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
         frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
@@ -119,6 +122,8 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->setPicoScenesFrameType(EchoProbeReply);
             frameBuilder->setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
             frameBuilder->setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+            if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder->getFrame()->txParameters.channelBonding)
+                throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
             frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
             frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
             frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
@@ -128,6 +133,6 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             curPos += curLength;
         } while (curPos < rxframe.rawBufferLength);
     }
-    
+
     return fps;
 }
