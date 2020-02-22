@@ -237,6 +237,10 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setChannelBonding(parameters.bw.value_or(20) == 40);
     fp->setSGI(parameters.sgi.value_or(false));
 
+    if (frameType == SimpleInjection) {
+        fp->addExtraInfo();
+    }
+
     if (frameType == EchoProbeRequest) {
         fp->addExtraInfo();
         EchoProbeHeader epHeader;

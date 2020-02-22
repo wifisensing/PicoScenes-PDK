@@ -123,7 +123,7 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
             frameBuilder->setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder->getFrame()->txParameters.channelBonding)
-                throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
+                throw std::invalid_argument("bw=40 or ack-bw=40 is invalid for 802.11n HT20 channel.");
             frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
             frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
             frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
