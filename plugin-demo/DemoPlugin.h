@@ -2,8 +2,8 @@
 // Created by Zhiping Jiang on 10/20/17.
 //
 
-#ifndef PICOSCENES_TESTPLUGIN_H
-#define PICOSCENES_TESTPLUGIN_H
+#ifndef PICOSCENES_DEMOPLUGIN
+#define PICOSCENES_DEMOPLUGIN
 
 #include <iostream>
 #include <mutex>
@@ -25,4 +25,4 @@ public:
 
 PICOSCENES_PLUGIN_INIT(DemoPlugin)
 
-#endif //PICOSCENES_TESTPLUGIN_H
+#endif //PICOSCENES_DEMOPLUGIN
