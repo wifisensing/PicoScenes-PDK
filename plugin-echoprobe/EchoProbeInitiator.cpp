@@ -56,7 +56,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-                    epHeader.frequency = cf_value;
+                    epHeader.cf = cf_value;
                     shiftCF = true;
                 }
 

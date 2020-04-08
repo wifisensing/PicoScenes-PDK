@@ -5,8 +5,9 @@
 #ifndef PICOSCENES_ECHOPROBERESPONDER_H
 #define PICOSCENES_ECHOPROBERESPONDER_H
 
-#include <PicoScenes/PicoScenesNIC.hxx>
+#include <PicoScenes/AbstractNIC.hxx>
 #include <PicoScenes/RXSDumper.h>
+#include <PicoScenes/USRPFrontEnd.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
 #include "EchoProbeHeader.hxx"
@@ -15,14 +16,14 @@ class PicoScenesNIC;
 
 class EchoProbeResponder {
 public:
-    EchoProbeResponder(const std::shared_ptr<PicoScenesNIC> &nic) : nic(nic) {}
+    EchoProbeResponder(const std::shared_ptr<AbstractNIC> &nic) : nic(nic) {}
 
     void startJob(const EchoProbeParameters &parameters);
 
     void handle(const struct PicoScenesRxFrameStructure &rxframe);
 
 private:
-    std::shared_ptr<PicoScenesNIC> nic;
+    std::shared_ptr<AbstractNIC> nic;
 
     EchoProbeParameters parameters;
 

@@ -10,7 +10,7 @@ std::string EchoProbePlugin::getPluginName() {
 }
 
 std::string EchoProbePlugin::getPluginDescription() {
-    return "Round-Trip Measurement";
+    return "Echo Probe, a round-trip CSI measurement plugin.";
 }
 
 std::string EchoProbePlugin::pluginStatus() {
@@ -19,7 +19,7 @@ std::string EchoProbePlugin::pluginStatus() {
 
 void EchoProbePlugin::initialization() {
     initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
-    responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
+    responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<AbstractNIC>(nic));
 
 
     injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
@@ -57,7 +57,7 @@ std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescripti
 }
 
 std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
-    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300};
+    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::USRP};
     return supportedDevices;
 }
 

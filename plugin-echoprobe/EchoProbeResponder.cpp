@@ -28,7 +28,7 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     auto replies = this->makePacket_EchoProbeWithACK(rxframe, *echoProbeHeader);
     for (auto &reply: replies) {
         if (parameters.inj_for_intel5300.value_or(false)) {
-            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+            if (nic->getDeviceType() != PicoScenesDeviceType::IWL5300) {
                 nic->getConfiguration()->setTxNotSounding(false);
                 reply->transmitSync();
                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
@@ -57,25 +57,36 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     }
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
-        auto cf = echoProbeHeader->frequency;
+        auto cf = echoProbeHeader->cf;
+        auto sf = echoProbeHeader->sf;
         auto pll_rate = echoProbeHeader->pll_rate;
         auto pll_refdiv = echoProbeHeader->pll_refdiv;
         auto pll_clock_select = echoProbeHeader->pll_clock_select;
-        if ((cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) || (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate)) {
+        if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+            LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
+            nic->getConfiguration()->setCarrierFreq(cf);
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+        }
 
-            if (pll_rate > 0 && nic->getConfiguration()->getPLLMultiplier() != pll_rate) {
+        if (pll_rate > 0 && (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300)) {
+            auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+            if (picoScenesNIC->getConfiguration()->getPLLMultiplier() != pll_rate) {
                 auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, *parameters.bw == 40) / 1e6;
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
-                nic->getConfiguration()->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
+                picoScenesNIC->getConfiguration()->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             }
+        }
 
-            if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
-                LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
-                nic->getConfiguration()->setCarrierFreq(cf);
+        if (sf > 0 && nic->getDeviceType() == PicoScenesDeviceType::USRP) {
+            if (nic->getConfiguration()->getSamplingRate() != sf) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
+                nic->getConfiguration()->setSamplingRate(sf);
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
     }
 }
@@ -100,8 +111,14 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder->getFrame()->txParameters.channelBonding)
             throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
         frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
-        frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
-        frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
+        if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+            auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+            frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
+            frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+        } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
+            frameBuilder->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+            frameBuilder->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+        }
         fps.emplace_back(frameBuilder);
     }
 
@@ -127,8 +144,14 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             frameBuilder->setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
             frameBuilder->setGreenField(parameters.inj_5300_gf.value_or(false));
             frameBuilder->setDestinationAddress(rxframe.standardHeader.addr3);
-            frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
-            frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
+            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+                auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
+                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+            } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
+                frameBuilder->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+                frameBuilder->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+            }
             fps.emplace_back(frameBuilder);
             curPos += curLength;
         } while (curPos < rxframe.rawBufferLength);
