@@ -36,9 +36,9 @@ public:
     std::optional<int64_t> cf_step;
     std::optional<uint32_t> cf_repeat;
 
-    std::optional<int32_t> pll_rate_begin;
-    std::optional<int32_t> pll_rate_end;
-    std::optional<int32_t> pll_rate_step;
+    std::optional<int32_t> sf_begin;
+    std::optional<int32_t> sf_end;
+    std::optional<int32_t> sf_step;
 
     uint32_t tx_max_retry;
     std::optional<uint8_t> ack_mcs;

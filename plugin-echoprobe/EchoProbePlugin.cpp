@@ -18,7 +18,7 @@ std::string EchoProbePlugin::pluginStatus() {
 }
 
 void EchoProbePlugin::initialization() {
-    initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<PicoScenesNIC>(nic));
+    initiator = std::make_shared<EchoProbeInitiator>(std::dynamic_pointer_cast<AbstractNIC>(nic));
     responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<AbstractNIC>(nic));
 
 
@@ -142,17 +142,17 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         std::vector<std::string> rangeParts;
         boost::split(rangeParts, rangeString, boost::is_any_of(":"), boost::token_compress_on);
         if (!rangeParts[0].empty())
-            parameters.pll_rate_begin = boost::lexical_cast<double>(rangeParts[0]);
+            parameters.sf_begin = boost::lexical_cast<double>(rangeParts[0]);
         if (!rangeParts[1].empty())
-            parameters.pll_rate_step = boost::lexical_cast<double>(rangeParts[1]);
+            parameters.sf_step = boost::lexical_cast<double>(rangeParts[1]);
         if (!rangeParts[2].empty())
-            parameters.pll_rate_end = boost::lexical_cast<double>(rangeParts[2]);
+            parameters.sf_end = boost::lexical_cast<double>(rangeParts[2]);
 
         if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
             LoggingService::warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
-            parameters.pll_rate_begin = 0;
-            parameters.pll_rate_end = 0;
-            parameters.pll_rate_step = 0;
+            parameters.sf_begin = 0;
+            parameters.sf_step = 0;
+            parameters.sf_end = 0;
         }
     }
 

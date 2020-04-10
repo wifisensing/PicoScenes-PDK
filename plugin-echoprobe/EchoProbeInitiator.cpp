@@ -12,7 +12,9 @@ void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
 
 void EchoProbeInitiator::unifiedEchoProbeWork() {
 
+    auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
     auto config = nic->getConfiguration();
+    auto picoScenesConfig = picoScenesNIC->getConfiguration();
     auto total_acked_count = 0, total_tx_count = 0;
     auto tx_count = 0, acked_count = 0;
     auto workingMode = parameters.workingMode;
@@ -23,22 +25,19 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingFrequencies();
     auto cfList = enumerateCarrierFrequencies();
 
-    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}, cf--> {}:{}:{}, {} repeats with {}us interval.\n",
-                               sfList.front(), parameters.pll_rate_step.value_or(0), sfList.back(), cfList.front(), parameters.cf_step.value_or(0), cfList.back(), cf_repeat, tx_delay_us);
+    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}MHz, cf--> {}:{}:{}MHz, {}K repeats with {}us interval.\n",
+                               sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us);
 
-    for (const auto &pll_value: sfList) {
-        auto bb_rate_mhz = channelFlags2ChannelMode(config->getChannelFlags()) == ChannelMode::HT20 ? 20 : 40;
-        if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-            bb_rate_mhz = ath9kPLLBandwidthComputation(pll_value, config->getPLLRefDiv(), config->getPLLClockSelect(), !(channelFlags2ChannelMode(config->getChannelFlags()) == ChannelMode::HT20)) / 1e6;
-        }
-        auto dumperId = fmt::sprintf("rxack_%s_bb%u", nic->getReferredInterfaceName(), bb_rate_mhz);
+    for (const auto &sf_value: sfList) {
+        auto dumperId = fmt::sprintf("rxack_%s_bb%u", nic->getReferredInterfaceName(), sf_value);
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
-                if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
-                    LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
-                    config->setPLLMultipler(pll_value);
+                if (sf_value != config->getSamplingRate()) {
+                    LoggingService::info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value / 1e6);
+                    config->setSamplingRate(sf_value);
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
+
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), cf_value / 1e6);
                     config->setCarrierFreq(cf_value);
@@ -46,13 +45,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
                 EchoProbeHeader epHeader{};
-                bool shiftPLL = false, shiftCF = false;
-                if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 && pll_value != config->getPLLMultiplier()) {
-                    LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
-                    epHeader.pll_rate = pll_value;
-                    epHeader.pll_refdiv = config->getPLLRefDiv();
-                    epHeader.pll_clock_select = config->getPLLClockSelect();
-                    shiftPLL = true;
+                bool shiftSF = false, shiftCF = false;
+                if (sf_value != config->getSamplingRate()) {
+                    LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value);
+                    epHeader.sf = sf_value;
+                    shiftSF = true;
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
@@ -60,18 +57,18 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     shiftCF = true;
                 }
 
-                if (shiftCF || shiftPLL) {
+                if (shiftCF || shiftSF) {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                     fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
                     if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
-                        if (shiftPLL) config->setPLLMultipler(pll_value);
+                        if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                     } else {
                         LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", nic->getReferredInterfaceName());
-                        if (shiftPLL) config->setPLLMultipler(pll_value);
+                        if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                         if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxframe) { // still fails
@@ -98,11 +95,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         fp->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
                         fp->transmit();
                     } else {
-                        config->setTxNotSounding(false);
+                        fp->setForceSounding(true);
                         fp->transmit();
                         if (parameters.inj_for_intel5300.value_or(false)) {
                             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                            config->setTxNotSounding(true);
+                            fp->setForceSounding(false);
                             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                             fp->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
@@ -139,9 +136,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (LoggingService::localDisplayLevel == Trace)
                 printf("\n");
             if (workingMode == MODE_Injector)
-                LoggingService::info_print("EchoProbe injector {} @ cf={}MHz, sf={}MHz, #.tx = {}.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, bb_rate_mhz, tx_count);
+                LoggingService::info_print("EchoProbe injector {} @ cf={}MHz, sf={}MHz, #.tx = {}.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
             else if (workingMode == MODE_EchoProbeInitiator)
-                LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, bb_rate_mhz, tx_count, acked_count, 100.0 * acked_count / tx_count);
+                LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
 
             if (!parameters.continue2Work)
                 break;
@@ -174,14 +171,14 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
     while (retryCount++ < maxRetry) {
         if (parameters.inj_for_intel5300.value_or(false)) {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-                nic->getConfiguration()->setTxNotSounding(false);
+                frameBuilder->setForceSounding(true);
                 frameBuilder->setDestinationAddress(origin_addr1);
                 frameBuilder->setSourceAddress(origin_addr2);
                 frameBuilder->set3rdAddress(origin_addr3);
                 frameBuilder->transmit();
                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                nic->getConfiguration()->setTxNotSounding(true);
             }
+            frameBuilder->setForceSounding(false);
             frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
@@ -189,10 +186,12 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         } else {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
                 frameBuilder->setDestinationAddress(parameters.inj_target_mac_address->data());
-                frameBuilder->setSourceAddress(nic->getMacAddressPhy().data());
-                frameBuilder->set3rdAddress(nic->getMacAddressDev().data());
-                nic->getConfiguration()->setTxNotSounding(false);
+                auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
+                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+                frameBuilder->setForceSounding(true);
             } else {
+                frameBuilder->setForceSounding(false);
                 frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                 frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                 frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
@@ -201,9 +200,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         }
 
         /*
-        * Tx-Rx time grows non-linearly in low PLL rate case, so enlarge the timeout to 11x.
+        * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
         */
-        auto timeout_us_scaling = nic->getConfiguration()->getPLLRate() < 20e6 ? 6 : 1;
+        auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_ms)) {
             if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 auto segment = replyFrame->segmentMap->at("EP");
@@ -230,8 +229,14 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
-    fp->setSourceAddress(nic->getMacAddressPhy().data());
-    fp->set3rdAddress(nic->getMacAddressDev().data());
+    if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+        auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+        fp->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
+        fp->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+    } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
+        fp->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+        fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+    }
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     fp->setChannelBonding(parameters.bw.value_or(20) == 40);
@@ -279,38 +284,46 @@ void EchoProbeInitiator::printDots(int count) {
     }
 }
 
-std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
-    return nic->getDeviceType() == PicoScenesDeviceType::QCA9300 ? enumerateAtherosCarrierFrequencies() : enumerateIntelCarrierFrequencies();
+std::vector<double> EchoProbeInitiator::enumerateSamplingFrequencies() {
+    switch (nic->getDeviceType()) {
+        case PicoScenesDeviceType::QCA9300:
+        case PicoScenesDeviceType::USRP:
+            return enumerateUSRPSamplingFrequencies();
+        default:
+            return std::vector<double>{0};
+    }
 }
 
-std::vector<uint32_t> EchoProbeInitiator::enumerateSamplingFrequencies() {
-    auto frequencies = std::vector<uint32_t>();
+std::vector<double> EchoProbeInitiator::enumerateUSRPSamplingFrequencies() {
+    auto frequencies = std::vector<double>();
+    auto sf_begin = parameters.sf_begin.value_or(nic->getConfiguration()->getSamplingRate());
+    auto sf_end = parameters.sf_end.value_or(nic->getConfiguration()->getSamplingRate());
+    auto sf_step = parameters.sf_step.value_or(5e6);
+    auto cur_sf = sf_begin;
 
-    if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-        frequencies.emplace_back(0);
-        return frequencies;
-    }
+    if (sf_step == 0)
+        throw std::invalid_argument("sf_step = 0");
 
-    auto pll_begin = parameters.pll_rate_begin.value_or(nic->getConfiguration()->getPLLMultiplier());
-    auto pll_end = parameters.pll_rate_end.value_or(nic->getConfiguration()->getPLLMultiplier());
-    auto pll_step = parameters.pll_rate_step.value_or(1);
-    auto cur_pll = pll_begin;
+    if (sf_end < sf_begin && sf_step > 0)
+        throw std::invalid_argument("sf_step > 0, however sf_end < sf_begin.\n");
 
-    if (pll_end < pll_begin && pll_step > 0)
-        throw std::invalid_argument("pll_step > 0, however pll_end < pll_begin.\n");
-
-    if (pll_end > pll_begin && pll_step < 0)
-        throw std::invalid_argument("pll_step < 0, however pll_end > pll_begin.\n");
+    if (sf_end > sf_begin && sf_step < 0)
+        throw std::invalid_argument("sf_step < 0, however sf_end > sf_begin.\n");
 
     do {
-        frequencies.emplace_back(cur_pll);
-        cur_pll += pll_step;
-    } while ((pll_step > 0 && cur_pll <= pll_end) || (pll_step < 0 && cur_pll >= pll_end));
+        frequencies.emplace_back(cur_sf);
+        cur_sf += sf_step;
+    } while ((sf_step > 0 && cur_sf <= sf_end) || (sf_step < 0 && cur_sf >= sf_end));
 
     return frequencies;
 }
 
-std::vector<double> EchoProbeInitiator::enumerateAtherosCarrierFrequencies() {
+std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
+    return nic->getDeviceType() == PicoScenesDeviceType::QCA9300 ? enumerateIntelCarrierFrequencies() : enumerateArbitraryCarrierFrequencies();
+}
+
+
+std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getConfiguration()->getCarrierFreq());
     auto cf_end = parameters.cf_end.value_or(nic->getConfiguration()->getCarrierFreq());
@@ -354,7 +367,7 @@ static int closest(std::vector<int> const &vec, int value) {
 }
 
 std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
-
+    auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getConfiguration()->getCarrierFreq());
     auto cf_end = parameters.cf_end.value_or(nic->getConfiguration()->getCarrierFreq());
@@ -376,7 +389,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         cf_begin -= 10e6;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
         cf_begin += 10e6;
-    auto closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cf_begin / 1e6);
+    auto closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_begin / 1e6);
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS) {
         closestFreq += 10;
         cf_begin += 10e6;
@@ -391,7 +404,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     }
     auto cur_cf = cf_begin;
 
-    closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cf_end / 1e6);
+    closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_end / 1e6);
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
         closestFreq += 10;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
@@ -408,7 +421,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
             cur_cf += cf_step;
             if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
                 break;
-            closestFreq = closest(nic->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
+            closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
                 closestFreq += 10;
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)

@@ -14,9 +14,6 @@ struct EchoProbeHeader {
     int8_t ackSGI = -1;         // 0 for LGI, 1 for SGI, negative means use default (maybe LGI).
     int64_t cf = -1;
     int64_t sf = -1;
-    int16_t pll_rate = -1;
-    int8_t pll_refdiv = -1;
-    int8_t pll_clock_select = -1;
 
     static std::optional<EchoProbeHeader> fromBuffer(const uint8_t *buffer, std::optional<uint32_t> bufferLength);
 } __attribute__ ((__packed__));

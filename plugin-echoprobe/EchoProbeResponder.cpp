@@ -29,17 +29,17 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     for (auto &reply: replies) {
         if (parameters.inj_for_intel5300.value_or(false)) {
             if (nic->getDeviceType() != PicoScenesDeviceType::IWL5300) {
-                nic->getConfiguration()->setTxNotSounding(false);
+                reply->setForceSounding(true);
                 reply->transmitSync();
                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             }
-            nic->getConfiguration()->setTxNotSounding(true);
+            reply->setForceSounding(false);
             reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             reply->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
             reply->transmitSync();
         } else {
-            nic->getConfiguration()->setTxNotSounding(false);
+            reply->setForceSounding(true);
             if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
                 reply->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                 reply->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -59,9 +59,6 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
         auto cf = echoProbeHeader->cf;
         auto sf = echoProbeHeader->sf;
-        auto pll_rate = echoProbeHeader->pll_rate;
-        auto pll_refdiv = echoProbeHeader->pll_refdiv;
-        auto pll_clock_select = echoProbeHeader->pll_clock_select;
         if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
@@ -69,24 +66,11 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
 
-        if (pll_rate > 0 && (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300)) {
-            auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-            if (picoScenesNIC->getConfiguration()->getPLLMultiplier() != pll_rate) {
-                auto bb_rate_mhz = ath9kPLLBandwidthComputation(pll_rate, pll_refdiv, pll_clock_select, *parameters.bw == 40) / 1e6;
-                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), bb_rate_mhz);
-                picoScenesNIC->getConfiguration()->setPLLValues(pll_rate, pll_refdiv, pll_clock_select);
-                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-            }
-        }
-
-        if (sf > 0 && nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-            if (nic->getConfiguration()->getSamplingRate() != sf) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
-                nic->getConfiguration()->setSamplingRate(sf);
-                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-            }
+        if (sf > 0 && nic->getConfiguration()->getSamplingRate() != sf) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+            LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
+            nic->getConfiguration()->setSamplingRate(sf);
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
     }
 }

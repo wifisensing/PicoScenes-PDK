@@ -7,7 +7,8 @@
 
 #include <unordered_map>
 #include <shared_mutex>
-#include <PicoScenes/PicoScenesNIC.hxx>
+#include <PicoScenes/AbstractNIC.hxx>
+#include <PicoScenes/USRPFrontEnd.hxx>
 #include <PicoScenes/PropertyJSONDescriptable.hxx>
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
@@ -18,12 +19,12 @@
 class EchoProbeInitiator {
 public:
 
-    explicit EchoProbeInitiator(const std::shared_ptr<PicoScenesNIC> &nic) : nic(nic) {}
+    explicit EchoProbeInitiator(const std::shared_ptr<AbstractNIC> &nic) : nic(nic) {}
 
     void startJob(const EchoProbeParameters &parameters);
 
 private:
-    std::shared_ptr<PicoScenesNIC> nic;
+    std::shared_ptr<AbstractNIC> nic;
     std::condition_variable_any blockCV;
     std::condition_variable_any ctrlCCV;
     std::shared_mutex blockMutex;
@@ -33,11 +34,15 @@ private:
 
     std::vector<double> enumerateCarrierFrequencies();
 
-    std::vector<double> enumerateAtherosCarrierFrequencies();
+    std::vector<double> enumerateArbitraryCarrierFrequencies();
 
     std::vector<double> enumerateIntelCarrierFrequencies();
 
-    std::vector<uint32_t> enumerateSamplingFrequencies();
+    std::vector<double> enumerateSamplingFrequencies();
+
+    std::vector<double> enumerateUSRPSamplingFrequencies();
+
+    std::vector<double> enumerateAth9kSamplingFrequencies();
 
     void printDots(int count);
 
