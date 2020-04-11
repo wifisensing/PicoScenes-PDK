@@ -19,7 +19,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto tx_delay_us = parameters.tx_delay_us;
 
     parameters.continue2Work = true;
-    auto sfList = enumerateSamplingFrequencies();
+    auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
     LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval.\n",
@@ -58,7 +58,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                     fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
-                    if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); rxframe) {
+                    if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
@@ -68,7 +68,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                        if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get()); !rxframe) { // still fails
+                        if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             parameters.continue2Work = false;
                             break;
@@ -110,7 +110,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequest);
-                    auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp.get());
+                    auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
                     if (rxframe && ackframe) {
@@ -156,7 +156,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     blockCV.notify_all();
 }
 
-std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(PicoScenesFrameBuilder *frameBuilder, std::optional<uint32_t> maxRetry) {
+std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
     auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
     uint8_t origin_addr1[6], origin_addr2[6], origin_addr3[6];
     memcpy(origin_addr1, frameBuilder->getFrame()->standardHeader.addr1, 6);
@@ -165,7 +165,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
     auto retryCount = 0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
-    while (retryCount++ < maxRetry) {
+    while (retryCount++ < *maxRetry) {
         if (parameters.inj_for_intel5300.value_or(false)) {
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
                 frameBuilder->setForceSounding(true);
@@ -181,11 +181,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
             frameBuilder->transmit();
         } else {
-            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::USRP) {
                 frameBuilder->setDestinationAddress(parameters.inj_target_mac_address->data());
-                auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
-                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
                 frameBuilder->setForceSounding(true);
             } else {
                 frameBuilder->setForceSounding(false);
@@ -193,8 +190,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
                 frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
                 frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
             }
-            frameBuilder->transmit();
         }
+        frameBuilder->transmit();
 
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
@@ -281,17 +278,17 @@ void EchoProbeInitiator::printDots(int count) {
     }
 }
 
-std::vector<double> EchoProbeInitiator::enumerateSamplingFrequencies() {
+std::vector<double> EchoProbeInitiator::enumerateSamplingRates() {
     switch (nic->getDeviceType()) {
         case PicoScenesDeviceType::QCA9300:
         case PicoScenesDeviceType::USRP:
-            return enumerateUSRPSamplingFrequencies();
+            return enumerateArbitrarySamplingRates();
         default:
             return std::vector<double>{0};
     }
 }
 
-std::vector<double> EchoProbeInitiator::enumerateUSRPSamplingFrequencies() {
+std::vector<double> EchoProbeInitiator::enumerateArbitrarySamplingRates() {
     auto frequencies = std::vector<double>();
     auto sf_begin = parameters.sf_begin.value_or(nic->getConfiguration()->getSamplingRate());
     auto sf_end = parameters.sf_end.value_or(nic->getConfiguration()->getSamplingRate());

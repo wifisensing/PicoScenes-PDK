@@ -38,15 +38,13 @@ private:
 
     std::vector<double> enumerateIntelCarrierFrequencies();
 
-    std::vector<double> enumerateSamplingFrequencies();
+    std::vector<double> enumerateSamplingRates();
 
-    std::vector<double> enumerateUSRPSamplingFrequencies();
-
-    std::vector<double> enumerateAth9kSamplingFrequencies();
+    std::vector<double> enumerateArbitrarySamplingRates();
 
     void printDots(int count);
 
-    std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(PicoScenesFrameBuilder *frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
+    std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
 
     [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
 };
