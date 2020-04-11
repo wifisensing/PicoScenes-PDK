@@ -11,10 +11,7 @@ void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
 }
 
 void EchoProbeInitiator::unifiedEchoProbeWork() {
-
-    auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
     auto config = nic->getConfiguration();
-    auto picoScenesConfig = picoScenesNIC->getConfiguration();
     auto total_acked_count = 0, total_tx_count = 0;
     auto tx_count = 0, acked_count = 0;
     auto workingMode = parameters.workingMode;
@@ -373,7 +370,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     auto cf_end = parameters.cf_end.value_or(nic->getConfiguration()->getCarrierFreq());
     auto cf_step = parameters.cf_step.value_or(5e6);
 
-    if (std::abs(cf_step) % 5000000 != 0)
+    if (int(std::abs(cf_step)) % 5000000 != 0)
         throw std::invalid_argument("cf_step must be the multiply of 5MHz for Intel 5300AGN.");
 
     if (std::abs(cf_step) == 0)
