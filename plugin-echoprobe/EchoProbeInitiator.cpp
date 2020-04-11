@@ -29,7 +29,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                                sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us);
 
     for (const auto &sf_value: sfList) {
-        auto dumperId = fmt::sprintf("rxack_%s_bb%u", nic->getReferredInterfaceName(), sf_value);
+        auto dumperId = fmt::sprintf("rxack_%s_bb%.1fM", nic->getReferredInterfaceName(), sf_value);
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
                 if (sf_value != config->getSamplingRate()) {
@@ -319,7 +319,7 @@ std::vector<double> EchoProbeInitiator::enumerateUSRPSamplingFrequencies() {
 }
 
 std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
-    return nic->getDeviceType() == PicoScenesDeviceType::QCA9300 ? enumerateIntelCarrierFrequencies() : enumerateArbitraryCarrierFrequencies();
+    return nic->getDeviceType() == PicoScenesDeviceType::IWL5300 ? enumerateIntelCarrierFrequencies() : enumerateArbitraryCarrierFrequencies();
 }
 
 
