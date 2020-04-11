@@ -22,7 +22,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingFrequencies();
     auto cfList = enumerateCarrierFrequencies();
 
-    LoggingService::info_print("EchoProbe job parameters: sf--> {}:{}:{}MHz, cf--> {}:{}:{}MHz, {}K repeats with {}us interval.\n",
+    LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval.\n",
                                sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us);
 
     for (const auto &sf_value: sfList) {
