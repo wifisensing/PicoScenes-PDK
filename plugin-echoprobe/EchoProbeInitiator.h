@@ -30,6 +30,10 @@ private:
     std::shared_mutex blockMutex;
     EchoProbeParameters parameters;
 
+    std::optional<PicoScenesDeviceType> responderDeviceType;
+    uint16_t responderDeviceTypeDetectionMaxTxBurst = 20;
+    double responderDeviceTypeDetectionDelay = 5e3;
+
     void unifiedEchoProbeWork();
 
     std::vector<double> enumerateCarrierFrequencies();

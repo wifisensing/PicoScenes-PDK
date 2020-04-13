@@ -192,12 +192,17 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             }
         }
         frameBuilder->transmit();
+        for (auto i = 0; !responderDeviceType && i < responderDeviceTypeDetectionMaxTxBurst - 1; i++)
+            frameBuilder->transmit();
 
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
-        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, timeout_us_scaling * *parameters.timeout_ms)) {
+        auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
+        if (!responderDeviceType)
+            totalTimeOut = responderDeviceTypeDetectionDelay;
+        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, totalTimeOut)) {
             if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 auto segment = replyFrame->segmentMap->at("EP");
                 if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
@@ -246,6 +251,8 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
         epHeader.ackChannelBonding = parameters.ack_bw ? (*parameters.ack_bw == 40) : -1;
         epHeader.ackSGI = parameters.ack_sgi.value_or(-1);
+        if (!responderDeviceType)
+            epHeader.deviceProbingStage = 1;
         fp->addSegment("EP", reinterpret_cast<const uint8_t *>(&epHeader), sizeof(EchoProbeHeader));
     }
 
