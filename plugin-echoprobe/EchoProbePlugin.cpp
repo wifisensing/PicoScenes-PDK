@@ -90,7 +90,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         } else if (modeString.find("initiator") != std::string::npos) {
             parameters.workingMode = MODE_EchoProbeInitiator;
             nic->startRxService();
-            nic->startTxService();;
+            nic->startTxService();
         }
     }
 
