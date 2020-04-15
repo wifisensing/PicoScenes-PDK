@@ -98,7 +98,7 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
         if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
             auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
             frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
-            frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+            frameBuilder->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
         } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
             frameBuilder->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
             frameBuilder->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
@@ -131,7 +131,7 @@ std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePac
             if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
                 auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
                 frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
-                frameBuilder->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+                frameBuilder->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
             } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
                 frameBuilder->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
                 frameBuilder->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());

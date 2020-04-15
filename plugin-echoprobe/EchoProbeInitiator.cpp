@@ -231,7 +231,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
         fp->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
-        fp->setSourceAddress(picoScenesNIC->getMacAddressDev().data());
+        fp->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
         fp->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
