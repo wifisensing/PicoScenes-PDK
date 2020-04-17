@@ -18,7 +18,7 @@ class EchoProbeResponder {
 public:
     EchoProbeResponder(const std::shared_ptr<AbstractNIC> &nic) : nic(nic) {}
 
-    void startJob(const EchoProbeParameters &parameters);
+    void startJob(const EchoProbeParameters &parametersV);
 
     void handle(const struct PicoScenesRxFrameStructure &rxframe);
 

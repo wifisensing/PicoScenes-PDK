@@ -27,6 +27,7 @@ void EchoProbePlugin::initialization() {
             ("target-interface", po::value<std::string>(), "PhyId of the injection target")
             ("target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
             ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
+            ("payload", po::value<uint32_t>(), "insert randomly-generated payload, for test purpose.")
 
             ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
             ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multipler scan range, format begin:step:end, e.g., 11:11:88")
@@ -123,6 +124,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("5300")) {
         parameters.inj_for_intel5300 = true;
+    }
+
+    if (vm.count("payload")) {
+        parameters.randomPayloadLength = vm["payload"].as<uint32_t>();
     }
 
     if (vm.count("cf")) {

@@ -192,8 +192,6 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             }
         }
         frameBuilder->transmit();
-        for (auto i = 0; !responderDeviceType && i < responderDeviceTypeDetectionMaxTxBurst - 1; i++)
-            frameBuilder->transmit();
 
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
@@ -240,6 +238,10 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     fp->setChannelBonding(parameters.bw.value_or(20) == 40);
     fp->setSGI(parameters.sgi.value_or(false));
+    if (parameters.randomPayloadLength) {
+        std::shared_ptr<uint8_t> randomPayload = std::shared_ptr<uint8_t>(new uint8_t[*parameters.randomPayloadLength], std::default_delete<uint8_t[]>());
+        fp->addSegment("PL", randomPayload.get(), *parameters.randomPayloadLength);
+    }
 
     if (frameType == SimpleInjection) {
         fp->addExtraInfo();

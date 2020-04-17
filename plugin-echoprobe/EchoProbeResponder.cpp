@@ -75,8 +75,8 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     }
 }
 
-void EchoProbeResponder::startJob(const EchoProbeParameters &parameters) {
-    this->parameters = parameters;
+void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
+    this->parameters = parametersV;
 }
 
 std::vector<std::shared_ptr<PicoScenesFrameBuilder>> EchoProbeResponder::makePacket_EchoProbeWithACK(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader) {
