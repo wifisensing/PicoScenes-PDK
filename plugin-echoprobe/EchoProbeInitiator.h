@@ -25,13 +25,8 @@ public:
 
 private:
     std::shared_ptr<AbstractNIC> nic;
-    std::condition_variable_any blockCV;
-    std::condition_variable_any ctrlCCV;
-    std::shared_mutex blockMutex;
     EchoProbeParameters parameters;
-
     std::optional<PicoScenesDeviceType> responderDeviceType;
-    double responderDeviceTypeDetectionDelay = 500;
 
     void unifiedEchoProbeWork();
 

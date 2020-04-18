@@ -151,36 +151,26 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         else if (workingMode == MODE_EchoProbeInitiator)
             LoggingService::trace_print("Job done! #.total_tx = {}, #.total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
     }
-
-    parameters.finishedSessionId = *parameters.workingSessionId;
-    blockCV.notify_all();
 }
 
 std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
     auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
-    uint8_t origin_addr1[6], origin_addr2[6], origin_addr3[6];
-    memcpy(origin_addr1, frameBuilder->getFrame()->standardHeader.addr1, 6);
-    memcpy(origin_addr2, frameBuilder->getFrame()->standardHeader.addr2, 6);
-    memcpy(origin_addr3, frameBuilder->getFrame()->standardHeader.addr3, 6);
     auto retryCount = 0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
         frameBuilder->transmit();
-        if (!responderDeviceType) {
-            for (int i = 0; i < 10 - 1; ++i) {
-                frameBuilder->transmit();
-            }
-        }
-
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
-        if (!responderDeviceType)
-            totalTimeOut = responderDeviceTypeDetectionDelay;
-        if (auto replyFrame = nic->syncRxWaitTaskId(taskId, totalTimeOut)) {
+        if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
+            totalTimeOut = 200;
+        auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
+            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
+        }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
+        if (replyFrame) {
             if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 responderDeviceType = replyFrame->PicoScenesHeader->deviceType;
                 auto segment = replyFrame->segmentMap->at("EP");
