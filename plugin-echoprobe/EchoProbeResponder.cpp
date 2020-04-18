@@ -98,12 +98,6 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         curPos += curLength;
     } while (curPos < rxframe.rawBufferLength);
 
-    if (epHeader.deviceProbingStage == 1) {
-        auto packLength = fps.size();
-        for (auto i = 0; i < 3; ++i) {
-            fps.insert(fps.end(), fps.cbegin(), fps.cbegin() + packLength);
-        }
-    }
     return fps;
 }
 
