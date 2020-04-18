@@ -182,7 +182,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             totalTimeOut = responderDeviceTypeDetectionDelay;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, totalTimeOut)) {
             if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
-                responderDeviceType = replyFrame->PicoScenesHeader->deviceType;
+                auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
+                responderDeviceType = rxDeviceType;
                 auto segment = replyFrame->segmentMap->at("EP");
                 if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
                     if (LoggingService::localDisplayLevel <= Debug) {
