@@ -86,23 +86,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
                 if (workingMode == MODE_Injector) {
                     fp = buildBasicFrame(taskId, SimpleInjection);
-                    if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-                        fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                        fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                        fp->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-                        fp->transmit();
-                    } else {
-                        fp->setForceSounding(true);
-                        fp->transmit();
-                        if (parameters.inj_for_intel5300.value_or(false)) {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                            fp->setForceSounding(false);
-                            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                            fp->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-                            fp->transmit();
-                        }
-                    }
+                    fp->transmitSync();
                     tx_count++;
                     total_tx_count++;
                     if (LoggingService::localDisplayLevel == Trace)
