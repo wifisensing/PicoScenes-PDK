@@ -166,32 +166,12 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
-        if (parameters.inj_for_intel5300.value_or(false)) {
-            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-                frameBuilder->setForceSounding(true);
-                frameBuilder->setDestinationAddress(origin_addr1);
-                frameBuilder->setSourceAddress(origin_addr2);
-                frameBuilder->set3rdAddress(origin_addr3);
+        frameBuilder->transmit();
+        if (!responderDeviceType) {
+            for (int i = 0; i < 10 - 1; ++i) {
                 frameBuilder->transmit();
-                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-            }
-            frameBuilder->setForceSounding(false);
-            frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-            frameBuilder->transmit();
-        } else {
-            if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-                frameBuilder->setDestinationAddress(parameters.inj_target_mac_address->data());
-                frameBuilder->setForceSounding(true);
-            } else {
-                frameBuilder->setForceSounding(false);
-                frameBuilder->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                frameBuilder->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-                frameBuilder->set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
             }
         }
-        frameBuilder->transmit();
 
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
@@ -202,6 +182,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             totalTimeOut = responderDeviceTypeDetectionDelay;
         if (auto replyFrame = nic->syncRxWaitTaskId(taskId, totalTimeOut)) {
             if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
+                responderDeviceType = replyFrame->PicoScenesHeader->deviceType;
                 auto segment = replyFrame->segmentMap->at("EP");
                 if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
                     if (LoggingService::localDisplayLevel <= Debug) {
@@ -226,13 +207,15 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
-    if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300 || nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+    if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
         fp->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
         fp->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
         fp->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+    } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+        // TODO add 5300 things
     }
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));

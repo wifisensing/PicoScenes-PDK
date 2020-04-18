@@ -24,10 +24,14 @@ public:
 
 private:
     std::shared_ptr<AbstractNIC> nic;
-
     EchoProbeParameters parameters;
+    std::optional<PicoScenesDeviceType> initiatorDeviceType;
 
-    std::vector<std::shared_ptr<PicoScenesFrameBuilder>> makePacket_EchoProbeWithACK(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeReplies(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
 };
 
 

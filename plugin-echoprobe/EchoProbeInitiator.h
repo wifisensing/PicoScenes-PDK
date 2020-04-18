@@ -31,8 +31,7 @@ private:
     EchoProbeParameters parameters;
 
     std::optional<PicoScenesDeviceType> responderDeviceType;
-    uint16_t responderDeviceTypeDetectionMaxTxBurst = 20;
-    double responderDeviceTypeDetectionDelay = 5e3;
+    double responderDeviceTypeDetectionDelay = 500;
 
     void unifiedEchoProbeWork();
 
