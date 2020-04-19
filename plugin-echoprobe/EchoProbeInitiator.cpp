@@ -146,7 +146,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
-        tx_timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
@@ -161,7 +161,8 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
         if (replyFrame && replyFrame->PicoScenesHeader) {
-            timeGap = (std::chrono::system_clock::now().time_since_epoch().count() - tx_timestamp) / 1e3;
+            auto delayDuration = std::chrono::system_clock::now() - tx_time;
+            timeGap = std::chrono::duration_cast<std::chrono::milliseconds>(delayDuration).count();
             if (replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
                 responderDeviceType = rxDeviceType;
