@@ -101,7 +101,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         acked_count++;
                         total_acked_count++;
                         mean_delay_single += rtDelay / cf_repeat;
-                        total_mean_delay += rtDelay / cf_repeat / sfList.size();
+                        total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
                         RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
@@ -166,8 +166,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             if (replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
                 responderDeviceType = rxDeviceType;
-                auto segment = replyFrame->segmentMap->at("EP");
-                if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
+                const auto &segment = replyFrame->segmentMap->at("EP");
+                auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first);
+                if (ackFrame) {
                     if (LoggingService::localDisplayLevel <= Debug) {
                         LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                         LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
@@ -177,7 +178,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
                 } else
                     LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
             } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
-                return std::make_tuple(replyFrame, std::nullopt, retryCount, timeGap);
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
         }
     }
