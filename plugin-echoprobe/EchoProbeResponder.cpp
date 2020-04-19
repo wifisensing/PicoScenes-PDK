@@ -78,9 +78,9 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         curLength = curPos + meanStepLength <= rxframe.rawBufferLength ? meanStepLength : rxframe.rawBufferLength - curPos;
         frameBuilder.addSegment("EP", rxframe.rawBuffer.get() + curPos, curLength);
         curPos += curLength;
+        frameBuilder.setFragNumber(i);
         if (curPos < rxframe.rawBufferLength) {
             frameBuilder.setMoreFrags();
-            frameBuilder.setFragNumber(i);
         }
         frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
         frameBuilder.setPicoScenesFrameType(EchoProbeReply);
