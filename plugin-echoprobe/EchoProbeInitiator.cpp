@@ -297,7 +297,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getConfiguration()->getCarrierFreq());
     auto cf_end = parameters.cf_end.value_or(nic->getConfiguration()->getCarrierFreq());
-    auto cf_step = parameters.cf_step.value_or(0);
+    auto cf_step = parameters.cf_step.value_or(5e6);
     auto cur_cf = cf_begin;
 
     if (cf_step == 0)
