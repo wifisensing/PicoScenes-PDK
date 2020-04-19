@@ -131,6 +131,9 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
     }
 
+    if (initiatorDeviceType == PicoScenesDeviceType::USRP) {
+        std::this_thread::sleep_for(10ms);
+    }
     for (auto i = 0; i < 10; i++)
         fps.emplace_back(frameBuilder);
 
