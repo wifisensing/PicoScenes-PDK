@@ -14,6 +14,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto config = nic->getConfiguration();
     auto total_acked_count = 0, total_tx_count = 0;
     auto tx_count = 0, acked_count = 0;
+    auto total_mean_delay = 0.0, mean_delay_single = 0.0;
     auto workingMode = parameters.workingMode;
     auto cf_repeat = parameters.cf_repeat.value_or(100);
     auto tx_delay_us = parameters.tx_delay_us;
@@ -57,7 +58,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                     fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
-                    if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp); rxframe) {
+                    if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp); rxframe) {
                         LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                         if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
@@ -67,7 +68,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (shiftSF) config->setSamplingRate(sf_value);
                         if (shiftCF) config->setCarrierFreq(cf_value);
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                        if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp); !rxframe) { // still fails
+                        if (auto[rxframe, ackframe, retryPerTx, rxDelay] = this->transmitAndSyncRxUnified(fp); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
                             goto failed;
                         }
@@ -77,6 +78,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
             tx_count = 0;
             acked_count = 0;
+            mean_delay_single = 0.0;
             for (uint32_t i = 0; i < cf_repeat; ++i) {
                 auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
@@ -92,12 +94,14 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequest);
-                    auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp);
+                    auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
                     if (rxframe && ackframe) {
                         acked_count++;
                         total_acked_count++;
+                        mean_delay_single += rtDelay / cf_repeat;
+                        total_mean_delay += rtDelay / cf_repeat / sfList.size();
                         RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
@@ -114,9 +118,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (LoggingService::localDisplayLevel == Trace)
                 printf("\n");
             if (workingMode == MODE_Injector)
-                LoggingService::info_print("EchoProbe injector {} @ cf={}MHz, sf={}MHz, #.tx = {}.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
+                LoggingService::info_printf("EchoProbe injector %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
             else if (workingMode == MODE_EchoProbeInitiator)
-                LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
+                LoggingService::info_printf("EchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) cf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
         }
 
         RXSDumper::getInstance(dumperId).finishCurrentSession();
@@ -129,18 +133,20 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     if (LoggingService::localDisplayLevel == Trace) {
         if (workingMode == MODE_Injector)
-            LoggingService::info_print("Job done! #.total_tx = {}.\n", total_tx_count);
+            LoggingService::info_printf("Job done! #.total_tx=%d.\n", total_tx_count);
         else if (workingMode == MODE_EchoProbeInitiator)
-            LoggingService::trace_print("Job done! #.total_tx = {}, #.total_acked = {}, success rate = {}\%.\n", total_tx_count, total_acked_count, 100.0 * total_acked_count / total_tx_count);
+            LoggingService::trace_printf("Job done! #.total_tx=%d #.total_acked=%d, echo_delay=%.1fms, success_rate =%.1f%%.\n", total_tx_count, total_acked_count, total_mean_delay, 100.0 * total_acked_count / total_tx_count);
     }
 }
 
-std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
+std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
     auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
     auto retryCount = 0;
+    auto timeGap = -1.0, tx_timestamp = 0.0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
+        tx_timestamp = std::chrono::system_clock::now().time_since_epoch().count();
         frameBuilder->transmit();
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
@@ -148,7 +154,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut = 200;
+            totalTimeOut += 150;
+        if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
+            totalTimeOut += 300;
         auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
@@ -158,20 +166,22 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
                 responderDeviceType = rxDeviceType;
                 auto segment = replyFrame->segmentMap->at("EP");
                 if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
+                    timeGap = (replyFrame->rxs_basic.tstamp - tx_timestamp) / 1e3;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                         LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
+                        LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
                     }
-                    return std::make_tuple(replyFrame, ackFrame, retryCount);
+                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                 } else
                     LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
             } else if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
-                return std::make_tuple(replyFrame, std::nullopt, retryCount);
+                return std::make_tuple(replyFrame, std::nullopt, retryCount, timeGap);
             }
         }
     }
 
-    return std::make_tuple(std::nullopt, std::nullopt, 0);
+    return std::make_tuple(std::nullopt, std::nullopt, 0, timeGap);
 }
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
