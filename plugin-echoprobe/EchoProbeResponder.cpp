@@ -101,7 +101,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         }
         fps.emplace_back(frameBuilder);
     }
-    if (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP) {
+    if (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP || nic->getDeviceType() == PicoScenesDeviceType::USRP) {
         auto originLength = fps.size();
         std::copy(fps.cbegin(), fps.cbegin() + originLength, std::back_inserter(fps));
         std::copy(fps.cbegin(), fps.cbegin() + originLength, std::back_inserter(fps));
