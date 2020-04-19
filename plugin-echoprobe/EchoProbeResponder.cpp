@@ -68,15 +68,20 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     std::vector<PicoScenesFrameBuilder> fps;
     uint16_t curPos = 0, curLength = 0;
     auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
-    do {
-        curLength = (rxframe.rawBufferLength - curPos) <= maxPacketLength ? (rxframe.rawBufferLength - curPos) : maxPacketLength;
+    auto numReplyPackets = uint32_t(std::ceil(1.0f * rxframe.rawBufferLength / maxPacketLength));
+    auto meanStepLength = rxframe.rawBufferLength / numReplyPackets + 1;
+    for (auto i = 0; i < numReplyPackets; ++i) {
         auto frameBuilder = PicoScenesFrameBuilder(nic);
         frameBuilder.makeFrame_HeaderOnly();
         if (curPos == 0)
             frameBuilder.addExtraInfo();
+        curLength = curPos + meanStepLength <= rxframe.rawBufferLength ? meanStepLength : rxframe.rawBufferLength - curPos;
         frameBuilder.addSegment("EP", rxframe.rawBuffer.get() + curPos, curLength);
-        if (curPos + curLength < rxframe.rawBufferLength)
+        curPos += curLength;
+        if (curPos < rxframe.rawBufferLength) {
             frameBuilder.setMoreFrags();
+            frameBuilder.setFragNumber(i);
+        }
         frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
         frameBuilder.setPicoScenesFrameType(EchoProbeReply);
         frameBuilder.setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
@@ -95,8 +100,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
             frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         }
         fps.emplace_back(frameBuilder);
-        curPos += curLength;
-    } while (curPos < rxframe.rawBufferLength);
+    }
     if (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP) {
         auto originLength = fps.size();
         std::copy(fps.cbegin(), fps.cbegin() + originLength, std::back_inserter(fps));
