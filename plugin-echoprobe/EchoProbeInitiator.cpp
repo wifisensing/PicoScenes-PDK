@@ -18,7 +18,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto cf_repeat = parameters.cf_repeat.value_or(100);
     auto tx_delay_us = parameters.tx_delay_us;
 
-    parameters.continue2Work = true;
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
@@ -70,8 +69,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                         if (auto[rxframe, ackframe, retryPerTx] = this->transmitAndSyncRxUnified(fp); !rxframe) { // still fails
                             LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
-                            parameters.continue2Work = false;
-                            break;
+                            goto failed;
                         }
                     }
                 }
@@ -109,8 +107,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
                         LoggingService::warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...\n", cf_value);
-                        parameters.continue2Work = false;
-                        break;
+                        goto failed;
                     }
                 }
             }
@@ -120,13 +117,14 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 LoggingService::info_print("EchoProbe injector {} @ cf={}MHz, sf={}MHz, #.tx = {}.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
             else if (workingMode == MODE_EchoProbeInitiator)
                 LoggingService::info_print("EchoProbe initiator {} @ cf={}MHz, sf={}MHz, #.tx = {}, #.acked = {}, success rate = {}\%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, 100.0 * acked_count / tx_count);
-
-            if (!parameters.continue2Work)
-                break;
         }
+
         RXSDumper::getInstance(dumperId).finishCurrentSession();
-        if (!parameters.continue2Work)
-            break;
+        continue;
+
+        failed:
+        RXSDumper::getInstance(dumperId).finishCurrentSession();
+        break;
     }
 
     if (LoggingService::localDisplayLevel == Trace) {

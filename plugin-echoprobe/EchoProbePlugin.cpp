@@ -38,8 +38,7 @@ void EchoProbePlugin::initialization() {
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
             ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
-            ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)")
-            ("dup", "Enable 20MHz channel duplication in HT40+/- mode (Intel 5300AGN Only)");
+            ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -200,10 +199,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.inj_5300_gf = true;
     }
 
-    if (vm.count("dup")) {
-        parameters.inj_5300_duplication = true;
-    }
-
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
         if (mcsValue <= 23) {
@@ -226,9 +221,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         auto sgiValue = vm["sgi"].as<uint32_t>();
         parameters.ack_sgi = sgiValue;
     }
-
-    if (vm.size() > 0)
-        parameters.workingSessionId = uniformRandomNumberWithinRange<uint64_t>(0, UINT64_MAX);
 
     if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)
         initiator->startJob(parameters);

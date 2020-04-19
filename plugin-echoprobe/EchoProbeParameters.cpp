@@ -11,8 +11,6 @@ EchoProbeParameters::EchoProbeParameters() {
     sgi = 0;
     bw = 20;
     tx_delay_us = 5e5;
-    finishedSessionId = UINT64_MAX;
-    workingSessionId = UINT64_MAX;
     timeout_ms = 10;
     tx_max_retry = 600;
     ack_maxLengthPerPacket = 1200;
