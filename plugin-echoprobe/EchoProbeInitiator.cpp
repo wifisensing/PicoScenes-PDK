@@ -160,13 +160,13 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
-        if (replyFrame) {
-            if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
+        if (replyFrame && replyFrame->PicoScenesHeader) {
+            timeGap = (std::chrono::system_clock::now().time_since_epoch().count() - tx_timestamp) / 1e3;
+            if (replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
                 auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
                 responderDeviceType = rxDeviceType;
                 auto segment = replyFrame->segmentMap->at("EP");
                 if (auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first)) {
-                    timeGap = (replyFrame->rxs_basic.tstamp - tx_timestamp) / 1e3;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                         LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
@@ -175,7 +175,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
                     return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                 } else
                     LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
-            } else if (replyFrame->PicoScenesHeader && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
+            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
                 return std::make_tuple(replyFrame, std::nullopt, retryCount, timeGap);
             }
         }
