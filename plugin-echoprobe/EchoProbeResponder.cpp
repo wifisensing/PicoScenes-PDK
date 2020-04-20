@@ -66,7 +66,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const PicoSc
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader) {
     std::vector<PicoScenesFrameBuilder> fps;
-    auto curPos = 0;
+    uint16_t curPos = 0, curLength = 0;
     auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
     auto numReplyPackets = uint32_t(std::ceil(1.0f * rxframe.rawBufferLength / maxPacketLength));
     auto meanStepLength = rxframe.rawBufferLength / numReplyPackets + 1;
@@ -75,7 +75,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         frameBuilder.makeFrame_HeaderOnly();
         if (curPos == 0)
             frameBuilder.addExtraInfo();
-        auto curLength = curPos + meanStepLength <= rxframe.rawBufferLength ? meanStepLength : rxframe.rawBufferLength - curPos;
+        curLength = curPos + meanStepLength <= rxframe.rawBufferLength ? meanStepLength : rxframe.rawBufferLength - curPos;
         frameBuilder.addSegment("EP", rxframe.rawBuffer.get() + curPos, curLength);
         curPos += curLength;
         frameBuilder.setFragNumber(i);
@@ -131,6 +131,9 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
     }
 
+    if (initiatorDeviceType == PicoScenesDeviceType::USRP) {
+        std::this_thread::sleep_for(10ms);
+    }
     fps.reserve(10);
     for (auto i = 0; i < 10; i++)
         fps.emplace_back(frameBuilder);
