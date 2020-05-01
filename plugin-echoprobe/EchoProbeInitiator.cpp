@@ -58,21 +58,40 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
                     fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
-                    if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp); rxframe) {
-                        LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
-                        if (shiftSF) config->setSamplingRate(sf_value);
-                        if (shiftCF) config->setCarrierFreq(cf_value);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                    } else {
-                        LoggingService::warning_print("EchoProbe initiator shifting {} to next rate combination to recover the connection.\n", nic->getReferredInterfaceName());
-                        if (shiftSF) config->setSamplingRate(sf_value);
-                        if (shiftCF) config->setCarrierFreq(cf_value);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                        if (auto[rxframe, ackframe, retryPerTx, rxDelay] = this->transmitAndSyncRxUnified(fp); !rxframe) { // still fails
-                            LoggingService::warning_print("Job fails! EchoProbe initiator loses connection to the responder.\n");
-                            goto failed;
+                    auto currentCF = config->getCarrierFreq();
+                    auto currentSF = config->getSamplingRate();
+                    auto nextCF = cf_value;
+                    auto nextSF = sf_value;
+                    auto connectionEstablished = false;
+                    for (auto i = 0; i < parameters.tx_max_retry; i++) {
+                        if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                            LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
+                            if (shiftSF) config->setSamplingRate(nextSF);
+                            if (shiftCF) config->setCarrierFreq(nextCF);
+                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                            connectionEstablished = true;
+                            break;
+                        } else {
+                            if (shiftSF) config->setSamplingRate(nextSF);
+                            if (shiftCF) config->setCarrierFreq(nextCF);
+                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                            if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                                LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
+                                if (shiftSF) config->setSamplingRate(nextSF);
+                                if (shiftCF) config->setCarrierFreq(nextCF);
+                                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                                connectionEstablished = true;
+                                break;
+                            } else {
+                                if (shiftSF) config->setSamplingRate(currentSF);
+                                if (shiftCF) config->setCarrierFreq(currentCF);
+                                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                            }
                         }
                     }
+
+                    if (!connectionEstablished)
+                        goto failed;
                 }
             }
 
@@ -154,7 +173,7 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 150;
+            totalTimeOut += 400;
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
             totalTimeOut += 200;
         auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
