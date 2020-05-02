@@ -139,7 +139,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (workingMode == MODE_Injector)
                 LoggingService::info_printf("EchoProbe injector %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
             else if (workingMode == MODE_EchoProbeInitiator)
-                LoggingService::info_printf("EchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) cf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
+                LoggingService::info_printf("EchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
         }
 
         RXSDumper::getInstance(dumperId).finishCurrentSession();
