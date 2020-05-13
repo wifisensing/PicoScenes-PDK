@@ -131,7 +131,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     }
 
     if (initiatorDeviceType == PicoScenesDeviceType::USRP) {
-        std::this_thread::sleep_for(10ms);
+        std::this_thread::sleep_for(2ms);
     }
     fps.reserve(10);
     for (auto i = 0; i < 10; i++)
