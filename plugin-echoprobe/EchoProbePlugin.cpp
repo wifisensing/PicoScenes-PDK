@@ -38,6 +38,7 @@ void EchoProbePlugin::initialization() {
             ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
             ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
             ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
+            ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("gf", "Enable Green Field Tx mode (Intel 5300AGN Only)");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
@@ -193,6 +194,14 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.mcs = mcs;
         else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
+    }
+
+    if (vm.count("ness")) {
+        auto ness = vm["ness"].as<uint32_t>();
+        if (ness < 4)
+            parameters.ness = ness;
+        else
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid number of extension spatial stream (NESS) value: {}.\n", ness));
     }
 
     if (vm.count("gf")) {

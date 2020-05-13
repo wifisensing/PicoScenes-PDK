@@ -84,11 +84,12 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         }
         frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
         frameBuilder.setPicoScenesFrameType(EchoProbeReply);
-        frameBuilder.setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : *parameters.mcs);
-        frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+        frameBuilder.setMCS(epHeader.ackMCS >= 0 ? epHeader.ackMCS : parameters.mcs.value_or(0));
+        frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (parameters.bw.value_or(20) == 40));
+        frameBuilder.setNumberOfExtraSounding(parameters.ness.value_or(0));
         if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder.getFrame()->txParameters.channelBonding)
             throw std::invalid_argument("bw=40 or ack-bw=40 is invalid for 802.11n HT20 channel.");
-        frameBuilder.setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : *parameters.sgi);
+        frameBuilder.setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : parameters.sgi.value_or(false));
         frameBuilder.setGreenField(parameters.inj_5300_gf.value_or(false));
         frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
         if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
@@ -117,7 +118,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACK);
     frameBuilder.setMCS(0);
     frameBuilder.setSGI(false);
-    frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (*parameters.bw == 40));
+    frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (parameters.bw.value_or(20) == 40));
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder.getFrame()->txParameters.channelBonding)
         throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);

@@ -225,6 +225,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     fp->setChannelBonding(parameters.bw.value_or(20) == 40);
     fp->setSGI(parameters.sgi.value_or(false));
+    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
     if (parameters.randomPayloadLength) {
         std::shared_ptr<uint8_t> randomPayload = std::shared_ptr<uint8_t>(new uint8_t[*parameters.randomPayloadLength], std::default_delete<uint8_t[]>());
         fp->addSegment("PL", randomPayload.get(), *parameters.randomPayloadLength);

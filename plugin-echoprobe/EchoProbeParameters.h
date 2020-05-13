@@ -27,6 +27,7 @@ public:
     std::optional<uint8_t> mcs;
     std::optional<uint8_t> bw;
     std::optional<bool> sgi;
+    std::optional<uint8_t> ness;
 
     std::optional<double> cf_begin;
     std::optional<double> cf_end;
