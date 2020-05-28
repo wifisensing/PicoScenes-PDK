@@ -227,6 +227,12 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
         fp->setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+        if (parameters.inj_for_intel5300.value_or(false)) {
+            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+            fp->setForceSounding(false);
+        }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
         fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
