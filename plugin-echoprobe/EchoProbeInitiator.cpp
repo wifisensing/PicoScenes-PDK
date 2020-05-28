@@ -288,8 +288,9 @@ std::vector<double> EchoProbeInitiator::enumerateSamplingRates() {
         case PicoScenesDeviceType::QCA9300:
         case PicoScenesDeviceType::USRP:
             return enumerateArbitrarySamplingRates();
+        case PicoScenesDeviceType::IWL5300:
         default:
-            return std::vector<double>{0};
+            return std::vector<double>{nic->getConfiguration()->getSamplingRate()};
     }
 }
 
