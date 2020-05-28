@@ -7,7 +7,7 @@
 
 EchoProbeParameters::EchoProbeParameters() {
     inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;
-    mcs = 1;
+    mcs = 0;
     sgi = 1;
     bw = 20;
     tx_delay_us = 5e5;
