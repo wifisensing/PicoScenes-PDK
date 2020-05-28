@@ -90,7 +90,6 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder.getFrame()->txParameters.channelBonding)
             throw std::invalid_argument("bw=40 or ack-bw=40 is invalid for 802.11n HT20 channel.");
         frameBuilder.setSGI(epHeader.ackSGI >= 0 ? epHeader.ackSGI : parameters.sgi.value_or(false));
-        frameBuilder.setGreenField(parameters.inj_5300_gf.value_or(false));
         frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
         if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
             auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);

@@ -231,7 +231,6 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         fp->set3rdAddress(picoScenesNIC->getMacAddressPhy().data());
     }
     fp->setMCS(parameters.mcs.value_or(0));
-    fp->setGreenField(parameters.inj_5300_gf.value_or(false));
     fp->setChannelBonding(parameters.bw.value_or(20) == 40);
     fp->setSGI(parameters.sgi.value_or(false));
     fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
