@@ -18,13 +18,17 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto workingMode = parameters.workingMode;
     auto cf_repeat = parameters.cf_repeat.value_or(100);
     auto tx_delay_us = parameters.tx_delay_us;
+    auto tx_delayed_start = parameters.delayed_start_seconds.value_or(0);
 
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
-    LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval.\n",
-                               sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us);
+    LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval {}s delayed start.\n",
+                               sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
 
+    if (tx_delayed_start > 0)
+        std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
+    
     for (const auto &sf_value: sfList) {
         auto dumperId = fmt::sprintf("rxack_%s_bb%.1fM", nic->getReferredInterfaceName(), sf_value / 1e6);
         for (const auto &cf_value: cfList) {
