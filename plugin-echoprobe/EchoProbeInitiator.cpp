@@ -28,7 +28,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     if (tx_delayed_start > 0)
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
-    
+
     for (const auto &sf_value: sfList) {
         auto dumperId = fmt::sprintf("rxack_%s_bb%.1fM", nic->getReferredInterfaceName(), sf_value / 1e6);
         for (const auto &cf_value: cfList) {
@@ -180,9 +180,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             totalTimeOut = 6;
         }
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
-            totalTimeOut += 100;
+            totalTimeOut += 20;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 180;
+            totalTimeOut += 100;
         auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");

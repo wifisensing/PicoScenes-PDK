@@ -27,8 +27,10 @@ void EchoProbeResponder::handle(const PicoScenesRxFrameStructure &rxframe) {
     }
 
     auto replies = makeReplies(rxframe, *echoProbeHeader);
-    for (auto &reply: replies) {
-        reply.transmit();
+    for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
+        for (auto &reply: replies) {
+            reply.transmit();
+        }
     }
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
@@ -95,7 +97,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
             auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
             frameBuilder.setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
             frameBuilder.set3rdAddress(picoScenesNIC->getMacAddressDev().data());
-        } if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+        }
+        if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
             auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
             frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -130,7 +133,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
         frameBuilder.setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
         frameBuilder.set3rdAddress(picoScenesNIC->getMacAddressDev().data());
-    } if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+    }
+    if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
