@@ -236,6 +236,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
             fp->setForceSounding(false);
+            fp->useLDPC(false); // IWL5300 doesn't support LDPC coding.
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
