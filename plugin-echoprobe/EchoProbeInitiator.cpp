@@ -180,9 +180,9 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             totalTimeOut = 6;
         }
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
-            totalTimeOut += 20;
+            totalTimeOut += 1000;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 100;
+            totalTimeOut += 1000;
         auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
