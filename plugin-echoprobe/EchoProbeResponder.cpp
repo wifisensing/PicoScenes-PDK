@@ -13,25 +13,22 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
     }
 
-//    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequest && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequest))
-//        return;
-//
-//    if (!rxframe.segmentMap || rxframe.segmentMap->find("EP") == rxframe.segmentMap->end())
-//        return;
-//
-//    initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
-//    auto echoProbeHeader = EchoProbeHeader::fromBuffer(rxframe.segmentMap->at("EP").second.get(), rxframe.segmentMap->at("EP").first);
-//    if (!echoProbeHeader) {
-//        LoggingService::warning_print("EchoProbeHeader parser failed.");
-//        return;
-//    }
-//
-//    auto replies = makeReplies(rxframe, *echoProbeHeader);
-//    for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
-//        for (auto &reply: replies) {
-//            reply.transmit();
-//        }
-//    }
+    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequest && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequest))
+        return;
+
+    if (!rxframe.txUnknownSegmentMap.contains("EchoProbe"))
+        return;
+
+    initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
+    const auto & epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbe");
+    auto epSegment = EchoProbeSegment();
+    epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
+    auto replies = makeReplies(rxframe, epSegment.echoProbe);
+    for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
+        for (auto &reply: replies) {
+            reply.transmit();
+        }
+    }
 //
 //    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
 //        auto cf = echoProbeHeader->cf;
@@ -56,7 +53,7 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeHeader &epHeader) {
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
         return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epHeader);
     }
@@ -66,7 +63,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
     return std::vector<PicoScenesFrameBuilder>();
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeHeader &epHeader) {
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
     std::vector<PicoScenesFrameBuilder> fps;
 //    uint16_t curPos = 0, curLength = 0;
 //    auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
@@ -116,7 +113,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     return fps;
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeHeader &epHeader) {
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
     std::vector<PicoScenesFrameBuilder> fps;
     // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     auto frameBuilder = PicoScenesFrameBuilder(nic);
