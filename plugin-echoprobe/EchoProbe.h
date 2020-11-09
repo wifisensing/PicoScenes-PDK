@@ -5,7 +5,7 @@
 #ifndef PICOSCENES_ECHOPROBE_H
 #define PICOSCENES_ECHOPROBE_H
 
-#include <PicoScenes/rxs_enhanced.h>
+#include <PicoScenes/ModularPicoScenesFrame.hxx>
 
 enum EchoProbeWorkingMode: uint8_t {
     MODE_Standby = 14,

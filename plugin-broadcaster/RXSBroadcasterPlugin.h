@@ -21,7 +21,7 @@ public:
 
     void parseAndExecuteCommands(const std::string &commandString) override;
 
-    void rxHandle(const PicoScenesRxFrameStructure &rxframe) override;
+    void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
 private:
     std::string destinationIP = "127.0.0.1";

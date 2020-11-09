@@ -232,7 +232,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         responder->startJob(parameters);
 }
 
-void EchoProbePlugin::rxHandle(const PicoScenesRxFrameStructure &rxframe) {
+void EchoProbePlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
     if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
         responder->handle(rxframe);
 }
