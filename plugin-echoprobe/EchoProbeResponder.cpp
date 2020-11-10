@@ -64,9 +64,10 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
-    std::vector<PicoScenesFrameBuilder> fps;
-//    uint16_t curPos = 0, curLength = 0;
-//    auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
+    PicoScenesFrameBuilder fps;
+    uint16_t curPos = 0, curLength = 0;
+    auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
+
 //    auto numReplyPackets = uint32_t(std::ceil(1.0f * rxframe.rawBufferLength / maxPacketLength));
 //    auto meanStepLength = rxframe.rawBufferLength / numReplyPackets + 1;
 //    for (auto i = 0; i < numReplyPackets; ++i) {

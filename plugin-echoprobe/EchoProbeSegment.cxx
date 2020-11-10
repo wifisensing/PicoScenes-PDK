@@ -7,6 +7,7 @@
 
 struct EchoProbeV1 {
     bool deviceProbingStage = false;
+    bool replyCarriesPayload = true;
     int8_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
     int8_t ackNumSTS = -1;
     int16_t ackCBW = -1;   // -1, 20/40/80/160
@@ -23,6 +24,7 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
 
     auto r = EchoProbe();
     r.deviceProbingStage = *(bool *) (buffer + pos++);
+    r.replyCarriesPayload = *(bool *) (buffer + pos++);
     r.ackMCS = *(int8_t *) (buffer + pos++);
     r.ackNumSTS = *(int8_t *) (buffer + pos++);
     r.ackCBW = *(int16_t *) (buffer + pos);
