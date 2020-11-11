@@ -166,33 +166,33 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 }
 
 std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
-//    auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
-//    auto retryCount = 0;
-//    auto timeGap = -1.0, tx_timestamp = 0.0;
-//    maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
-//
-//    while (retryCount++ < *maxRetry) {
-//        auto tx_time = std::chrono::system_clock::now();
-//        frameBuilder->transmit();
-//        /*
-//        * Tx-Rx time grows non-li nearly in low sampling rate cases, enlarge the timeout to 11x.
-//        */
-//        auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
-//        auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
-//        if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-//            totalTimeOut = 6;
-//        }
-//        if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
-//            totalTimeOut += 20;
-//        if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-//            totalTimeOut += 100;
-//        auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
-//            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
-//        }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
-//        if (replyFrame && replyFrame->PicoScenesHeader) {
-//            auto delayDuration = std::chrono::system_clock::now() - tx_time;
-//            timeGap = std::chrono::duration_cast<std::chrono::milliseconds>(delayDuration).count();
-//            if (replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
+    auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
+    auto retryCount = 0;
+    auto timeGap = -1.0, tx_timestamp = 0.0;
+    maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
+
+    while (retryCount++ < *maxRetry) {
+        auto tx_time = std::chrono::system_clock::now();
+        frameBuilder->transmit();
+        /*
+        * Tx-Rx time grows non-li nearly in low sampling rate cases, enlarge the timeout to 11x.
+        */
+        auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
+        auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
+        if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
+            totalTimeOut = 6;
+        }
+        if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
+            totalTimeOut += 20;
+        if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
+            totalTimeOut += 100;
+        auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
+            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId;
+        }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
+        if (replyFrame && replyFrame->PicoScenesHeader) {
+            auto delayDuration = std::chrono::system_clock::now() - tx_time;
+            timeGap = std::chrono::duration_cast<std::chrono::milliseconds>(delayDuration).count();
+            if (replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
 //                auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
 //                responderDeviceType = rxDeviceType;
 //                const auto segment = replyFrame->segmentMap->at("EP"); // using copy to prevent a rare crash case.
@@ -206,11 +206,11 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 //                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
 //                } else
 //                    LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
-//            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
-//                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
-//            }
-//        }
-//    }
+            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+            }
+        }
+    }
 
     return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }

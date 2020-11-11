@@ -17,11 +17,11 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequestFrameType && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequestFrameType))
         return;
 
-    if (!rxframe.txUnknownSegmentMap.contains("EchoProbe"))
+    if (!rxframe.txUnknownSegmentMap.contains("EchoProbeRequest"))
         return;
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
-    const auto & epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbe");
+    const auto & epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment();
     epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
     auto replies = makeReplies(rxframe, EchoProbeReplySegment());
