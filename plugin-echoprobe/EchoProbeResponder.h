@@ -28,11 +28,11 @@ private:
     EchoProbeParameters parameters;
     std::optional<PicoScenesDeviceType> initiatorDeviceType;
 
-    std::vector<PicoScenesFrameBuilder> makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epReply);
+    std::vector<PicoScenesFrameBuilder> makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epReply);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epRely);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 };
 
 

@@ -16,15 +16,15 @@ public:
     Uint8Vector replyBuffer;
 };
 
-class EchoProbeReplySegment : AbstractPicoScenesFrameSegment {
+class EchoProbeReplySegment : public AbstractPicoScenesFrameSegment {
 public:
     EchoProbeReplySegment();
 
-    EchoProbeReplySegment(const Uint8Vector &replyBuffer);
+    EchoProbeReplySegment(const EchoProbeReply & reply);
 
     void fromBuffer(const uint8_t *buffer, uint32_t bufferLength) override;
 
-    EchoProbeReply reply;
+    EchoProbeReply echoProbeReply;
 
 private:
 
