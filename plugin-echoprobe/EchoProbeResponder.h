@@ -10,7 +10,8 @@
 #include <PicoScenes/USRPFrontEnd.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
-#include "EchoProbeSegment.hxx"
+#include "EchoProbeRequestSegment.hxx"
+#include "EchoProbeReplySegment.hxx"
 
 class PicoScenesNIC;
 
@@ -27,11 +28,11 @@ private:
     EchoProbeParameters parameters;
     std::optional<PicoScenesDeviceType> initiatorDeviceType;
 
-    std::vector<PicoScenesFrameBuilder> makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epReply);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epReply);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epRely);
 };
 
 

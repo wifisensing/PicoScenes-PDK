@@ -13,7 +13,6 @@
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
-#include "EchoProbeHeader.hxx"
 
 
 class EchoProbeInitiator {

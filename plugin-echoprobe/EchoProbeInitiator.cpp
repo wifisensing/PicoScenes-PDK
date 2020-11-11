@@ -3,6 +3,8 @@
 //
 
 #include "EchoProbeInitiator.h"
+#include "EchoProbeReplySegment.hxx"
+#include "EchoProbeRequestSegment.hxx"
 
 
 void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
@@ -45,23 +47,24 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-                EchoProbeHeader epHeader{};
+                EchoProbeRequest echoProbeRequest;
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != config->getSamplingRate()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value);
-                    epHeader.sf = sf_value;
+                    echoProbeRequest.sf = sf_value;
                     shiftSF = true;
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-                    epHeader.cf = cf_value;
+                    echoProbeRequest.cf = cf_value;
                     shiftCF = true;
                 }
 
                 if (shiftCF || shiftSF) {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
-                    fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
+                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType);
+                    auto epSegment = std::make_shared<EchoProbeRequestSegment>(echoProbeRequest);
+                    fp->addSegment(epSegment);
                     auto currentCF = config->getCarrierFreq();
                     auto currentSF = config->getSamplingRate();
                     auto nextCF = cf_value;
@@ -108,7 +111,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 std::shared_ptr<ModularPicoScenesRxFrame> replyRXS = nullptr;
 
                 if (workingMode == MODE_Injector) {
-                    fp = buildBasicFrame(taskId, SimpleInjection);
+                    fp = buildBasicFrame(taskId, SimpleInjectionFrameType);
                     fp->transmitSync();
                     tx_count++;
                     total_tx_count++;
@@ -116,7 +119,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         printDots(tx_count);
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
-                    fp = buildBasicFrame(taskId, EchoProbeRequest);
+                    fp = buildBasicFrame(taskId, EchoProbeRequestFrameType);
                     auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
@@ -236,7 +239,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
             fp->setForceSounding(false);
-//            fp->useLDPC(false); // IWL5300 doesn't support LDPC coding.
+            fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
@@ -248,27 +251,24 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
 //    fp->setChannelBonding(parameters.bw.value_or(20) == 40);
 //    fp->setSGI(parameters.sgi.value_or(false));
     fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
-    if (parameters.randomPayloadLength) {
-        std::shared_ptr<uint8_t> randomPayload = std::shared_ptr<uint8_t>(new uint8_t[*parameters.randomPayloadLength], std::default_delete<uint8_t[]>());
-        fp->addSegment("PL", randomPayload.get(), *parameters.randomPayloadLength);
-    }
 
-    if (frameType == SimpleInjection) {
+    if (frameType == SimpleInjectionFrameType) {
         fp->addExtraInfo();
     }
 
-    if (frameType == EchoProbeRequest) {
+    if (frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
-        EchoProbeHeader epHeader;
-        epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
-        epHeader.ackChannelBonding = parameters.ack_bw ? (*parameters.ack_bw == 40) : -1;
-        epHeader.ackSGI = parameters.ack_sgi.value_or(-1);
+        EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
+        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
+        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
+        echoProbeRequest.ackGI = parameters.ack_gi.value_or(-1);
         if (!responderDeviceType)
-            epHeader.deviceProbingStage = 1;
-        fp->addSegment("EP", reinterpret_cast<const uint8_t *>(&epHeader), sizeof(EchoProbeHeader));
+            echoProbeRequest.deviceProbingStage = true;
+        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
     }
 
-    if (frameType == EchoProbeFreqChangeRequest) {
+    if (frameType == EchoProbeFreqChangeRequestFrameType) {
         fp->setMCS(0);
 //        fp->setSGI(false);
 //        fp->setChannelBonding(parameters.bw.value_or(20) == 40);

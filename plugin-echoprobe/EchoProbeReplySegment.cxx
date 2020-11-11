@@ -26,7 +26,9 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
 std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> EchoProbeReplySegment::versionedSolutionMap = initializeSolutionMap();
 
 std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> EchoProbeReplySegment::initializeSolutionMap() noexcept {
-    return std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>>();
+    std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> map;
+    map.emplace(0x1U, v1Parser);
+    return map;
 }
 
 

@@ -2,10 +2,10 @@
 // Created by csi on 11/10/20.
 //
 
-#include "EchoProbeSegment.hxx"
+#include "EchoProbeRequestSegment.hxx"
 
 
-struct EchoProbeV1 {
+struct EchoProbeRequestV1 {
     bool deviceProbingStage = false;
     bool replyCarriesPayload = true;
     int8_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
@@ -17,12 +17,12 @@ struct EchoProbeV1 {
 } __attribute__ ((__packed__));
 
 
-static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbe {
+static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbeRequest {
     uint32_t pos = 0;
-    if (bufferLength < sizeof(EchoProbeV1))
+    if (bufferLength < sizeof(EchoProbeRequestV1))
         throw std::runtime_error("EchoProbeSegment v1Parser cannot parse the segment with insufficient buffer length.");
 
-    auto r = EchoProbe();
+    auto r = EchoProbeRequest();
     r.deviceProbingStage = *(bool *) (buffer + pos++);
     r.replyCarriesPayload = *(bool *) (buffer + pos++);
     r.ackMCS = *(int8_t *) (buffer + pos++);
@@ -38,17 +38,21 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
     return r;
 };
 
-std::map<uint16_t, std::function<EchoProbe(const uint8_t *, uint32_t)>> EchoProbeSegment::versionedSolutionMap = initializeSolutionMap();
+std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> EchoProbeRequestSegment::versionedSolutionMap = initializeSolutionMap();
 
-std::map<uint16_t, std::function<EchoProbe(const uint8_t *, uint32_t)>> EchoProbeSegment::initializeSolutionMap() noexcept {
-    return std::map<uint16_t, std::function<EchoProbe(const uint8_t *, uint32_t)>>();
+std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> EchoProbeRequestSegment::initializeSolutionMap() noexcept {
+    std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> map;
+    map.emplace(0x1U, v1Parser);
+    return map;
 }
 
-EchoProbeSegment::EchoProbeSegment() : AbstractPicoScenesFrameSegment("EchoProbe", 0x1U) {
+EchoProbeRequestSegment::EchoProbeRequestSegment() : AbstractPicoScenesFrameSegment("EchoProbe", 0x1U) {}
 
+EchoProbeRequestSegment::EchoProbeRequestSegment(const EchoProbeRequest &echoProbeRequestV) : EchoProbeRequestSegment() {
+    echoProbeRequest = echoProbeRequestV;
 }
 
-void EchoProbeSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
+void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
     auto[segmentName, segmentLength, versionId, offset] = extractSegmentMetaData(buffer, bufferLength);
     if (segmentName != "EchoProbe")
         throw std::runtime_error("RxSBasicSegment cannot parse the segment named " + segmentName + ".");
@@ -58,8 +62,14 @@ void EchoProbeSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) 
         throw std::runtime_error("RxSBasicSegment cannot parse the segment with version v" + std::to_string(versionId) + ".");
     }
 
-    echoProbe = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
+    echoProbeRequest = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
 }
+
+void EchoProbeRequestSegment::updateFieldMap() {
+    clearAllFieldRecords();
+    addField("EP", echoProbeRequest);
+}
+
 

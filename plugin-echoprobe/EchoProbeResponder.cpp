@@ -3,6 +3,7 @@
 //
 
 #include "EchoProbeResponder.h"
+#include "EchoProbeReplySegment.hxx"
 
 void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     if (parameters.workingMode == MODE_Injector || parameters.workingMode == MODE_EchoProbeInitiator)
@@ -13,7 +14,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
     }
 
-    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequest && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequest))
+    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequestFrameType && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequestFrameType))
         return;
 
     if (!rxframe.txUnknownSegmentMap.contains("EchoProbe"))
@@ -21,9 +22,9 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto & epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbe");
-    auto epSegment = EchoProbeSegment();
+    auto epSegment = EchoProbeRequestSegment();
     epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
-    auto replies = makeReplies(rxframe, epSegment.echoProbe);
+    auto replies = makeReplies(rxframe, EchoProbeReplySegment());
     for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
         for (auto &reply: replies) {
             reply.transmit();
@@ -53,18 +54,18 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epHeader) {
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
         return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epHeader);
     }
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequest) {
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         return makeRepliesForEchoProbeRequest(rxframe, epHeader);
     }
     return std::vector<PicoScenesFrameBuilder>();
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
-    PicoScenesFrameBuilder fps;
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epHeader) {
+    std::vector<PicoScenesFrameBuilder> fps;
     uint16_t curPos = 0, curLength = 0;
     auto maxPacketLength = *parameters.ack_maxLengthPerPacket;
 
@@ -114,13 +115,13 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     return fps;
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbe &epHeader) {
+std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeReplySegment &epHeader) {
     std::vector<PicoScenesFrameBuilder> fps;
     // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
-    frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACK);
+    frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
 //    frameBuilder.setSGI(false);
 //    frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (parameters.bw.value_or(20) == 40));

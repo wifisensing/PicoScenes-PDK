@@ -16,11 +16,11 @@ enum EchoProbeWorkingMode: uint8_t {
 };
 
 enum EchoProbePacketFrameType: uint8_t {
-    SimpleInjection = 10,
-    EchoProbeRequest,
-    EchoProbeReply,
-    EchoProbeFreqChangeRequest,
-    EchoProbeFreqChangeACK,
+    SimpleInjectionFrameType = 10,
+    EchoProbeRequestFrameType,
+    EchoProbeReplyFrameType,
+    EchoProbeFreqChangeRequestFrameType,
+    EchoProbeFreqChangeACKFrameType,
 };
 
 #endif //PICOSCENES_ECHOPROBE_H

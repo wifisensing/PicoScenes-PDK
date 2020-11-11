@@ -22,29 +22,29 @@ void EchoProbePlugin::initialization() {
     responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<AbstractNIC>(nic));
 
 
-    injectionOptions = std::make_shared<po::options_description>("Frame Injection Options");
+    injectionOptions = std::make_shared<po::options_description>("EchoProbe Initiator Options");
     injectionOptions->add_options()
-            ("target-interface", po::value<std::string>(), "PhyId of the injection target")
             ("target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
             ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
-            ("payload", po::value<uint32_t>(), "insert randomly-generated payload, for test purpose.")
 
             ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
             ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multipler scan range, format begin:step:end, e.g., 11:11:88")
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
-            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
+            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
 
-            ("bw", po::value<uint32_t>(), "bandwidth for injection(unit in MHz) [20, 40], 20 as default")
-            ("sgi", po::value<uint32_t>(), "Short Guarding-Interval [1 for on, 0 for off], 1 as default")
-            ("mcs", po::value<uint32_t>(), "mcs value [0-23]")
-            ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]");
+            ("mcs", po::value<uint32_t>(), "mcs value [0-11] the MCS index for one single spatial stream")
+            ("sts", po::value<uint32_t>(), "the number of spatial time stream (STS) [0-4], 0 as default")
+            ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
+            ("cbw", po::value<uint32_t>(), "Channel Bandwidth (CBW) for injection(unit in MHz) [20, 40, 80, 160], 20 as default")
+            ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
-            ("ack-mcs", po::value<uint32_t>(), "mcs value for ack packets [0-23], unspecified as default")
-            ("ack-bw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40], unspecified as default")
-            ("ack-sgi", po::value<uint32_t>(), "guarding-interval for ack packets [1 for on, 0 for off], unspecified as default");
+            ("ack-mcs", po::value<uint32_t>(), "mcs value (for one single spatial stream) for ack packets [0-11], unspecified as default")
+            ("ack-sts", po::value<uint32_t>(), "the number of spatial time stream (STS) for ack packets [0-23], unspecified as default")
+            ("ack-cbw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40, 80, 160], unspecified as default")
+            ("ack-gi", po::value<uint32_t>(), "guarding-interval for ack packets [400, 800, 1600, 3200], unspecified as default");
 
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
@@ -94,15 +94,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         }
     }
 
-    if (vm.count("target-interface")) {
-        auto interfaceName = vm["target-interface"].as<std::string>();
-        boost::trim(interfaceName);
-        parameters.inj_target_interface = interfaceName;
-        auto targetHAL = NICPortal::getTypedNIC<PicoScenesNIC>(interfaceName);
-        if (targetHAL)
-            parameters.inj_target_mac_address = targetHAL->getMacAddressMon();
-    }
-
     if (vm.count("target-mac-address")) {
         auto macAddressString = vm["target-mac-address"].as<std::string>();
         std::vector<std::string> eachHexs;
@@ -123,10 +114,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("5300")) {
         parameters.inj_for_intel5300 = true;
-    }
-
-    if (vm.count("payload")) {
-        parameters.randomPayloadLength = vm["payload"].as<uint32_t>();
     }
 
     if (vm.count("cf")) {
@@ -172,27 +159,30 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
     }
 
-    if (vm.count("bw")) {
-        auto bwValue = vm["bw"].as<uint32_t>();
-        if (bwValue == 20) {
-            parameters.bw = 20;
-        } else if (bwValue == 40) {
-            parameters.bw = 40;
-        } else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid bandwith value: {}.\n", bwValue));
+    if (vm.count("cbw")) {
+        auto bwValue = vm["cbw"].as<uint32_t>();
+        parameters.cbw = bwValue;
     }
 
-    if (vm.count("sgi")) {
-        auto sgiValue = vm["sgi"].as<uint32_t>();
-        parameters.sgi = sgiValue;
+    if (vm.count("gi")) {
+        auto sgiValue = vm["gi"].as<uint32_t>();
+        parameters.gi = sgiValue;
     }
 
     if (vm.count("mcs")) {
         auto mcs = vm["mcs"].as<uint32_t>();
-        if (mcs < 23)
+        if (mcs < 11)
             parameters.mcs = mcs;
         else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid MCS value: {}.\n", mcs));
+            throw std::invalid_argument(fmt::format("[EchoProbe]: invalid MCS value: {}.\n", mcs));
+    }
+
+    if (vm.count("sts")) {
+        auto mcs = vm["sts"].as<uint32_t>();
+        if (mcs < 5)
+            parameters.mcs = mcs;
+        else
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", mcs));
     }
 
     if (vm.count("ness")) {
@@ -205,25 +195,20 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
-        if (mcsValue <= 23) {
+        if (mcsValue <= 11) {
             parameters.ack_mcs = mcsValue;
         } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
     }
 
-    if (vm.count("ack-bw")) {
-        auto ack_bw = vm["ack-bw"].as<uint32_t>();
-        if (ack_bw == 20) {
-            parameters.ack_bw = 20;
-        } else if (ack_bw == 40) {
-            parameters.ack_bw = 40;
-        } else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK bandwidth value: {}.\n", ack_bw));
+    if (vm.count("ack-cbw")) {
+        auto ack_bw = vm["ack-cbw"].as<uint32_t>();
+        parameters.ack_cbw = ack_bw;
     }
 
-    if (vm.count("ack-sgi")) {
-        auto sgiValue = vm["sgi"].as<uint32_t>();
-        parameters.ack_sgi = sgiValue;
+    if (vm.count("ack-gi")) {
+        auto giValue = vm["ack-gi"].as<uint32_t>();
+        parameters.ack_gi = giValue;
     }
 
     if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)
