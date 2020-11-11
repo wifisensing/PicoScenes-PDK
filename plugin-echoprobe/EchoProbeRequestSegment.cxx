@@ -57,7 +57,7 @@ EchoProbeRequestSegment::EchoProbeRequestSegment() : AbstractPicoScenesFrameSegm
 EchoProbeRequestSegment::EchoProbeRequestSegment(const EchoProbeRequest &echoProbeRequestV) : EchoProbeRequestSegment() {
     echoProbeRequest = echoProbeRequestV;
     addField("epr", echoProbeRequest);
-}RxSBasicSegment
+}
 
 void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
     auto[segmentName, segmentLength, versionId, offset] = extractSegmentMetaData(buffer, bufferLength);
