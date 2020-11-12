@@ -37,6 +37,7 @@ public:
     std::optional<double> sf_step;
 
     uint32_t tx_max_retry;
+    bool ack_no_payload;
     std::optional<uint32_t> ack_mcs;
     std::optional<uint32_t> ack_numSTS;
     std::optional<uint32_t> ack_cbw;

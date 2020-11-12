@@ -187,14 +187,31 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
             totalTimeOut += 100;
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
-            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId;
+            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId && rxframe.txUnknownSegmentMap.contains("EchoProbeReply");
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
-        if (replyFrame && replyFrame->PicoScenesHeader) {
+        if (replyFrame) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
-            timeGap = std::chrono::duration_cast<std::chrono::milliseconds>(delayDuration).count();
-            if (replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
-//                auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
-//                responderDeviceType = rxDeviceType;
+            timeGap = std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count() / 1000.0;
+            responderDeviceType = (PicoScenesDeviceType)replyFrame->PicoScenesHeader->deviceType;
+            const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
+            EchoProbeReplySegment replySeg;
+            replySeg.fromBuffer(&replySegBytes[0], replySegBytes.size());
+            if (!replySeg.echoProbeReply.replyCarriesPayload) {
+                if (LoggingService::localDisplayLevel <= Debug) {
+                    LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
+                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
+                }
+                return std::make_tuple(replyFrame, std::nullopt, retryCount, timeGap);
+            }
+
+            if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
+                if (LoggingService::localDisplayLevel <= Debug) {
+                    LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
+                    LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
+                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap/1000.0);
+                }
+                return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap/1000.0);
+            }
 //                const auto segment = replyFrame->segmentMap->at("EP"); // using copy to prevent a rare crash case.
 //                auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(segment.second.get(), segment.first);
 //                if (ackFrame) {
@@ -206,9 +223,9 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 //                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
 //                } else
 //                    LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
-            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
-                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
-            }
+//            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
+//                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+//            }
         }
     }
 
@@ -259,6 +276,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
         EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.replyCarriesPayload = !parameters.ack_no_payload;
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
         echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;

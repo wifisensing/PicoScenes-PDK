@@ -17,4 +17,6 @@ EchoProbeParameters::EchoProbeParameters() {
     ack_maxLengthPerPacket = 1000;
     delay_after_cf_change_ms = 5;
     numOfPacketsPerDotDisplay = 10;
+
+    ack_no_payload = false;
 }

@@ -26,10 +26,9 @@ public:
 
     EchoProbeReply echoProbeReply;
 
+    uint32_t toBuffer(bool totalLengthIncluded, uint8_t *buffer, std::optional<uint32_t> capacity) const override;
+
 private:
-
-    void updateFieldMap() override;
-
     static std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> versionedSolutionMap;
 
     static std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> initializeSolutionMap() noexcept;

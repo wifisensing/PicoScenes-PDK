@@ -3,24 +3,19 @@
 //
 
 #include "EchoProbeReplySegment.hxx"
-#include "EchoProbeRequestSegment.hxx"
-
 
 struct EchoProbeReplyV1 {
-    bool deviceProbingStage = false;
-    int8_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
-    int8_t ackNumSTS = -1;
-    int16_t ackCBW = -1;   // -1, 20/40/80/160
-    int16_t ackGI = -1;         // 0 for LGI, 1 for SGI, negative means use default (maybe LGI).
-    int64_t cf = -1;
-    int64_t sf = -1;
-} __attribute__ ((__packed__));
+    bool replyCarriesPayload = false;
+    Uint8Vector replyBuffer;
+};
 
 
 static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbeReply {
     uint32_t pos = 0;
-
     auto r = EchoProbeReply();
+    r.replyCarriesPayload = *(bool *) (buffer + pos++);
+    r.replyBuffer.resize(bufferLength - pos);
+    std::copy(buffer + pos , buffer + bufferLength, r.replyBuffer.begin());
     return r;
 };
 
@@ -37,7 +32,7 @@ EchoProbeReplySegment::EchoProbeReplySegment(): AbstractPicoScenesFrameSegment("
 
 EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : EchoProbeReplySegment() {
     echoProbeReply = reply;
-    addField("replyWithPayload", echoProbeReply.replyCarriesPayload);
+    addField("replyWithPayload", uint8_t(echoProbeReply.replyCarriesPayload));
     addField("payload", echoProbeReply.replyBuffer);
 }
 
@@ -56,8 +51,8 @@ void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLen
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
 }
 
-void EchoProbeReplySegment::updateFieldMap() {
-    AbstractPicoScenesFrameSegment::updateFieldMap();
+uint32_t EchoProbeReplySegment::toBuffer(bool totalLengthIncluded, uint8_t *buffer, std::optional<uint32_t> capacity) const {
+    return AbstractPicoScenesFrameSegment::toBuffer(totalLengthIncluded, buffer, capacity);
 }
 
 

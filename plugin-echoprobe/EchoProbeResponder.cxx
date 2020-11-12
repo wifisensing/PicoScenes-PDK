@@ -21,7 +21,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
-    const auto & epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
+    const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment();
     epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
     auto replies = makeReplies(rxframe, epSegment.echoProbeRequest);
@@ -55,12 +55,14 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
-        return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
-    }
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         return makeRepliesForEchoProbeRequest(rxframe, epReq);
     }
+
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
+        return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
+    }
+    
     return std::vector<PicoScenesFrameBuilder>();
 }
 
@@ -82,7 +84,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
     //TODO setNumSTS
-    frameBuilder.setGuardInterval((GuardIntervalEnum)(epReq.ackGI == -1 ? (parameters.gi ? *parameters.gi : 800) : epReq.ackGI));
+    frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.gi ? *parameters.gi : 800) : epReq.ackGI));
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
