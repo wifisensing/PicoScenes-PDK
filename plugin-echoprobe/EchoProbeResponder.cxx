@@ -72,17 +72,21 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
-    frameBuilder.addExtraInfo();
 
     EchoProbeReply reply;
-    if (epReq.replyCarriesPayload) {
+    if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
+        frameBuilder.addExtraInfo();
         reply.replyBuffer.resize(rxframe.rawBuffer.size());
         std::copy(rxframe.rawBuffer.cbegin(), rxframe.rawBuffer.cend(), reply.replyBuffer.begin());
         reply.replyCarriesPayload = true;
-    } else {
-        reply.replyCarriesPayload = false;
+        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+    } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
+        frameBuilder.addExtraInfo();
+        reply.replyBuffer.resize(rxframe.csiSegment.rawBuffer.size());
+    } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
+        frameBuilder.addExtraInfo();
+    } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader) {
     }
-    frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);

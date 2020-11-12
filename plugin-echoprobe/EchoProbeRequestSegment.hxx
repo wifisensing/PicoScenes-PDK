@@ -10,9 +10,16 @@
 #include <PicoScenes/PicoScenesCommons.hxx>
 #include <PicoScenes/AbstractPicoScenesFrameSegment.hxx>
 
+enum class EchoProbeReplyStrategy: uint8_t {
+    ReplyOnlyHeader = 0,
+    ReplyWithExtraInfo,
+    ReplyWithCSI,
+    ReplyWithFullPayload,
+};
+
 struct EchoProbeRequest {
     bool deviceProbingStage = false;
-    bool replyCarriesPayload = true;
+    EchoProbeReplyStrategy replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
     int16_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
     int16_t ackNumSTS = -1;
     int16_t ackCBW = -1;   // -1, 20/40/80/160

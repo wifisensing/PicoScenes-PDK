@@ -267,7 +267,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
         EchoProbeRequest echoProbeRequest;
-        echoProbeRequest.replyCarriesPayload = !parameters.ack_no_payload;
+//        echoProbeRequest.replyStrategy = !parameters.ack_no_payload;
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
         echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
