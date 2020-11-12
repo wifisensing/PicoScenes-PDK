@@ -189,7 +189,8 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId && rxframe.txUnknownSegmentMap.contains("EchoProbeReply");
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
-        if (replyFrame) {
+
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
             timeGap = std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count() / 1000.0;
             responderDeviceType = (PicoScenesDeviceType)replyFrame->PicoScenesHeader->deviceType;
@@ -201,31 +202,21 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                     LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                     LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
                 }
-                return std::make_tuple(replyFrame, std::nullopt, retryCount, timeGap);
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
 
             if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
                 if (LoggingService::localDisplayLevel <= Debug) {
                     LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                     LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap/1000.0);
+                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
                 }
-                return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap/1000.0);
+                return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
             }
-//                const auto segment = replyFrame->segmentMap->at("EP"); // using copy to prevent a rare crash case.
-//                auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(segment.second.get(), segment.first);
-//                if (ackFrame) {
-//                    if (LoggingService::localDisplayLevel <= Debug) {
-//                        LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
-//                        LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-//                        LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
-//                    }
-//                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
-//                } else
-//                    LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
-//            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
-//                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
-//            }
+        }
+
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
+            return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
         }
     }
 
