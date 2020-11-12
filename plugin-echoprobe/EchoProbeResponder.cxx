@@ -24,30 +24,33 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment();
     epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
-    auto replies = makeReplies(rxframe, epSegment.echoProbeRequest);
-    for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
-        for (auto &reply: replies) {
-            reply.transmit();
+
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
+        auto replies = makeReplies(rxframe, epSegment.echoProbeRequest);
+        for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
+            for (auto &reply: replies) {
+                reply.transmit();
+            }
         }
     }
-//
-//    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequest) {
-//        auto cf = echoProbeHeader->cf;
-//        auto sf = echoProbeHeader->sf;
-//        if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
-//            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-//            LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
-//            nic->getConfiguration()->setCarrierFreq(cf);
-//            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-//        }
-//
-//        if (sf > 0 && nic->getConfiguration()->getSamplingRate() != sf) {
-//            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-//            LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
-//            nic->getConfiguration()->setSamplingRate(sf);
-//            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-//        }
-//    }
+
+    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
+        auto cf = epSegment.echoProbeRequest.cf;
+        auto sf = epSegment.echoProbeRequest.sf;
+        if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+            LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
+            nic->getConfiguration()->setCarrierFreq(cf);
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+        }
+
+        if (sf > 0 && nic->getConfiguration()->getSamplingRate() != sf) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+            LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
+            nic->getConfiguration()->setSamplingRate(sf);
+            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+        }
+    }
 }
 
 void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
@@ -62,7 +65,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
         return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
     }
-    
+
     return std::vector<PicoScenesFrameBuilder>();
 }
 
@@ -110,6 +113,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
+    frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
 //    frameBuilder.setSGI(false);
 //    frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (parameters.bw.value_or(20) == 40));
 //    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder.getFrame()->txParameters.channelBonding)
