@@ -38,7 +38,8 @@ void EchoProbePlugin::initialization() {
             ("sts", po::value<uint32_t>(), "the number of spatial time stream (STS) [0-4], 0 as default")
             ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("cbw", po::value<uint32_t>(), "Channel Bandwidth (CBW) for injection(unit in MHz) [20, 40, 80, 160], 20 as default")
-            ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default");
+            ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
+            ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -194,6 +195,15 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid number of extension spatial stream (NESS) value: {}.\n", ness));
     }
+
+    if (vm.count("coding")) {
+        auto codingStr = vm["coding"].as<std::string>();
+        if (boost::iequals(codingStr, "LDPC"))
+            parameters.coding = (uint32_t)ChannelCodingEnum::LDPC;
+        else if (boost::iequals(codingStr, "BCC"))
+            parameters.coding = (uint32_t)ChannelCodingEnum::BCC;
+    }
+
 
     if (vm.count("ack-type")) {
         auto ackType = vm["ack-type"].as<std::string>();

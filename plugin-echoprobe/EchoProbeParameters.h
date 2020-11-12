@@ -27,6 +27,7 @@ public:
     std::optional<uint32_t> cbw;
     std::optional<uint32_t> gi;
     std::optional<uint32_t> ness;
+    std::optional<uint32_t> coding;
 
     std::optional<double> cf_begin;
     std::optional<double> cf_end;
@@ -44,7 +45,6 @@ public:
     std::optional<uint32_t> ack_cbw;
     std::optional<uint32_t> ack_gi;
     std::optional<uint32_t> timeout_ms;
-    std::optional<uint32_t> ack_maxLengthPerPacket;
     std::optional<uint32_t> delay_after_cf_change_ms;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;
 };

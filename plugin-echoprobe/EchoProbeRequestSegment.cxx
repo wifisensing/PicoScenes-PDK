@@ -14,6 +14,7 @@ enum class EchoProbeReplyStrategyV1: uint8_t {
 struct EchoProbeRequestV1 {
     bool deviceProbingStage = false;
     EchoProbeReplyStrategyV1 replyStrategy = EchoProbeReplyStrategyV1::ReplyWithCSI;
+    int16_t repeat = -1;
     int16_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
     int16_t ackNumSTS = -1;
     int16_t ackCBW = -1;   // -1, 20/40/80/160
@@ -31,6 +32,8 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
     auto r = EchoProbeRequest();
     r.deviceProbingStage = *(bool *) (buffer + pos++);
     r.replyStrategy = *(EchoProbeReplyStrategy *) (buffer + pos++);
+    r.repeat = *(int16_t *) (buffer + pos);
+    pos += 2;
     r.ackMCS = *(int16_t *) (buffer + pos);
     pos += 2;
     r.ackNumSTS = *(int16_t *) (buffer + pos);

@@ -236,6 +236,44 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->makeFrame_HeaderOnly();
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
+
+    if (frameType == SimpleInjectionFrameType) {
+        fp->addExtraInfo();
+    }
+
+    if (frameType == EchoProbeRequestFrameType) {
+        fp->addExtraInfo();
+        EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.replyStrategy = parameters.replyStrategy;
+        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
+        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
+        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
+        echoProbeRequest.ackGI = parameters.ack_gi.value_or(-1);
+        if (!responderDeviceType)
+            echoProbeRequest.deviceProbingStage = true;
+        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
+    }
+
+    if (frameType == EchoProbeFreqChangeRequestFrameType) {
+        EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
+        echoProbeRequest.repeat = 5;
+        echoProbeRequest.ackMCS = 0;
+        echoProbeRequest.ackNumSTS = 1;
+        echoProbeRequest.ackCBW = -1;
+        echoProbeRequest.ackGI = int16_t(GuardIntervalEnum::GI_800);
+        if (!responderDeviceType)
+            echoProbeRequest.deviceProbingStage = true;
+        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
+    }
+
+    fp->setMCS(parameters.mcs.value_or(0));
+    fp->setNumSTS(parameters.numSTS.value_or(1));
+    fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));
+    fp->setGuardInterval(GuardIntervalEnum(parameters.gi.value_or(800)));
+    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
+    fp->setChannelCoding((ChannelCodingEnum)parameters.coding.value_or((uint32_t)ChannelCodingEnum::BCC));
+
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
@@ -263,36 +301,6 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         fp->set3rdAddress(picoScenesNIC->getMacAddressPhy().data());
     }
-    fp->setMCS(parameters.mcs.value_or(0));
-//    fp->setChannelBonding(parameters.bw.value_or(20) == 40);
-//    fp->setSGI(parameters.sgi.value_or(false));
-    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
-
-    if (frameType == SimpleInjectionFrameType) {
-        fp->addExtraInfo();
-    }
-
-    if (frameType == EchoProbeRequestFrameType) {
-        fp->addExtraInfo();
-        EchoProbeRequest echoProbeRequest;
-        echoProbeRequest.replyStrategy = parameters.replyStrategy;
-        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
-        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
-        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
-        echoProbeRequest.ackGI = parameters.ack_gi.value_or(-1);
-        if (!responderDeviceType)
-            echoProbeRequest.deviceProbingStage = true;
-        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
-    }
-
-    if (frameType == EchoProbeFreqChangeRequestFrameType) {
-        fp->setMCS(0);
-//        fp->setSGI(false);
-//        fp->setChannelBonding(parameters.bw.value_or(20) == 40);
-    }
-
-//    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && fp->getFrame()->txParameters.channelBonding)
-//        throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
 
     return fp;
 }

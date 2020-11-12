@@ -20,6 +20,7 @@ enum class EchoProbeReplyStrategy: uint8_t {
 struct EchoProbeRequest {
     bool deviceProbingStage = false;
     EchoProbeReplyStrategy replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
+    int16_t repeat = 1;
     int16_t ackMCS = -1;         // 0 to11 are OK, negative means use default (maybe mcs 0).
     int16_t ackNumSTS = -1;
     int16_t ackCBW = -1;   // -1, 20/40/80/160
