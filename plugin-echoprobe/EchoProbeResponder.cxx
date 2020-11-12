@@ -76,17 +76,22 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     EchoProbeReply reply;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
         frameBuilder.addExtraInfo();
+        reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.replyBuffer.resize(rxframe.rawBuffer.size());
         std::copy(rxframe.rawBuffer.cbegin(), rxframe.rawBuffer.cend(), reply.replyBuffer.begin());
-        reply.replyCarriesPayload = true;
-        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
+        reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
         reply.replyBuffer.resize(rxframe.csiSegment.rawBuffer.size());
+        std::copy(rxframe.csiSegment.rawBuffer.cbegin(), rxframe.csiSegment.rawBuffer.cend(), reply.replyBuffer.begin());
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
         frameBuilder.addExtraInfo();
+        reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader) {
+        reply.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
     }
+    frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
@@ -118,10 +123,6 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
     frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
-//    frameBuilder.setSGI(false);
-//    frameBuilder.setChannelBonding(epHeader.ackChannelBonding >= 0 ? (epHeader.ackChannelBonding == 1) : (parameters.bw.value_or(20) == 40));
-//    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && frameBuilder.getFrame()->txParameters.channelBonding)
-//        throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);

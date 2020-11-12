@@ -197,21 +197,29 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
             EchoProbeReplySegment replySeg;
             replySeg.fromBuffer(&replySegBytes[0], replySegBytes.size());
-            if (!replySeg.echoProbeReply.replyCarriesPayload) {
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader || replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
                 if (LoggingService::localDisplayLevel <= Debug) {
-                    LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
-                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
+                    LoggingService::debug_printf("Round-trip delay %.3fms, only header", timeGap);
                 }
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
 
-            if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
-                if (LoggingService::localDisplayLevel <= Debug) {
-                    LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
-                    LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-                    LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
+                auto  csiSegment = CSISegment::createByBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size());
+                replyFrame->csiSegment.muCSI.emplace_back(csiSegment.muCSI[0]);
+                LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+            }
+
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
+                if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
+                    if (LoggingService::localDisplayLevel <= Debug) {
+                        LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
+                        LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
+                        LoggingService::debug_printf("Round-trip delay %.3fms, full payload", timeGap);
+                    }
+                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                 }
-                return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
             }
         }
 
@@ -267,7 +275,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
         EchoProbeRequest echoProbeRequest;
-//        echoProbeRequest.replyStrategy = !parameters.ack_no_payload;
+        echoProbeRequest.replyStrategy = parameters.replyStrategy;
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
         echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;

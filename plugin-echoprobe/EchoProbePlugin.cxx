@@ -2,6 +2,7 @@
 // Created by Zhiping Jiang on 11/18/17.
 //
 
+#include <boost/algorithm/string/predicate.hpp>
 #include "EchoProbePlugin.h"
 
 
@@ -41,7 +42,7 @@ void EchoProbePlugin::initialization() {
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
-            ("ack-no-payload", "Don't carry Probe Request frame as payload")
+            ("ack-type", po::value<std::string>(), "EchoProbe reply strategy [full, csi, extra, header], full as default")
             ("ack-mcs", po::value<uint32_t>(), "mcs value (for one single spatial stream) for ack packets [0-11], unspecified as default")
             ("ack-sts", po::value<uint32_t>(), "the number of spatial time stream (STS) for ack packets [0-23], unspecified as default")
             ("ack-cbw", po::value<uint32_t>(), "bandwidth for ack packets (unit in MHz) [20, 40, 80, 160], unspecified as default")
@@ -194,10 +195,17 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid number of extension spatial stream (NESS) value: {}.\n", ness));
     }
 
-    if (vm.count("ack-no-payload")) {
-        parameters.ack_no_payload = true;
-    } else
-        parameters.ack_no_payload = false;
+    if (vm.count("ack-type")) {
+        auto ackType = vm["ack-type"].as<std::string>();
+        if (boost::iequals(ackType, "full"))
+            parameters.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
+        else if (boost::iequals(ackType, "csi"))
+            parameters.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
+        else if (boost::iequals(ackType, "extra"))
+            parameters.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
+        else if (boost::iequals(ackType, "header"))
+            parameters.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
+    }
 
     if (vm.count("ack-mcs")) {
         auto mcsValue = vm["ack-mcs"].as<uint32_t>();
@@ -205,6 +213,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.ack_mcs = mcsValue;
         } else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid ACK MCS value: {}.\n", mcsValue));
+    }
+
+    if (vm.count("ack-sts")) {
+        auto ack_sts = vm["ack-sts"].as<uint32_t>();
+        parameters.ack_cbw = ack_sts;
     }
 
     if (vm.count("ack-cbw")) {

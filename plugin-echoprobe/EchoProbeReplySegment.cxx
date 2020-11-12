@@ -13,9 +13,9 @@ struct EchoProbeReplyV1 {
 static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbeReply {
     uint32_t pos = 0;
     auto r = EchoProbeReply();
-    r.replyCarriesPayload = *(bool *) (buffer + pos++);
+    r.replyStrategy = *(EchoProbeReplyStrategy *) (buffer + pos++);
     r.replyBuffer.resize(bufferLength - pos);
-    std::copy(buffer + pos , buffer + bufferLength, r.replyBuffer.begin());
+    std::copy(buffer + pos, buffer + bufferLength, r.replyBuffer.begin());
     return r;
 };
 
@@ -28,11 +28,11 @@ std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> Ech
 }
 
 
-EchoProbeReplySegment::EchoProbeReplySegment(): AbstractPicoScenesFrameSegment("EchoProbeReply", 0x1U) {}
+EchoProbeReplySegment::EchoProbeReplySegment() : AbstractPicoScenesFrameSegment("EchoProbeReply", 0x1U) {}
 
 EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : EchoProbeReplySegment() {
     echoProbeReply = reply;
-    addField("replyWithPayload", uint8_t(echoProbeReply.replyCarriesPayload));
+    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
     addField("payload", echoProbeReply.replyBuffer);
 }
 

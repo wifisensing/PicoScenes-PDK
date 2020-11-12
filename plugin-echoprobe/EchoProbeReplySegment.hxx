@@ -9,10 +9,11 @@
 #include <map>
 #include <PicoScenes/PicoScenesCommons.hxx>
 #include <PicoScenes/AbstractPicoScenesFrameSegment.hxx>
+#include "EchoProbeRequestSegment.hxx"
 
 class EchoProbeReply {
 public:
-    bool replyCarriesPayload = false;
+    EchoProbeReplyStrategy replyStrategy;
     Uint8Vector replyBuffer;
 };
 

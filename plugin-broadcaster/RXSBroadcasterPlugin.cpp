@@ -43,5 +43,5 @@ void RXSBroadcasterPlugin::parseAndExecuteCommands(const std::string &commandStr
 }
 
 void RXSBroadcasterPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    UDPService::getInstance("RXSExport" + destinationIP + std::to_string(destinationPort))->sendData(rxframe.rawBuffer.get(), rxframe.rawBufferLength, destinationIP, destinationPort);
+    UDPService::getInstance("RXSExport" + destinationIP + std::to_string(destinationPort))->sendData(&rxframe.rawBuffer[0], rxframe.rawBuffer.size(), destinationIP, destinationPort);
 }
