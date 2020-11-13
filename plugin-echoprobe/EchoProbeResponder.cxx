@@ -23,6 +23,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
+    LoggingService::info_printf("responder : txid=%u\n", rxframe.PicoScenesHeader->txId);
     RXSDumper::getInstance("EPR_" + std::to_string(epSegment.echoProbeRequest.sessionId)).dumpRXS(&rxframe.rawBuffer[0], rxframe.rawBuffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
@@ -72,7 +73,6 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
-    frameBuilder.getFrame()->frameHeader.txId = rxframe.PicoScenesHeader->txId;
 
     EchoProbeReply reply;
     reply.sessionId = epReq.sessionId;
@@ -94,7 +94,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     }
     frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
 
-    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
+
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
     frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
@@ -113,6 +113,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         frameBuilder.setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
     }
+    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
+    frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
     return std::vector<PicoScenesFrameBuilder>{frameBuilder};
 }
 
@@ -121,9 +123,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
-    frameBuilder.getFrame()->frameHeader.txId = rxframe.PicoScenesHeader->txId;
 
-    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
     frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
@@ -141,6 +141,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         frameBuilder.setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
         frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
     }
+    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
+    frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
 
     if (initiatorDeviceType == PicoScenesDeviceType::USRP) {
         std::this_thread::sleep_for(2ms);
