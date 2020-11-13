@@ -23,7 +23,6 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
-    LoggingService::info_printf("responder : txid=%u\n", rxframe.PicoScenesHeader->txId);
     RXSDumper::getInstance("EPR_" + std::to_string(epSegment.echoProbeRequest.sessionId)).dumpRXS(&rxframe.rawBuffer[0], rxframe.rawBuffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
