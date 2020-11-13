@@ -4,7 +4,7 @@
 
 #include "EchoProbeRequestSegment.hxx"
 
-enum class EchoProbeReplyStrategyV1: uint8_t {
+enum class EchoProbeReplyStrategyV1 : uint8_t {
     ReplyOnlyHeader = 0,
     ReplyWithExtraInfo,
     ReplyWithCSI,
@@ -84,5 +84,11 @@ void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferL
     echoProbeRequest = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
+}
+
+EchoProbeRequestSegment EchoProbeRequestSegment::createByBuffer(const uint8_t *buffer, uint32_t bufferLength) {
+    auto seg = EchoProbeRequestSegment();
+    seg.fromBuffer(buffer, bufferLength);
+    return seg;
 }
 

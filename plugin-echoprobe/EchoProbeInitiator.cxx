@@ -33,7 +33,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
 
     for (const auto &sf_value: sfList) {
-        auto dumperId = fmt::sprintf("rxack_%s_bb%.1fM", nic->getReferredInterfaceName(), sf_value / 1e6);
+        auto dumperId = fmt::sprintf("EPI_%u_%s_bb%.1fM", sessionId, nic->getReferredInterfaceName(), sf_value / 1e6);
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
                 if (sf_value != config->getSamplingRate()) {
@@ -64,7 +64,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
                 if (shiftCF || shiftSF) {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType);
+                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType, sessionId);
                     auto epSegment = std::make_shared<EchoProbeRequestSegment>(echoProbeRequest);
                     fp->addSegment(epSegment);
                     auto currentCF = config->getCarrierFreq();
@@ -113,7 +113,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 std::shared_ptr<ModularPicoScenesRxFrame> replyRXS = nullptr;
 
                 if (workingMode == MODE_Injector) {
-                    fp = buildBasicFrame(taskId, SimpleInjectionFrameType);
+                    fp = buildBasicFrame(taskId, SimpleInjectionFrameType, sessionId);
                     fp->transmitSync();
                     tx_count++;
                     total_tx_count++;
@@ -121,7 +121,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         printDots(tx_count);
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
-                    fp = buildBasicFrame(taskId, EchoProbeRequestFrameType);
+                    fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
+
                     auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
@@ -174,6 +175,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
+        frameBuilder->getFrame()->frameHeader.txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);;
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         /*
@@ -233,7 +235,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }
 
-std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
+std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
     fp->makeFrame_HeaderOnly();
     fp->setTaskId(taskId);
@@ -246,6 +248,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
         EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.sessionId = sessionId;
         echoProbeRequest.replyStrategy = parameters.replyStrategy;
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
@@ -258,6 +261,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
 
     if (frameType == EchoProbeFreqChangeRequestFrameType) {
         EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.sessionId = sessionId;
         echoProbeRequest.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
         echoProbeRequest.repeat = 5;
         echoProbeRequest.ackMCS = 0;

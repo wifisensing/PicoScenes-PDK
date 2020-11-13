@@ -22,8 +22,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
-    auto epSegment = EchoProbeRequestSegment();
-    epSegment.fromBuffer(&epBuffer[0], epBuffer.size());
+    auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
+    RXSDumper::getInstance("EPR_" + std::to_string(epSegment.echoProbeRequest.sessionId)).dumpRXS(&rxframe.rawBuffer[0], rxframe.rawBuffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.echoProbeRequest);
@@ -72,8 +72,10 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
+    frameBuilder.getFrame()->frameHeader.txId = rxframe.PicoScenesHeader->txId;
 
     EchoProbeReply reply;
+    reply.sessionId = epReq.sessionId;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
@@ -119,6 +121,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
+    frameBuilder.getFrame()->frameHeader.txId = rxframe.PicoScenesHeader->txId;
+
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
