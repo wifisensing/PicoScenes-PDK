@@ -14,6 +14,7 @@
 class EchoProbeReply {
 public:
     EchoProbeReplyStrategy replyStrategy;
+    uint16_t sessionId;
     Uint8Vector replyBuffer;
 };
 

@@ -6,6 +6,7 @@
 
 struct EchoProbeReplyV1 {
     bool replyCarriesPayload = false;
+    uint16_t sessionId;
     Uint8Vector replyBuffer;
 };
 
@@ -14,6 +15,8 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
     uint32_t pos = 0;
     auto r = EchoProbeReply();
     r.replyStrategy = *(EchoProbeReplyStrategy *) (buffer + pos++);
+    r.sessionId = *(uint16_t *) (buffer + pos);
+    pos += 2;
     r.replyBuffer.resize(bufferLength - pos);
     std::copy(buffer + pos, buffer + bufferLength, r.replyBuffer.begin());
     return r;
@@ -33,6 +36,7 @@ EchoProbeReplySegment::EchoProbeReplySegment() : AbstractPicoScenesFrameSegment(
 EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : EchoProbeReplySegment() {
     echoProbeReply = reply;
     addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
+    addField("sessionId", echoProbeReply.sessionId);
     addField("payload", echoProbeReply.replyBuffer);
 }
 
