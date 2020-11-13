@@ -25,6 +25,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
+    auto sessionId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
     LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval {}s delayed start.\n",
                                sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
 
@@ -48,6 +49,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
                 EchoProbeRequest echoProbeRequest;
+                echoProbeRequest.sessionId = sessionId;
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != config->getSamplingRate()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value);

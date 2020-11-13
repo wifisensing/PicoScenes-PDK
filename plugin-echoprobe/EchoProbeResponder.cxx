@@ -95,7 +95,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
-    //TODO setNumSTS
+    frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
     frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.gi ? *parameters.gi : 800) : epReq.ackGI));
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
