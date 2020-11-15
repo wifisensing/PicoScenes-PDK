@@ -20,7 +20,7 @@ public:
 
     explicit EchoProbeInitiator(const std::shared_ptr<AbstractNIC> &nic) : nic(nic) {}
 
-    void startJob(const EchoProbeParameters &parameters);
+    void startJob(const EchoProbeParameters &parametersV);
 
 private:
     std::shared_ptr<AbstractNIC> nic;
@@ -39,7 +39,7 @@ private:
 
     std::vector<double> enumerateArbitrarySamplingRates();
 
-    void printDots(int count);
+    void printDots(int count) const;
 
     std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
 

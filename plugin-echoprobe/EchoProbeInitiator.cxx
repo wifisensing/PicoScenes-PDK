@@ -7,8 +7,8 @@
 #include "EchoProbeRequestSegment.hxx"
 
 
-void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
-    this->parameters = parameters;
+void EchoProbeInitiator::startJob(const EchoProbeParameters &parametersV) {
+    this->parameters = parametersV;
     unifiedEchoProbeWork();
 }
 
@@ -110,7 +110,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             for (uint32_t i = 0; i < cf_repeat; ++i) {
                 auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
-                std::shared_ptr<ModularPicoScenesRxFrame> replyRXS = nullptr;
 
                 if (workingMode == MODE_Injector) {
                     fp = buildBasicFrame(taskId, SimpleInjectionFrameType, sessionId);
@@ -171,11 +170,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
     auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
     auto retryCount = 0;
-    auto timeGap = -1.0, tx_timestamp = 0.0;
+    auto timeGap = -1.0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
-        frameBuilder->getFrame()->frameHeader.txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);;
+        frameBuilder->getFrame()->frameHeader.txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         /*
@@ -312,7 +311,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     return fp;
 }
 
-void EchoProbeInitiator::printDots(int count) {
+void EchoProbeInitiator::printDots(int count) const {
 
     if (auto numOfPacketsPerDotDisplay = parameters.numOfPacketsPerDotDisplay.value_or(10)) {
         if (count == 1) {
@@ -435,7 +434,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         cf_begin -= 10e6;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
         cf_begin += 10e6;
-    auto closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_begin / 1e6);
+    auto closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cf_begin / 1e6));
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS) {
         closestFreq += 10;
         cf_begin += 10e6;
@@ -450,7 +449,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     }
     auto cur_cf = cf_begin;
 
-    closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_end / 1e6);
+    closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cf_end / 1e6));
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
         closestFreq += 10;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
@@ -467,7 +466,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
             cur_cf += cf_step;
             if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
                 break;
-            closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
+            closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cur_cf / 1e6));
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
                 closestFreq += 10;
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
