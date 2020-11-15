@@ -210,13 +210,14 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
             if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
                 auto  csiSegment = CSISegment::createByBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size());
-                replyFrame->csiSegment.muCSI.emplace_back(csiSegment.muCSI[0]);
+                replyFrame->txCSISegment = csiSegment;
                 LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
 
             if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
                 if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
+                    replyFrame->txCSISegment = ackFrame->csiSegment;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                         LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
