@@ -207,7 +207,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
 
-            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI && replyFrame->txCSISegment) {
                 LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
