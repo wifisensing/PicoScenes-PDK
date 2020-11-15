@@ -11,22 +11,23 @@
 #include <optional>
 #include <PicoScenes/PicoScenesNIC.hxx>
 #include "EchoProbe.h"
+#include "EchoProbeRequestSegment.hxx"
 
 class EchoProbeParameters {
 public:
     EchoProbeParameters();
 
     EchoProbeWorkingMode workingMode = MODE_Standby;
-    std::optional<std::string> inj_target_interface;
     std::optional<std::array<uint8_t, 6>> inj_target_mac_address;
     std::optional<bool> inj_for_intel5300;
-    std::optional<uint32_t> randomPayloadLength;
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
-    std::optional<uint8_t> mcs;
-    std::optional<uint8_t> bw;
-    std::optional<bool> sgi;
-    std::optional<uint8_t> ness;
+    std::optional<uint32_t> mcs;
+    std::optional<uint32_t> numSTS;
+    std::optional<uint32_t> cbw;
+    std::optional<uint32_t> gi;
+    std::optional<uint32_t> ness;
+    std::optional<uint32_t> coding;
 
     std::optional<double> cf_begin;
     std::optional<double> cf_end;
@@ -38,11 +39,12 @@ public:
     std::optional<double> sf_step;
 
     uint32_t tx_max_retry;
-    std::optional<uint8_t> ack_mcs;
-    std::optional<uint8_t> ack_bw;
-    std::optional<bool> ack_sgi;
+    EchoProbeReplyStrategy replyStrategy;
+    std::optional<uint32_t> ack_mcs;
+    std::optional<uint32_t> ack_numSTS;
+    std::optional<uint32_t> ack_cbw;
+    std::optional<uint32_t> ack_gi;
     std::optional<uint32_t> timeout_ms;
-    std::optional<uint32_t> ack_maxLengthPerPacket;
     std::optional<uint32_t> delay_after_cf_change_ms;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;
 };

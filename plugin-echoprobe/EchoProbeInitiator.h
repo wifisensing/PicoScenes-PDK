@@ -13,7 +13,6 @@
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
-#include "EchoProbeHeader.hxx"
 
 
 class EchoProbeInitiator {
@@ -21,7 +20,7 @@ public:
 
     explicit EchoProbeInitiator(const std::shared_ptr<AbstractNIC> &nic) : nic(nic) {}
 
-    void startJob(const EchoProbeParameters &parameters);
+    void startJob(const EchoProbeParameters &parametersV);
 
 private:
     std::shared_ptr<AbstractNIC> nic;
@@ -40,11 +39,11 @@ private:
 
     std::vector<double> enumerateArbitrarySamplingRates();
 
-    void printDots(int count);
+    void printDots(int count) const;
 
-    std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int, double> transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
+    std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
 
-    [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const;
+    [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
 };
 
 #endif //PICOSCENES_ECHOPROBEINITIATOR_H

@@ -3,10 +3,12 @@
 //
 
 #include "EchoProbeInitiator.h"
+#include "EchoProbeReplySegment.hxx"
+#include "EchoProbeRequestSegment.hxx"
 
 
-void EchoProbeInitiator::startJob(const EchoProbeParameters &parameters) {
-    this->parameters = parameters;
+void EchoProbeInitiator::startJob(const EchoProbeParameters &parametersV) {
+    this->parameters = parametersV;
     unifiedEchoProbeWork();
 }
 
@@ -23,6 +25,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
+    auto sessionId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
     LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval {}s delayed start.\n",
                                sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
 
@@ -30,7 +33,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
 
     for (const auto &sf_value: sfList) {
-        auto dumperId = fmt::sprintf("rxack_%s_bb%.1fM", nic->getReferredInterfaceName(), sf_value / 1e6);
+        auto dumperId = fmt::sprintf("EPI_%u_%s_bb%.1fM", sessionId, nic->getReferredInterfaceName(), sf_value / 1e6);
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
                 if (sf_value != config->getSamplingRate()) {
@@ -45,23 +48,25 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-                EchoProbeHeader epHeader{};
+                EchoProbeRequest echoProbeRequest;
+                echoProbeRequest.sessionId = sessionId;
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != config->getSamplingRate()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value);
-                    epHeader.sf = sf_value;
+                    echoProbeRequest.sf = sf_value;
                     shiftSF = true;
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-                    epHeader.cf = cf_value;
+                    echoProbeRequest.cf = cf_value;
                     shiftCF = true;
                 }
 
                 if (shiftCF || shiftSF) {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequest);
-                    fp->addSegment("EP", (uint8_t *) (&epHeader), sizeof(EchoProbeHeader));
+                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType, sessionId);
+                    auto epSegment = std::make_shared<EchoProbeRequestSegment>(echoProbeRequest);
+                    fp->addSegment(epSegment);
                     auto currentCF = config->getCarrierFreq();
                     auto currentSF = config->getSamplingRate();
                     auto nextCF = cf_value;
@@ -105,10 +110,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             for (uint32_t i = 0; i < cf_repeat; ++i) {
                 auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
-                std::shared_ptr<PicoScenesRxFrameStructure> replyRXS = nullptr;
 
                 if (workingMode == MODE_Injector) {
-                    fp = buildBasicFrame(taskId, SimpleInjection);
+                    fp = buildBasicFrame(taskId, SimpleInjectionFrameType, sessionId);
                     fp->transmitSync();
                     tx_count++;
                     total_tx_count++;
@@ -116,7 +120,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         printDots(tx_count);
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
-                    fp = buildBasicFrame(taskId, EchoProbeRequest);
+                    fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
+
                     auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
@@ -125,7 +130,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         total_acked_count++;
                         mean_delay_single += rtDelay / cf_repeat;
                         total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        RXSDumper::getInstance(dumperId).dumpRXS(rxframe->rawBuffer.get(), rxframe->rawBufferLength);
+                        RXSDumper::getInstance(dumperId).dumpRXS(&rxframe->rawBuffer[0], rxframe->rawBuffer.size());
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
                             printDots(acked_count);
@@ -162,17 +167,18 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     }
 }
 
-std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRxFrameStructure>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
+std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
     auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
     auto retryCount = 0;
-    auto timeGap = -1.0, tx_timestamp = 0.0;
+    auto timeGap = -1.0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
+        frameBuilder->getFrame()->frameHeader.txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         /*
-        * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
+        * Tx-Rx time grows non-li nearly in low sampling rate cases, enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
@@ -183,40 +189,95 @@ std::tuple<std::optional<PicoScenesRxFrameStructure>, std::optional<PicoScenesRx
             totalTimeOut += 20;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
             totalTimeOut += 100;
-        auto replyFrame = nic->syncRxConditionally([=](const PicoScenesRxFrameStructure &rxframe) -> bool {
-            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReply || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACK) && rxframe.PicoScenesHeader->taskId == taskId;
+        auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
+            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId && rxframe.txUnknownSegmentMap.contains("EchoProbeReply");
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
-        if (replyFrame && replyFrame->PicoScenesHeader) {
+
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
-            timeGap = std::chrono::duration_cast<std::chrono::milliseconds>(delayDuration).count();
-            if (replyFrame->PicoScenesHeader->frameType == EchoProbeReply) {
-                auto rxDeviceType = replyFrame->PicoScenesHeader->deviceType;
-                responderDeviceType = rxDeviceType;
-                const auto segment = replyFrame->segmentMap->at("EP"); // using copy to prevent a rare crash case.
-                auto ackFrame = PicoScenesRxFrameStructure::fromBuffer(segment.second.get(), segment.first);
-                if (ackFrame) {
+            timeGap = std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count() / 1000.0;
+            responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
+            const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
+            EchoProbeReplySegment replySeg;
+            replySeg.fromBuffer(&replySegBytes[0], replySegBytes.size());
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader || replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
+                if (LoggingService::localDisplayLevel <= Debug) {
+                    LoggingService::debug_printf("Round-trip delay %.3fms, only header", timeGap);
+                }
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+            }
+
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI && replyFrame->txCSISegment) {
+                LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
+                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+            }
+
+            if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
+                if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size())) {
+                    replyFrame->txCSISegment = ackFrame->csiSegment;
                     if (LoggingService::localDisplayLevel <= Debug) {
                         LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                         LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-                        LoggingService::debug_printf("Round-trip delay %.3fms", timeGap);
+                        LoggingService::debug_printf("Round-trip delay %.3fms, full payload", timeGap);
                     }
                     return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
-                } else
-                    LoggingService::debug_print("Corrupted EchoProbe ACK frame.\n");
-            } else if (replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACK) {
-                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+                }
             }
+        }
+
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
+            return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
         }
     }
 
-    return std::make_tuple(std::nullopt, std::nullopt, 0, timeGap);
+    return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }
 
-std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType) const {
+std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
     fp->makeFrame_HeaderOnly();
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
+
+    if (frameType == SimpleInjectionFrameType) {
+        fp->addExtraInfo();
+    }
+
+    if (frameType == EchoProbeRequestFrameType) {
+        fp->addExtraInfo();
+        EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.sessionId = sessionId;
+        echoProbeRequest.replyStrategy = parameters.replyStrategy;
+        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
+        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
+        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
+        echoProbeRequest.ackGI = parameters.ack_gi.value_or(-1);
+        if (!responderDeviceType)
+            echoProbeRequest.deviceProbingStage = true;
+        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
+    }
+
+    if (frameType == EchoProbeFreqChangeRequestFrameType) {
+        EchoProbeRequest echoProbeRequest;
+        echoProbeRequest.sessionId = sessionId;
+        echoProbeRequest.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
+        echoProbeRequest.repeat = 5;
+        echoProbeRequest.ackMCS = 0;
+        echoProbeRequest.ackNumSTS = 1;
+        echoProbeRequest.ackCBW = -1;
+        echoProbeRequest.ackGI = int16_t(GuardIntervalEnum::GI_800);
+        if (!responderDeviceType)
+            echoProbeRequest.deviceProbingStage = true;
+        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
+    }
+
+    fp->setMCS(parameters.mcs.value_or(0));
+    fp->setNumSTS(parameters.numSTS.value_or(1));
+    fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));
+    fp->setGuardInterval(GuardIntervalEnum(parameters.gi.value_or(800)));
+    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
+    fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
+
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
@@ -236,7 +297,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
             fp->setForceSounding(false);
-            fp->useLDPC(false); // IWL5300 doesn't support LDPC coding.
+            fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
@@ -244,43 +305,11 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         fp->set3rdAddress(picoScenesNIC->getMacAddressPhy().data());
     }
-    fp->setMCS(parameters.mcs.value_or(0));
-    fp->setChannelBonding(parameters.bw.value_or(20) == 40);
-    fp->setSGI(parameters.sgi.value_or(false));
-    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
-    if (parameters.randomPayloadLength) {
-        std::shared_ptr<uint8_t> randomPayload = std::shared_ptr<uint8_t>(new uint8_t[*parameters.randomPayloadLength], std::default_delete<uint8_t[]>());
-        fp->addSegment("PL", randomPayload.get(), *parameters.randomPayloadLength);
-    }
-
-    if (frameType == SimpleInjection) {
-        fp->addExtraInfo();
-    }
-
-    if (frameType == EchoProbeRequest) {
-        fp->addExtraInfo();
-        EchoProbeHeader epHeader;
-        epHeader.ackMCS = parameters.ack_mcs.value_or(-1);
-        epHeader.ackChannelBonding = parameters.ack_bw ? (*parameters.ack_bw == 40) : -1;
-        epHeader.ackSGI = parameters.ack_sgi.value_or(-1);
-        if (!responderDeviceType)
-            epHeader.deviceProbingStage = 1;
-        fp->addSegment("EP", reinterpret_cast<const uint8_t *>(&epHeader), sizeof(EchoProbeHeader));
-    }
-
-    if (frameType == EchoProbeFreqChangeRequest) {
-        fp->setMCS(0);
-        fp->setSGI(false);
-        fp->setChannelBonding(parameters.bw.value_or(20) == 40);
-    }
-
-    if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT20 && fp->getFrame()->txParameters.channelBonding)
-        throw std::invalid_argument("bw=40 is invalid for 802.11n HT20 channel.");
 
     return fp;
 }
 
-void EchoProbeInitiator::printDots(int count) {
+void EchoProbeInitiator::printDots(int count) const {
 
     if (auto numOfPacketsPerDotDisplay = parameters.numOfPacketsPerDotDisplay.value_or(10)) {
         if (count == 1) {
@@ -403,7 +432,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         cf_begin -= 10e6;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
         cf_begin += 10e6;
-    auto closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_begin / 1e6);
+    auto closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cf_begin / 1e6));
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS) {
         closestFreq += 10;
         cf_begin += 10e6;
@@ -418,7 +447,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     }
     auto cur_cf = cf_begin;
 
-    closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cf_end / 1e6);
+    closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cf_end / 1e6));
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
         closestFreq += 10;
     if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)
@@ -435,7 +464,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
             cur_cf += cf_step;
             if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
                 break;
-            closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), cur_cf / 1e6);
+            closestFreq = closest(picoScenesNIC->getConfiguration()->getSystemSupportedFrequencies(), int(cur_cf / 1e6));
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_PLUS)
                 closestFreq += 10;
             if (channelFlags2ChannelMode(nic->getConfiguration()->getChannelFlags()) == ChannelMode::HT40_MINUS)

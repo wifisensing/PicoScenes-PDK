@@ -5,7 +5,7 @@
 #ifndef PICOSCENES_ECHOPROBE_H
 #define PICOSCENES_ECHOPROBE_H
 
-#include <PicoScenes/rxs_enhanced.h>
+#include <PicoScenes/ModularPicoScenesFrame.hxx>
 
 enum EchoProbeWorkingMode: uint8_t {
     MODE_Standby = 14,
@@ -16,11 +16,11 @@ enum EchoProbeWorkingMode: uint8_t {
 };
 
 enum EchoProbePacketFrameType: uint8_t {
-    SimpleInjection = 10,
-    EchoProbeRequest,
-    EchoProbeReply,
-    EchoProbeFreqChangeRequest,
-    EchoProbeFreqChangeACK,
+    SimpleInjectionFrameType = 10,
+    EchoProbeRequestFrameType,
+    EchoProbeReplyFrameType,
+    EchoProbeFreqChangeRequestFrameType,
+    EchoProbeFreqChangeACKFrameType,
 };
 
 #endif //PICOSCENES_ECHOPROBE_H

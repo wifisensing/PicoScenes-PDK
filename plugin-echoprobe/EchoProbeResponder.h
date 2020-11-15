@@ -10,7 +10,8 @@
 #include <PicoScenes/USRPFrontEnd.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
-#include "EchoProbeHeader.hxx"
+#include "EchoProbeRequestSegment.hxx"
+#include "EchoProbeReplySegment.hxx"
 
 class PicoScenesNIC;
 
@@ -20,18 +21,18 @@ public:
 
     void startJob(const EchoProbeParameters &parametersV);
 
-    void handle(const struct PicoScenesRxFrameStructure &rxframe);
+    void handle(const struct ModularPicoScenesRxFrame &rxframe);
 
 private:
     std::shared_ptr<AbstractNIC> nic;
     EchoProbeParameters parameters;
     std::optional<PicoScenesDeviceType> initiatorDeviceType;
 
-    std::vector<PicoScenesFrameBuilder> makeReplies(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 
-    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const PicoScenesRxFrameStructure &rxframe, const EchoProbeHeader &epHeader);
+    std::vector<PicoScenesFrameBuilder> makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq);
 };
 
 
