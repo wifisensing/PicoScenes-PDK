@@ -53,6 +53,8 @@ void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLen
     echoProbeReply = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
+    this->segmentLength = rawBuffer.size() - 4;
+    isSuccessfullyDecoded = true;
 }
 
 uint32_t EchoProbeReplySegment::toBuffer(bool totalLengthIncluded, uint8_t *buffer, std::optional<uint32_t> capacity) const {

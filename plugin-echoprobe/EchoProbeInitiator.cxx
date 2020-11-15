@@ -196,7 +196,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
             timeGap = std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count() / 1000.0;
-            responderDeviceType = (PicoScenesDeviceType)replyFrame->PicoScenesHeader->deviceType;
+            responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
             const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
             EchoProbeReplySegment replySeg;
             replySeg.fromBuffer(&replySegBytes[0], replySegBytes.size());
@@ -208,8 +208,6 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             }
 
             if (replySeg.echoProbeReply.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
-                auto  csiSegment = CSISegment::createByBuffer(&replySeg.echoProbeReply.replyBuffer[0], replySeg.echoProbeReply.replyBuffer.size());
-                replyFrame->txCSISegment = csiSegment;
                 LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
@@ -278,7 +276,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));
     fp->setGuardInterval(GuardIntervalEnum(parameters.gi.value_or(800)));
     fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
-    fp->setChannelCoding((ChannelCodingEnum)parameters.coding.value_or((uint32_t)ChannelCodingEnum::BCC));
+    fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {

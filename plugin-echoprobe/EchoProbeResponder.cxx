@@ -77,14 +77,16 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     reply.sessionId = epReq.sessionId;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
         frameBuilder.addExtraInfo();
+        auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);
+        frameBuilder.addSegment(copiedCSISegment);
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.replyBuffer.resize(rxframe.rawBuffer.size());
         std::copy(rxframe.rawBuffer.cbegin(), rxframe.rawBuffer.cend(), reply.replyBuffer.begin());
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
+        auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);
+        frameBuilder.addSegment(copiedCSISegment);
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
-        reply.replyBuffer.resize(rxframe.csiSegment.rawBuffer.size());
-        std::copy(rxframe.csiSegment.rawBuffer.cbegin(), rxframe.csiSegment.rawBuffer.cend(), reply.replyBuffer.begin());
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
