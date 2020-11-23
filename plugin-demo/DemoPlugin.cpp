@@ -16,7 +16,6 @@ std::string DemoPlugin::pluginStatus() {
     return "this method returns the status of the plugin.";
 }
 
-//TODO change to static
 std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginOptionsDescription() {
     static auto instance = std::make_shared<boost::program_options::options_description>("Demo Options based on boost::program_options");
     static std::once_flag onceFlag;
