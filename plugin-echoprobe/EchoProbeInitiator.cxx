@@ -183,12 +183,15 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
         if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-            totalTimeOut = 6;
+            totalTimeOut = 100;
+        }
+        if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+            totalTimeOut = 100;
         }
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
-            totalTimeOut += 20;
+            totalTimeOut += 1000;
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 100;
+            totalTimeOut += 1000;
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId && rxframe.txUnknownSegmentMap.contains("EchoProbeReply");
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
