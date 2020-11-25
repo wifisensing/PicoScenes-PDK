@@ -35,7 +35,7 @@ void EchoProbePlugin::initialization() {
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
 
             ("mcs", po::value<uint32_t>(), "mcs value [0-11] the MCS index for one single spatial stream")
-            ("sts", po::value<uint32_t>(), "the number of spatial time stream (STS) [0-4], 0 as default")
+            ("sts", po::value<uint32_t>(), "the number of spatial time stream (STS) [1-4], 1 as default")
             ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("cbw", po::value<uint32_t>(), "Channel Bandwidth (CBW) for injection(unit in MHz) [20, 40, 80, 160], 20 as default")
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
@@ -181,11 +181,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     }
 
     if (vm.count("sts")) {
-        auto mcs = vm["sts"].as<uint32_t>();
-        if (mcs < 5)
-            parameters.mcs = mcs;
+        auto numSTS = vm["sts"].as<uint32_t>();
+        if (numSTS < 5)
+            parameters.numSTS = numSTS;
         else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", mcs));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", numSTS));
     }
 
     if (vm.count("ness")) {
