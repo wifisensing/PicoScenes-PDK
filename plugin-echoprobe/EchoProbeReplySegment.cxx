@@ -61,4 +61,8 @@ uint32_t EchoProbeReplySegment::toBuffer(bool totalLengthIncluded, uint8_t *buff
     return AbstractPicoScenesFrameSegment::toBuffer(totalLengthIncluded, buffer, capacity);
 }
 
+std::vector<uint8_t> EchoProbeReplySegment::toBuffer() const {
+    return std::vector<uint8_t>();
+}
+
 

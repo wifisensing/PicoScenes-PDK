@@ -10,7 +10,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
 
     if (parameters.workingMode == MODE_Logger) {
-        RXSDumper::getInstance("rx_" + nic->getReferredInterfaceName()).dumpRXS(&rxframe.rawBuffer[0], rxframe.rawBuffer.size());
+        auto buffer = rxframe.toBuffer();
+        RXSDumper::getInstance("rx_" + nic->getReferredInterfaceName()).dumpRXS(buffer.data(), buffer.size());
         return;
     }
 
@@ -23,7 +24,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
-    RXSDumper::getInstance("EPR_" + std::to_string(epSegment.echoProbeRequest.sessionId)).dumpRXS(&rxframe.rawBuffer[0], rxframe.rawBuffer.size());
+    auto buffer = rxframe.toBuffer();
+    RXSDumper::getInstance("EPR_" + std::to_string(epSegment.echoProbeRequest.sessionId)).dumpRXS(buffer.data(), buffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.echoProbeRequest);
@@ -80,8 +82,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);
         frameBuilder.addSegment(copiedCSISegment);
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
-        reply.replyBuffer.resize(rxframe.rawBuffer.size());
-        std::copy(rxframe.rawBuffer.cbegin(), rxframe.rawBuffer.cend(), reply.replyBuffer.begin());
+        auto txBuffer = rxframe.toBuffer();
+        std::copy(txBuffer.cbegin(), txBuffer.cend(), std::back_inserter(reply.replyBuffer));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
         auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);

@@ -30,6 +30,8 @@ public:
 
     uint32_t toBuffer(bool totalLengthIncluded, uint8_t *buffer, std::optional<uint32_t> capacity) const override;
 
+    std::vector<uint8_t> toBuffer() const override;
+
 private:
     static std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> versionedSolutionMap;
 

@@ -94,3 +94,7 @@ EchoProbeRequestSegment EchoProbeRequestSegment::createByBuffer(const uint8_t *b
     return seg;
 }
 
+std::vector<uint8_t> EchoProbeRequestSegment::toBuffer() const {
+    return std::vector<uint8_t>();
+}
+

@@ -130,7 +130,8 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         total_acked_count++;
                         mean_delay_single += rtDelay / cf_repeat;
                         total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        RXSDumper::getInstance(dumperId).dumpRXS(&rxframe->rawBuffer[0], rxframe->rawBuffer.size());
+                        auto frameBuffer = rxframe->toBuffer();
+                        RXSDumper::getInstance(dumperId).dumpRXS(frameBuffer.data(), frameBuffer.size());
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
                             printDots(acked_count);

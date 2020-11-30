@@ -40,6 +40,9 @@ public:
 
     void fromBuffer(const uint8_t *buffer, uint32_t bufferLength) override;
 
+
+    std::vector<uint8_t> toBuffer() const override;
+
     EchoProbeRequest echoProbeRequest;
 
 private:
