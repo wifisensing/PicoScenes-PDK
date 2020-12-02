@@ -22,11 +22,13 @@ public:
     std::optional<bool> inj_for_intel5300;
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
+
+    std::optional<PacketFormatEnum> format;
+    std::optional<uint32_t> cbw;
     std::optional<uint32_t> mcs;
     std::optional<uint32_t> numSTS;
-    std::optional<uint32_t> cbw;
-    std::optional<uint32_t> gi;
-    std::optional<uint32_t> ness;
+    std::optional<uint32_t> numESS;
+    std::optional<uint32_t> guardInterval;
     std::optional<uint32_t> coding;
 
     std::optional<double> cf_begin;
@@ -40,10 +42,13 @@ public:
 
     uint32_t tx_max_retry;
     EchoProbeReplyStrategy replyStrategy;
+
+    std::optional<PacketFormatEnum> ack_format;
+    std::optional<uint32_t> ack_cbw;
     std::optional<uint32_t> ack_mcs;
     std::optional<uint32_t> ack_numSTS;
-    std::optional<uint32_t> ack_cbw;
-    std::optional<uint32_t> ack_gi;
+    std::optional<uint32_t> ack_guardInterval;
+
     std::optional<uint32_t> timeout_ms;
     std::optional<uint32_t> delay_after_cf_change_ms;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;

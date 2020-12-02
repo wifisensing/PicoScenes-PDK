@@ -255,7 +255,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
         echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
-        echoProbeRequest.ackGI = parameters.ack_gi.value_or(-1);
+        echoProbeRequest.ackGI = parameters.ack_guardInterval.value_or(-1);
         if (!responderDeviceType)
             echoProbeRequest.deviceProbingStage = true;
         fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
@@ -278,8 +278,8 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setNumSTS(parameters.numSTS.value_or(1));
     fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));
-    fp->setGuardInterval(GuardIntervalEnum(parameters.gi.value_or(800)));
-    fp->setNumberOfExtraSounding(parameters.ness.value_or(0));
+    fp->setGuardInterval(GuardIntervalEnum(parameters.guardInterval.value_or(800)));
+    fp->setNumberOfExtraSounding(parameters.numESS.value_or(0));
     fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());

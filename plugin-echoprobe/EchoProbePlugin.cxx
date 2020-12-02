@@ -34,10 +34,11 @@ void EchoProbePlugin::initialization() {
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
 
-            ("mcs", po::value<uint32_t>(), "mcs value [0-11] the MCS index for one single spatial stream")
-            ("sts", po::value<uint32_t>(), "the number of spatial time stream (STS) [0-4], 0 as default")
-            ("ness", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
+            ("format", po::value<std::string>(), "802.11 frame format [nonHT, HT, VHT, HESU]")
             ("cbw", po::value<uint32_t>(), "Channel Bandwidth (CBW) for injection(unit in MHz) [20, 40, 80, 160], 20 as default")
+            ("mcs", po::value<uint32_t>(), "MCS value [0-11], the MCS index for one single spatial stream")
+            ("sts", po::value<uint32_t>(), "Number of spatial time stream (STS) [0-4], 0 as default")
+            ("ess", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
             ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default");
 
@@ -162,6 +163,21 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
     }
 
+    if (vm.count("format")) {
+        auto format = vm["format"].as<std::string>();
+        if (boost::iequals(format, "nonHT")) {
+            parameters.format = PacketFormatEnum::PacketFormat_NonHT;
+        } else if (boost::iequals(format, "HT")) {
+            parameters.format = PacketFormatEnum::PacketFormat_HT;
+        } else if (boost::iequals(format, "VHT")) {
+            parameters.format = PacketFormatEnum::PacketFormat_VHT;
+        } else if (boost::iequals(format, "HESU")) {
+            parameters.format = PacketFormatEnum::PacketFormat_HESU;
+        } else if (boost::iequals(format, "HEMU")) {
+            parameters.format = PacketFormatEnum::PacketFormat_HEMU;
+        }
+    }
+
     if (vm.count("cbw")) {
         auto bwValue = vm["cbw"].as<uint32_t>();
         parameters.cbw = bwValue;
@@ -169,7 +185,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("gi")) {
         auto sgiValue = vm["gi"].as<uint32_t>();
-        parameters.gi = sgiValue;
+        parameters.guardInterval = sgiValue;
     }
 
     if (vm.count("mcs")) {
@@ -188,10 +204,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", mcs));
     }
 
-    if (vm.count("ness")) {
-        auto ness = vm["ness"].as<uint32_t>();
+    if (vm.count("ess")) {
+        auto ness = vm["ess"].as<uint32_t>();
         if (ness < 4)
-            parameters.ness = ness;
+            parameters.numESS = ness;
         else
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid number of extension spatial stream (NESS) value: {}.\n", ness));
     }
@@ -199,9 +215,9 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     if (vm.count("coding")) {
         auto codingStr = vm["coding"].as<std::string>();
         if (boost::iequals(codingStr, "LDPC"))
-            parameters.coding = (uint32_t)ChannelCodingEnum::LDPC;
+            parameters.coding = (uint32_t) ChannelCodingEnum::LDPC;
         else if (boost::iequals(codingStr, "BCC"))
-            parameters.coding = (uint32_t)ChannelCodingEnum::BCC;
+            parameters.coding = (uint32_t) ChannelCodingEnum::BCC;
     }
 
 
@@ -237,7 +253,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("ack-gi")) {
         auto giValue = vm["ack-gi"].as<uint32_t>();
-        parameters.ack_gi = giValue;
+        parameters.ack_guardInterval = giValue;
     }
 
     if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)

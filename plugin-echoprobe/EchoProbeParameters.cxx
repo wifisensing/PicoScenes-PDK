@@ -9,7 +9,7 @@ EchoProbeParameters::EchoProbeParameters() {
     inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;
     mcs = 0;
     numSTS = 1;
-    gi = 800;
+    guardInterval = 800;
     cbw = 20;
     coding = uint32_t(ChannelCodingEnum::BCC);
     tx_delay_us = 5e5;
