@@ -197,11 +197,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     }
 
     if (vm.count("sts")) {
-        auto mcs = vm["sts"].as<uint32_t>();
-        if (mcs < 5)
-            parameters.mcs = mcs;
+        auto numSTS = vm["sts"].as<uint32_t>();
+        if (numSTS < 5)
+            parameters.numSTS = numSTS;
         else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", mcs));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", numSTS));
     }
 
     if (vm.count("ess")) {
