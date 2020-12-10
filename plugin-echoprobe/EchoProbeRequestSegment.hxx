@@ -28,6 +28,8 @@ struct EchoProbeRequest {
     int16_t ackGI = -1;         // 0 for LGI, 1 for SGI, negative means use default (maybe LGI).
     int64_t cf = -1;
     int64_t sf = -1;
+
+    std::vector<uint8_t> toBuffer();
 } __attribute__ ((__packed__));
 
 class EchoProbeRequestSegment : public AbstractPicoScenesFrameSegment {
@@ -43,12 +45,17 @@ public:
 
     std::vector<uint8_t> toBuffer() const override;
 
-    EchoProbeRequest echoProbeRequest;
+//    EchoProbeRequest echoProbeRequest;
+    const EchoProbeRequest &getEchoProbeRequest() const;
+
+    void setEchoProbeRequest(const EchoProbeRequest & probeRequest);
 
 private:
     static std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> versionedSolutionMap;
 
     static std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> initializeSolutionMap() noexcept;
+
+    EchoProbeRequest echoProbeRequest;
 };
 
 
