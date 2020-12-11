@@ -67,8 +67,8 @@ std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> E
 EchoProbeRequestSegment::EchoProbeRequestSegment() : AbstractPicoScenesFrameSegment("EchoProbeRequest", 0x1U) {}
 
 EchoProbeRequestSegment::EchoProbeRequestSegment(const EchoProbeRequest &echoProbeRequestV) : EchoProbeRequestSegment() {
-    echoProbeRequest = echoProbeRequestV;
-    addField("epr", echoProbeRequest);
+//    echoProbeRequest = echoProbeRequestV;
+    setEchoProbeRequest(echoProbeRequestV);
 }
 
 void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
@@ -95,6 +95,19 @@ EchoProbeRequestSegment EchoProbeRequestSegment::createByBuffer(const uint8_t *b
 }
 
 std::vector<uint8_t> EchoProbeRequestSegment::toBuffer() const {
-    return std::vector<uint8_t>();
+    return AbstractPicoScenesFrameSegment::toBuffer(true);
 }
 
+void EchoProbeRequestSegment::setEchoProbeRequest(const EchoProbeRequest &probeRequest) {
+    echoProbeRequest = probeRequest;
+    clearFieldCache();
+    addField("epr", echoProbeRequest.toBuffer());
+}
+
+const EchoProbeRequest &EchoProbeRequestSegment::getEchoProbeRequest() const {
+    return echoProbeRequest;
+}
+
+std::vector<uint8_t> EchoProbeRequest::toBuffer() {
+    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(EchoProbeRequest));
+}

@@ -35,9 +35,10 @@ EchoProbeReplySegment::EchoProbeReplySegment() : AbstractPicoScenesFrameSegment(
 
 EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : EchoProbeReplySegment() {
     echoProbeReply = reply;
-    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
-    addField("sessionId", echoProbeReply.sessionId);
-    addField("payload", echoProbeReply.replyBuffer);
+    setEchoProbeReply(reply);
+//    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
+//    addField("sessionId", echoProbeReply.sessionId);
+//    addField("payload", echoProbeReply.replyBuffer);
 }
 
 void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
@@ -62,7 +63,21 @@ uint32_t EchoProbeReplySegment::toBuffer(bool totalLengthIncluded, uint8_t *buff
 }
 
 std::vector<uint8_t> EchoProbeReplySegment::toBuffer() const {
-    return std::vector<uint8_t>();
+    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(echoProbeReply));
 }
 
+const EchoProbeReply &EchoProbeReplySegment::getEchoProbeReply() const {
+    return echoProbeReply;
+}
 
+void EchoProbeReplySegment::setEchoProbeReply(const EchoProbeReply &probeReply) {
+    echoProbeReply = probeReply;
+    clearFieldCache();
+    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
+    addField("sessionId", echoProbeReply.sessionId);
+    addField("payload", echoProbeReply.replyBuffer);
+}
+
+std::vector<uint8_t> EchoProbeReply::toBuffer() {
+    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(EchoProbeReply));
+}
