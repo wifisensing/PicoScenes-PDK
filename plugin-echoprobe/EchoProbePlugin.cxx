@@ -175,7 +175,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.format = PacketFormatEnum::PacketFormat_HESU;
         } else if (boost::iequals(format, "HEMU")) {
             parameters.format = PacketFormatEnum::PacketFormat_HEMU;
-        }
+        } else
+            throw std::invalid_argument(fmt::format("[EchoProbe]: invalid packet format value: {}.\n", format));
     }
 
     if (vm.count("cbw")) {
@@ -190,18 +191,30 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("mcs")) {
         auto mcs = vm["mcs"].as<uint32_t>();
-        if (mcs < 11)
+        if (*parameters.format == PacketFormatEnum::PacketFormat_HEMU && *parameters.format == PacketFormatEnum::PacketFormat_HESU && mcs < 12)
+            parameters.mcs = mcs;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && mcs < 10)
+            parameters.mcs = mcs;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_HT && mcs < 8)
+            parameters.mcs = mcs;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_NonHT && mcs < 8)
             parameters.mcs = mcs;
         else
             throw std::invalid_argument(fmt::format("[EchoProbe]: invalid MCS value: {}.\n", mcs));
     }
 
     if (vm.count("sts")) {
-        auto mcs = vm["sts"].as<uint32_t>();
-        if (mcs < 5)
-            parameters.mcs = mcs;
+        auto sts = vm["sts"].as<uint32_t>();
+        if (*parameters.format == PacketFormatEnum::PacketFormat_HEMU && *parameters.format == PacketFormatEnum::PacketFormat_HESU && sts <= 8)
+            parameters.numSTS = sts;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && sts <= 8)
+            parameters.numSTS = sts;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_HT && sts <= 4)
+            parameters.numSTS = sts;
+        else if (*parameters.format == PacketFormatEnum::PacketFormat_NonHT && sts <= 1)
+            parameters.numSTS = sts;
         else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", mcs));
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", sts));
     }
 
     if (vm.count("ess")) {

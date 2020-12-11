@@ -7,6 +7,7 @@
 
 EchoProbeParameters::EchoProbeParameters() {
     inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;
+    format = PacketFormatEnum::PacketFormat_HT;
     mcs = 0;
     numSTS = 1;
     guardInterval = 800;
