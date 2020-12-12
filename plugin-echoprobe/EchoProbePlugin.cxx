@@ -102,10 +102,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         auto macAddressString = vm["target-mac-address"].as<std::string>();
         std::vector<std::string> eachHexs;
         boost::split(eachHexs, macAddressString, boost::is_any_of(":-"), boost::token_compress_on);
-        std::array<uint8_t, 6> address;
         if (eachHexs.size() != 6)
             LoggingService::warning_print("[target-mac-address] Specified mac address has wrong number of digits.\n");
         else {
+            std::array<uint8_t, 6> address = {0};
             for (auto i = 0; i < eachHexs.size() && i < 6; i++) {
                 boost::trim(eachHexs[i]);
                 auto hex = std::stod("0x" + eachHexs[i]);
