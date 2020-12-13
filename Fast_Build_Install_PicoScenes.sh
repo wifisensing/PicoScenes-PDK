@@ -2,8 +2,8 @@
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-sudo apt-get remove picoscenes-plugins-demo-rxsbroadcaster-echoprobe -y
-sudo dpkg -P picoscenes-plugins-demo-rxsbroadcaster-echoprobe 2>/dev/null
+sudo apt remove picoscenes-plugins-demo-echoprobe-forwarder -y
+sudo apt purge picoscenes-plugins-demo-echoprobe-forwarder -y
 
 cd $scriptDir && rm -rf $scriptDir/build && mkdir $scriptDir/build && cd $scriptDir/build
 cmake .. && make package -j6
