@@ -7,19 +7,38 @@
 struct EchoProbeReplyV1 {
     bool replyCarriesPayload = false;
     uint16_t sessionId;
-    Uint8Vector replyBuffer;
+    std::string payloadName;
 };
+
+EchoProbeReply EchoProbeReply::fromBuffer(const uint8_t *buffer, uint32_t length) {
+    auto pos = 0;
+    EchoProbeReply reply;
+    reply.replyStrategy = *(EchoProbeReplyStrategy *) (buffer + pos);
+    pos += sizeof(EchoProbeReplyStrategy);
+    reply.sessionId = *(uint16_t *) (buffer + pos);
+    pos += sizeof(uint16_t);
+    auto payloadNameLength = *(uint8_t *) (buffer + pos++);
+    reply.payloadName = std::string((char *) (buffer + pos), (char *) (buffer + pos + payloadNameLength));
+
+    return reply;
+}
+
+std::vector<uint8_t> EchoProbeReply::toBuffer() const {
+    auto buffer = std::vector<uint8_t>();
+    std::copy((uint8_t *) &replyStrategy, (uint8_t *) &replyStrategy + sizeof(replyStrategy), std::back_inserter(buffer));
+    std::copy((uint8_t *) &sessionId, (uint8_t *) &sessionId + sizeof(sessionId), std::back_inserter(buffer));
+    uint8_t payloadNameLength = payloadName.length();
+    std::copy((uint8_t *) &payloadNameLength, (uint8_t *) &payloadNameLength + sizeof(payloadNameLength), std::back_inserter(buffer));
+    std::copy((uint8_t *) payloadName.data(), (uint8_t *) payloadName.data() + payloadName.length(), std::back_inserter(buffer));
+    return buffer;
+}
+
+EchoProbeReply::EchoProbeReply() : replyStrategy(EchoProbeReplyStrategy::ReplyOnlyHeader), sessionId(0), payloadName("") {
+}
 
 
 static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbeReply {
-    uint32_t pos = 0;
-    auto r = EchoProbeReply();
-    r.replyStrategy = *(EchoProbeReplyStrategy *) (buffer + pos++);
-    r.sessionId = *(uint16_t *) (buffer + pos);
-    pos += 2;
-    r.replyBuffer.resize(bufferLength - pos);
-    std::copy(buffer + pos, buffer + bufferLength, r.replyBuffer.begin());
-    return r;
+    return EchoProbeReply::fromBuffer(buffer, bufferLength);
 };
 
 std::map<uint16_t, std::function<EchoProbeReply(const uint8_t *, uint32_t)>> EchoProbeReplySegment::versionedSolutionMap = initializeSolutionMap();
@@ -36,9 +55,6 @@ EchoProbeReplySegment::EchoProbeReplySegment() : AbstractPicoScenesFrameSegment(
 EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : EchoProbeReplySegment() {
     echoProbeReply = reply;
     setEchoProbeReply(reply);
-//    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
-//    addField("sessionId", echoProbeReply.sessionId);
-//    addField("payload", echoProbeReply.replyBuffer);
 }
 
 void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
@@ -54,16 +70,12 @@ void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLen
     echoProbeReply = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
-    this->segmentLength = rawBuffer.size() - 4;
+    this->segmentLength = segmentLength;
     isSuccessfullyDecoded = true;
 }
 
-uint32_t EchoProbeReplySegment::toBuffer(bool totalLengthIncluded, uint8_t *buffer, std::optional<uint32_t> capacity) const {
-    return AbstractPicoScenesFrameSegment::toBuffer(totalLengthIncluded, buffer, capacity);
-}
-
 std::vector<uint8_t> EchoProbeReplySegment::toBuffer() const {
-    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(echoProbeReply));
+    return AbstractPicoScenesFrameSegment::toBuffer(true);
 }
 
 const EchoProbeReply &EchoProbeReplySegment::getEchoProbeReply() const {
@@ -73,11 +85,5 @@ const EchoProbeReply &EchoProbeReplySegment::getEchoProbeReply() const {
 void EchoProbeReplySegment::setEchoProbeReply(const EchoProbeReply &probeReply) {
     echoProbeReply = probeReply;
     clearFieldCache();
-    addField("replyStrategy", uint8_t(echoProbeReply.replyStrategy));
-    addField("sessionId", echoProbeReply.sessionId);
-    addField("payload", echoProbeReply.replyBuffer);
-}
-
-std::vector<uint8_t> EchoProbeReply::toBuffer() {
-    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(EchoProbeReply));
+    addField("core", probeReply.toBuffer());
 }

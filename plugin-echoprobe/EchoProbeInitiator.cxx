@@ -211,20 +211,33 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
             }
 
-            if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI && replyFrame->txCSISegment) {
-                LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
-                return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+            if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
+                const auto payloadName = replySeg.getEchoProbeReply().payloadName;
+                auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const PayloadSegment &payloadSegment) {
+                    return payloadSegment.getPayload().payloadDescription == payloadName;
+                });
+                if (foundIt != replyFrame->payloadSegments.cend()) {
+                    replyFrame->txCSISegment = CSISegment::createByBuffer(foundIt->getPayload().payloadData.data(), foundIt->getPayload().payloadData.size());
+                    LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
+                    return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
+                }
             }
 
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
-                if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(&replySeg.getEchoProbeReply().replyBuffer[0], replySeg.getEchoProbeReply().replyBuffer.size())) {
-                    replyFrame->txCSISegment = ackFrame->csiSegment;
-                    if (LoggingService::localDisplayLevel <= Debug) {
-                        LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
-                        LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
-                        LoggingService::debug_printf("Round-trip delay %.3fms, full payload", timeGap);
+                const auto payloadName = replySeg.getEchoProbeReply().payloadName;
+                auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const PayloadSegment &payloadSegment) {
+                    return payloadSegment.getPayload().payloadDescription == payloadName;
+                });
+                if (foundIt != replyFrame->payloadSegments.cend()) {
+                    if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->getPayload().payloadData.data(), foundIt->getPayload().payloadData.size())) {
+                        replyFrame->txCSISegment = ackFrame->csiSegment;
+                        if (LoggingService::localDisplayLevel <= Debug) {
+                            LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
+                            LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
+                            LoggingService::debug_printf("Round-trip delay %.3fms, full payload", timeGap);
+                        }
+                        return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                     }
-                    return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                 }
             }
         }

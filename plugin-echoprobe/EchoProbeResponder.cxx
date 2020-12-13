@@ -86,29 +86,30 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     reply.sessionId = epReq.sessionId;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
         frameBuilder.addExtraInfo();
-        auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);
-        frameBuilder.addSegment(copiedCSISegment);
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
-        auto txBuffer = rxframe.toBuffer();
-        std::copy(txBuffer.cbegin(), txBuffer.cend(), std::back_inserter(reply.replyBuffer));
+        reply.payloadName = "EchoProbeReplyFull";
+        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer()));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
-        auto copiedCSISegment = std::make_shared<CSISegment>(rxframe.csiSegment);
-        frameBuilder.addSegment(copiedCSISegment);
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
+        reply.payloadName = "EchoProbeReplyCSI";
+        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer()));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
+        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader) {
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
+        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     }
-    frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
 
 
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
     frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
-    frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
+    frameBuilder.setGuardInterval((GuardIntervalEnum)(epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
