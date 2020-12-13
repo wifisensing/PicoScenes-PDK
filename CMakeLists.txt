@@ -28,7 +28,7 @@ find_package(fmt REQUIRED)
 # make plug-ins
 add_subdirectory(plugin-demo)
 add_subdirectory(plugin-echoprobe)
-#add_subdirectory(plugin-broadcaster)
+add_subdirectory(plugin-forwarder)
 
 # include CPack settings
 include(CPack-Settings.txt)

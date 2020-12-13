@@ -1,0 +1,3 @@
+ADD_LIBRARY(PDK-Forwarder SHARED UDPBasedPacketForwarder.cpp)
+TARGET_LINK_LIBRARIES(PDK-Forwarder Utilities ${Boost_LIBRARIES})
+install(TARGETS PDK-Forwarder DESTINATION ${INSTALL_PLUGIN_DIR})

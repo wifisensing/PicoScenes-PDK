@@ -9,7 +9,7 @@
 #include <PicoScenes/UDPService.h>
 
 
-class RXSBroadcasterPlugin : public AbstractPicoScenesPlugin {
+class UDPBasedPacketForwarder : public AbstractPicoScenesPlugin {
 public:
     std::string getPluginName() override;
 
@@ -28,6 +28,6 @@ private:
     uint16_t destinationPort = 50000;
 };
 
-PICOSCENES_PLUGIN_INIT(RXSBroadcasterPlugin)
+PICOSCENES_PLUGIN_INIT(UDPBasedPacketForwarder)
 
 #endif //PICOSCENES_RXSBROADCASTPLUGIN_H

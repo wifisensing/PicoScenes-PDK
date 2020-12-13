@@ -1,3 +1,0 @@
-ADD_LIBRARY(PDK-RXSBroadcaster SHARED RXSBroadcasterPlugin.cpp)
-TARGET_LINK_LIBRARIES(PDK-RXSBroadcaster Utilities ${Boost_LIBRARIES})
-install(TARGETS PDK-RXSBroadcaster DESTINATION ${INSTALL_PLUGIN_DIR})
