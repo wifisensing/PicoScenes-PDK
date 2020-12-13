@@ -89,13 +89,13 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.payloadName = "EchoProbeReplyFull";
         frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer()));
+        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
         reply.payloadName = "EchoProbeReplyCSI";
         frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer()));
+        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer(), PayloadDataType::SignalMatrix));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
@@ -109,7 +109,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
     frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
-    frameBuilder.setGuardInterval((GuardIntervalEnum)(epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
+    frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);

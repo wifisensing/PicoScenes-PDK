@@ -48,25 +48,20 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
             } else if (workingMode == MODE_EchoProbeInitiator) {
-                EchoProbeRequest echoProbeRequest;
-                echoProbeRequest.sessionId = sessionId;
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != config->getSamplingRate()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...\n", nic->getReferredInterfaceName(), sf_value);
-                    echoProbeRequest.sf = sf_value;
                     shiftSF = true;
                 }
                 if (cf_value != config->getCarrierFreq()) {
                     LoggingService::info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-                    echoProbeRequest.cf = cf_value;
                     shiftCF = true;
                 }
 
                 if (shiftCF || shiftSF) {
                     auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType, sessionId);
-                    auto epSegment = std::make_shared<EchoProbeRequestSegment>(echoProbeRequest);
-                    fp->addSegment(epSegment);
+                    fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId, shiftCF ? std::optional<double>(cf_value) : std::nullopt, shiftSF ? std::optional<double>(sf_value) : std::nullopt)));
                     auto currentCF = config->getCarrierFreq();
                     auto currentSF = config->getSamplingRate();
                     auto nextCF = cf_value;
@@ -121,7 +116,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
-
+                    fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
                     auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
@@ -256,36 +251,8 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setTaskId(taskId);
     fp->setPicoScenesFrameType(frameType);
 
-    if (frameType == SimpleInjectionFrameType) {
+    if (frameType == SimpleInjectionFrameType || frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
-    }
-
-    if (frameType == EchoProbeRequestFrameType) {
-        fp->addExtraInfo();
-        EchoProbeRequest echoProbeRequest;
-        echoProbeRequest.sessionId = sessionId;
-        echoProbeRequest.replyStrategy = parameters.replyStrategy;
-        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
-        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
-        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
-        echoProbeRequest.ackGI = parameters.ack_guardInterval.value_or(-1);
-        if (!responderDeviceType)
-            echoProbeRequest.deviceProbingStage = true;
-        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
-    }
-
-    if (frameType == EchoProbeFreqChangeRequestFrameType) {
-        EchoProbeRequest echoProbeRequest;
-        echoProbeRequest.sessionId = sessionId;
-        echoProbeRequest.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
-        echoProbeRequest.repeat = 5;
-        echoProbeRequest.ackMCS = 0;
-        echoProbeRequest.ackNumSTS = 1;
-        echoProbeRequest.ackCBW = -1;
-        echoProbeRequest.ackGI = int16_t(GuardIntervalEnum::GI_800);
-        if (!responderDeviceType)
-            echoProbeRequest.deviceProbingStage = true;
-        fp->addSegment(std::make_shared<EchoProbeRequestSegment>(echoProbeRequest));
     }
 
     fp->setMCS(parameters.mcs.value_or(0));
@@ -324,6 +291,35 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     }
 
     return fp;
+}
+
+EchoProbeRequest EchoProbeInitiator::makeRequestSegment(uint16_t sessionId, std::optional<double> newCF, std::optional<double> newSF) {
+    EchoProbeRequest echoProbeRequest;
+    echoProbeRequest.sessionId = sessionId;
+    if (!responderDeviceType)
+        echoProbeRequest.deviceProbingStage = true;
+
+    if (newCF || newSF) {
+        echoProbeRequest.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
+        echoProbeRequest.repeat = 5;
+        echoProbeRequest.ackMCS = 0;
+        echoProbeRequest.ackNumSTS = 1;
+        echoProbeRequest.ackCBW = -1;
+        echoProbeRequest.ackGI = int16_t(GuardIntervalEnum::GI_800);
+        if (newCF)
+            echoProbeRequest.cf = *newCF;
+        if (newSF)
+            echoProbeRequest.sf = *newSF;
+
+    } else {
+        echoProbeRequest.replyStrategy = parameters.replyStrategy;
+        echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
+        echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
+        echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
+        echoProbeRequest.ackGI = parameters.ack_guardInterval.value_or(-1);
+    }
+
+    return echoProbeRequest;
 }
 
 void EchoProbeInitiator::printDots(int count) const {
