@@ -212,7 +212,6 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                     return payloadSegment.getPayload().payloadDescription == payloadName;
                 });
                 if (foundIt != replyFrame->payloadSegments.cend()) {
-                    replyFrame->txCSISegment = CSISegment::createByBuffer(foundIt->getPayload().payloadData.data(), foundIt->getPayload().payloadData.size());
                     LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
                     return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
                 }
@@ -225,7 +224,6 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                 });
                 if (foundIt != replyFrame->payloadSegments.cend()) {
                     if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->getPayload().payloadData.data(), foundIt->getPayload().payloadData.size())) {
-                        replyFrame->txCSISegment = ackFrame->csiSegment;
                         if (LoggingService::localDisplayLevel <= Debug) {
                             LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                             LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
