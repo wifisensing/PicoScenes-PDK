@@ -252,7 +252,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     if (frameType == SimpleInjectionFrameType || frameType == EchoProbeRequestFrameType) {
         fp->addExtraInfo();
     }
-
+    fp->setFrameFormat(PacketFormatEnum(*parameters.format));
     fp->setMCS(parameters.mcs.value_or(0));
     fp->setNumSTS(parameters.numSTS.value_or(1));
     fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));

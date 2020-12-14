@@ -191,7 +191,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("mcs")) {
         auto mcs = vm["mcs"].as<uint32_t>();
-        if (*parameters.format == PacketFormatEnum::PacketFormat_HEMU && *parameters.format == PacketFormatEnum::PacketFormat_HESU && mcs < 12)
+        if ((*parameters.format == PacketFormatEnum::PacketFormat_HEMU || *parameters.format == PacketFormatEnum::PacketFormat_HESU) && mcs < 12)
             parameters.mcs = mcs;
         else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && mcs < 10)
             parameters.mcs = mcs;
@@ -205,7 +205,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("sts")) {
         auto sts = vm["sts"].as<uint32_t>();
-        if (*parameters.format == PacketFormatEnum::PacketFormat_HEMU && *parameters.format == PacketFormatEnum::PacketFormat_HESU && sts <= 8)
+        if ((*parameters.format == PacketFormatEnum::PacketFormat_HEMU || *parameters.format == PacketFormatEnum::PacketFormat_HESU) && sts <= 8)
             parameters.numSTS = sts;
         else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && sts <= 8)
             parameters.numSTS = sts;
