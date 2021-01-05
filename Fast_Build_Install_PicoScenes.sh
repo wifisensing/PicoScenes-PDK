@@ -2,7 +2,6 @@
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-sudo apt remove picoscenes-plugins-demo-echoprobe-forwarder -y
 sudo apt purge picoscenes-plugins-demo-echoprobe-forwarder -y
 
 cd $scriptDir && rm -rf $scriptDir/build && mkdir $scriptDir/build && cd $scriptDir/build
