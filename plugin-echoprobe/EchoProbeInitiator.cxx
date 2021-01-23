@@ -164,13 +164,13 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 }
 
 std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry) {
-    auto taskId = frameBuilder->getFrame()->frameHeader.taskId;
+    auto taskId = frameBuilder->getFrame()->frameHeader->taskId;
     auto retryCount = 0;
     auto timeGap = -1.0;
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
-        frameBuilder->getFrame()->frameHeader.txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
+        frameBuilder->getFrame()->frameHeader->txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         /*
@@ -245,12 +245,19 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
-    fp->makeFrame_HeaderOnly();
-    fp->setTaskId(taskId);
-    fp->setPicoScenesFrameType(frameType);
+    if (frameType == SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP) {
+        fp->makeFrame_NDP();
+    } else {
+        fp->makeFrame_HeaderOnly();
+        fp->setTaskId(taskId);
+        fp->setPicoScenesFrameType(frameType);
 
-    if (frameType == SimpleInjectionFrameType || frameType == EchoProbeRequestFrameType) {
-        fp->addExtraInfo();
+        if (frameType == SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::Full) {
+            fp->addExtraInfo();
+        }
+
+        if (frameType == EchoProbeRequestFrameType)
+            fp->addExtraInfo();
     }
     fp->setFrameFormat(PacketFormatEnum(*parameters.format));
     fp->setMCS(parameters.mcs.value_or(0));

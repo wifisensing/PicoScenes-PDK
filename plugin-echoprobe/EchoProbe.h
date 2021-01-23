@@ -15,6 +15,12 @@ enum EchoProbeWorkingMode: uint8_t {
     MODE_EchoProbeResponder,
 };
 
+enum class EchoProbeInjectionContent: uint8_t {
+    NDP = 20,
+    Header,
+    Full,
+};
+
 enum EchoProbePacketFrameType: uint8_t {
     SimpleInjectionFrameType = 10,
     EchoProbeRequestFrameType,

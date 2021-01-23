@@ -13,6 +13,7 @@ EchoProbeParameters::EchoProbeParameters() {
     guardInterval = 800;
     cbw = 20;
     coding = uint32_t(ChannelCodingEnum::BCC);
+    injectorContent = EchoProbeInjectionContent::Full;
     tx_delay_us = 5e5;
     timeout_ms = 10;
     tx_max_retry = 100;

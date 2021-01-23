@@ -40,7 +40,8 @@ void EchoProbePlugin::initialization() {
             ("sts", po::value<uint32_t>(), "Number of spatial time stream (STS) [0-4], 0 as default")
             ("ess", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
-            ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default");
+            ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default")
+            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -233,6 +234,15 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.coding = (uint32_t) ChannelCodingEnum::BCC;
     }
 
+    if (vm.count("injector-content")) {
+        auto codingStr = vm["injector-content"].as<std::string>();
+        if (boost::iequals(codingStr, "ndp"))
+            parameters.injectorContent = EchoProbeInjectionContent::NDP;
+        else if (boost::iequals(codingStr, "header"))
+            parameters.injectorContent = EchoProbeInjectionContent::Header;
+        else if (boost::iequals(codingStr, "full"))
+            parameters.injectorContent = EchoProbeInjectionContent::Full;
+    }
 
     if (vm.count("ack-type")) {
         auto ackType = vm["ack-type"].as<std::string>();
