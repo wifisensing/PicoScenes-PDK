@@ -113,7 +113,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     total_tx_count++;
                     if (LoggingService::localDisplayLevel == Trace)
                         printDots(tx_count);
-                    std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
+                    delay_periodic(parameters.tx_delay_us);
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
@@ -130,7 +130,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
                             printDots(acked_count);
-                        std::this_thread::sleep_for(std::chrono::microseconds(parameters.tx_delay_us));
+                        delay_periodic(parameters.tx_delay_us);
                     } else {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
