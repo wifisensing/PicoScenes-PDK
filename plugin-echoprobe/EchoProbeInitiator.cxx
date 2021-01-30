@@ -182,7 +182,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         }
 
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 200;
+            totalTimeOut += 50;
 
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
