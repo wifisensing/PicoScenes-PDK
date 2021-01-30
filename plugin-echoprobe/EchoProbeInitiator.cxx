@@ -171,10 +171,8 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
     while (retryCount++ < *maxRetry) {
         frameBuilder->getFrame()->frameHeader->txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
-        auto tx_time = std::chrono::system_clock::now();
-        frameBuilder->transmit();
         /*
-        * Tx-Rx time grows non-li nearly in low sampling rate cases, enlarge the timeout to 11x.
+        * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
         */
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
@@ -184,10 +182,16 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
             totalTimeOut = 100;
         }
-        if (nic->getDeviceType() == PicoScenesDeviceType::USRP)
+        if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
             totalTimeOut += 1000;
+            nic->getTypedFrontEnd<USRPFrontEnd>()->clearRxBBSignalBuffer();
+        }
+
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
             totalTimeOut += 1000;
+
+        auto tx_time = std::chrono::system_clock::now();
+        frameBuilder->transmit();
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
