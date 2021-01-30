@@ -176,19 +176,13 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         */
         auto timeout_us_scaling = nic->getConfiguration()->getSamplingRate() < 20e6 ? 6 : 1;
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
-        if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-            totalTimeOut = 100;
-        }
-        if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-            totalTimeOut = 100;
-        }
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-            totalTimeOut += 1000;
+            totalTimeOut += 50;
             nic->getTypedFrontEnd<USRPFrontEnd>()->clearRxBBSignalBuffer();
         }
 
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
-            totalTimeOut += 1000;
+            totalTimeOut += 200;
 
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
