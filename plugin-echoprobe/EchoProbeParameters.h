@@ -30,6 +30,7 @@ public:
     std::optional<uint32_t> numESS;
     std::optional<uint32_t> guardInterval;
     std::optional<uint32_t> coding;
+    std::optional<double> ifs;
     EchoProbeInjectionContent injectorContent;
 
     std::optional<double> cf_begin;

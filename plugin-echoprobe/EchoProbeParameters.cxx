@@ -20,4 +20,5 @@ EchoProbeParameters::EchoProbeParameters() {
     delay_after_cf_change_ms = 5;
     numOfPacketsPerDotDisplay = 10;
     replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
+    ifs = 10e-6;
 }

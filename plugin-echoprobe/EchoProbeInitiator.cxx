@@ -264,6 +264,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setGuardInterval(GuardIntervalEnum(parameters.guardInterval.value_or(800)));
     fp->setNumberOfExtraSounding(parameters.numESS.value_or(0));
     fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
+    fp->getFrame()->txParameters.idleTime = parameters.ifs.value_or(20e-6);
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {

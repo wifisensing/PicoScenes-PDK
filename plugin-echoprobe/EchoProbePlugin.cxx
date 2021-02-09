@@ -41,7 +41,8 @@ void EchoProbePlugin::initialization() {
             ("ess", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
             ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default")
-            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
+            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
+            ("ifs", po::value<std::string>(), "Inter-Frame Spacing in seconds, 20e-6 as default");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -242,6 +243,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.injectorContent = EchoProbeInjectionContent::Header;
         else if (boost::iequals(codingStr, "full"))
             parameters.injectorContent = EchoProbeInjectionContent::Full;
+    }
+
+    if (vm.count("ifs")) {
+        auto ifs_value = boost::lexical_cast<double>(vm["ifs"].as<std::string>());
+        parameters.ifs = ifs_value;
     }
 
     if (vm.count("ack-type")) {
