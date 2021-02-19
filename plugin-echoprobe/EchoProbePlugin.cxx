@@ -285,8 +285,12 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.ack_guardInterval = giValue;
     }
 
-    if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector)
+    if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector) {
         initiator->startJob(parameters);
+        nic->stopRxService();
+        nic->stopTxService();
+    }
+
     else if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
         responder->startJob(parameters);
 }
