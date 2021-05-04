@@ -1,8 +1,8 @@
 .idea/
 .csi
 build/
-cmake-build-debug/
 *.csi
 libPDK-demo.*
 libPDK-EchoProbe.*
 libPDK-Forwarder.so
+cmake-build-*/*
