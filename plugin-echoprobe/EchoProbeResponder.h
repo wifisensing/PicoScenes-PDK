@@ -7,7 +7,7 @@
 
 #include <PicoScenes/AbstractNIC.hxx>
 #include <PicoScenes/RXSDumper.h>
-#include <PicoScenes/USRPFrontEnd.hxx>
+#include <PicoScenes/AbstractSDRFrontEnd.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
 #include "EchoProbeRequestSegment.hxx"

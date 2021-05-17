@@ -63,7 +63,7 @@ std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescripti
 }
 
 std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
-    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::USRP};
+    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::VirtualSDR, PicoScenesDeviceType::USRP};
     return supportedDevices;
 }
 
@@ -289,9 +289,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         initiator->startJob(parameters);
         nic->stopRxService();
         nic->stopTxService();
-    }
-
-    else if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
+    } else if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
         responder->startJob(parameters);
 }
 

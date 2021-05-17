@@ -39,17 +39,17 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
         auto cf = epSegment.getEchoProbeRequest().cf;
         auto sf = epSegment.getEchoProbeRequest().sf;
-        if (cf > 0 && nic->getConfiguration()->getCarrierFreq() != cf) {
+        if (cf > 0 && nic->getFrontEnd()->getCarrierFrequency() != cf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             LoggingService::info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
-            nic->getConfiguration()->setCarrierFreq(cf);
+            nic->getFrontEnd()->setCarrierFrequency(cf);
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
 
-        if (sf > 0 && nic->getConfiguration()->getSamplingRate() != sf) {
+        if (sf > 0 && nic->getFrontEnd()->getSamplingRate() != sf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
             LoggingService::info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
-            nic->getConfiguration()->setSamplingRate(sf);
+            nic->getFrontEnd()->setSamplingRate(sf);
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
 
@@ -121,8 +121,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        frameBuilder.setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+        frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
@@ -149,8 +149,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        frameBuilder.setSourceAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(nic->getTypedFrontEnd<USRPFrontEnd>()->getMacAddressPhy().data());
+        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+        frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);

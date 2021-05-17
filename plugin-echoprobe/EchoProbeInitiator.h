@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <PicoScenes/AbstractNIC.hxx>
-#include <PicoScenes/USRPFrontEnd.hxx>
+#include <PicoScenes/AbstractSDRFrontEnd.hxx>
 #include <PicoScenes/PropertyJSONDescriptable.hxx>
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
