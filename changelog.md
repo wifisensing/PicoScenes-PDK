@@ -1,5 +1,7 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## May 17, 2021
+    * adapt to platform's big merge
 ## Feb. 20, 2021
     * update to adapt new NICPortal of Platform
 
