@@ -64,6 +64,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
 void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
+    if (nic->getDeviceType() == PicoScenesDeviceType::USRP || nic->getDeviceType() == PicoScenesDeviceType::VirtualSDR)
+        nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->setRxBufferLength(20000);
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
