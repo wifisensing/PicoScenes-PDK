@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## May 21, 2021
+    * [PhasedCOTSArray] start coding for this plugin
+
 ## May 17, 2021
     * adapt to platform's big merge
 ## Feb. 20, 2021
