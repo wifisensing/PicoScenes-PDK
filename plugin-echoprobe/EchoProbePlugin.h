@@ -29,6 +29,10 @@ public:
 
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
+    static boost::shared_ptr<EchoProbePlugin> create() {
+        return boost::make_shared<EchoProbePlugin>();
+    }
+
 private:
     std::shared_ptr<EchoProbeInitiator> initiator;
     std::shared_ptr<EchoProbeResponder> responder;
@@ -39,6 +43,6 @@ private:
     std::shared_ptr<po::options_description> echoOptions;
 };
 
-PICOSCENES_PLUGIN_INIT(EchoProbePlugin);
+BOOST_DLL_ALIAS(EchoProbePlugin::create, initPicoScenesPlugin)
 
 #endif //PICOSCENES_ECHOPROBEPLUGIN_H

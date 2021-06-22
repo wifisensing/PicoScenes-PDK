@@ -21,8 +21,12 @@ public:
     std::shared_ptr<boost::program_options::options_description> pluginOptionsDescription() override;
 
     void parseAndExecuteCommands(const std::string &commandString) override;
+
+    static std::shared_ptr<DemoPlugin> create() {
+        return std::make_shared<DemoPlugin>();
+    }
 };
 
-PICOSCENES_PLUGIN_INIT(DemoPlugin)
+BOOST_DLL_ALIAS(DemoPlugin::create, initPicoScenesPlugin)
 
 #endif //PICOSCENES_DEMOPLUGIN
