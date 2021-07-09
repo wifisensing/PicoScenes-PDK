@@ -6,8 +6,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wno-attributes -march=nehalem -mtune=skylake")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -s -Wno-attributes -march=nehalem -mtune=skylake")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wno-attributes")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-attributes")
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
