@@ -11,7 +11,10 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     if (parameters.workingMode == MODE_Logger) {
         auto buffer = rxframe.toBuffer();
-        RXSDumper::getInstance("rx_" + nic->getReferredInterfaceName()).dumpRXS(buffer.data(), buffer.size());
+        if (!parameters.outputFileName)
+            RXSDumper::getInstance("rx_" + nic->getReferredInterfaceName()).dumpRXS(buffer.data(), buffer.size());
+        else
+            RXSDumper::getInstance(*parameters.outputFileName).dumpRXS(buffer.data(), buffer.size());
         return;
     }
 
@@ -25,7 +28,10 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
     auto buffer = rxframe.toBuffer();
-    RXSDumper::getInstance("EPR_" + std::to_string(epSegment.getEchoProbeRequest().sessionId)).dumpRXS(buffer.data(), buffer.size());
+    if (!parameters.outputFileName)
+        RXSDumper::getInstance("EPR_" + std::to_string(epSegment.getEchoProbeRequest().sessionId)).dumpRXS(buffer.data(), buffer.size());
+    else
+        RXSDumper::getInstance(*parameters.outputFileName).dumpRXS(buffer.data(), buffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());

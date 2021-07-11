@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## July 11, 2021
+    *[EchoProbe] Add --output option for EchoProbe plugin, from which users can specify the file name of the generated .csi file
+
 ## May 21, 2021
     * [PhasedCOTSArray] start coding for this plugin
 
