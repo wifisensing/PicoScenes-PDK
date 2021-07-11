@@ -54,7 +54,8 @@ void EchoProbePlugin::initialization() {
 
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
-            ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]");
+            ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]")
+            ("output", po::value<std::string>(), "Output CSI file name w/o .csi extension");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
 
@@ -98,6 +99,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             nic->startRxService();
             nic->startTxService();
         }
+    }
+
+    if (vm.count("output")) {
+        auto outputFileName = vm["output"].as<std::string>();
+        parameters.outputFileName = outputFileName;
     }
 
     if (vm.count("target-mac-address")) {

@@ -23,6 +23,7 @@ public:
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
 
+    std::optional<std::string> outputFileName;
     std::optional<PacketFormatEnum> format;
     std::optional<uint32_t> cbw;
     std::optional<uint32_t> mcs;
