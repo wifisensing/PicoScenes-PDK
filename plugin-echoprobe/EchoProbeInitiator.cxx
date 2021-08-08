@@ -409,7 +409,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     return frequencies;
 }
 
-static int closest(std::vector<int> const &vec, int value) {
+static int closest(std::vector<double> const &vec, double value) {
     if (value <= vec[0])
         return vec[0];
 
@@ -452,7 +452,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         cf_begin -= 10e6;
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
         cf_begin += 10e6;
-    auto closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), int(cf_begin / 1e6));
+    auto closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_begin);
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS) {
         closestFreq += 10;
         cf_begin += 10e6;
@@ -467,7 +467,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
     }
     auto cur_cf = cf_begin;
 
-    closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), int(cf_end / 1e6));
+    closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_end);
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
         closestFreq += 10;
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
@@ -484,7 +484,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
             cur_cf += cf_step;
             if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
                 break;
-            closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), int(cur_cf / 1e6));
+            closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cur_cf);
             if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
                 closestFreq += 10;
             if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
