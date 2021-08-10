@@ -25,7 +25,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
 
-    auto sessionId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+    auto sessionId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
     LoggingService::info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval {}s delayed start.\n",
                                sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
 
@@ -61,7 +61,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
 
                 if (shiftCF || shiftSF) {
-                    auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                    auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                     auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId, shiftCF ? std::optional<double>(cf_value) : std::nullopt, shiftSF ? std::optional<double>(sf_value) : std::nullopt)));
                     auto currentCF = frontEnd->getCarrierFrequency();
@@ -105,7 +105,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             acked_count = 0;
             mean_delay_single = 0.0;
             for (uint32_t i = 0; i < cf_repeat; ++i) {
-                auto taskId = uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
 
                 if (workingMode == MODE_Injector) {
@@ -115,7 +115,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     total_tx_count++;
                     if (LoggingService::localDisplayLevel == Trace)
                         printDots(tx_count);
-                    delay_periodic(parameters.tx_delay_us);
+                    SystemTools::Time::delay_periodic(parameters.tx_delay_us);
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
@@ -132,7 +132,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         LoggingService::detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         if (LoggingService::localDisplayLevel == Trace)
                             printDots(acked_count);
-                        delay_periodic(parameters.tx_delay_us);
+                        SystemTools::Time::delay_periodic(parameters.tx_delay_us);
                     } else {
                         if (LoggingService::localDisplayLevel == Trace)
                             printf("\n");
@@ -172,7 +172,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     maxRetry = (maxRetry ? *maxRetry : parameters.tx_max_retry);
 
     while (retryCount++ < *maxRetry) {
-        frameBuilder->getFrame()->frameHeader->txId = uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
+        frameBuilder->getFrame()->frameHeader->txId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(100, UINT16_MAX);
         /*
         * Tx-Rx time grows non-linearly in low sampling rate cases, enlarge the timeout to 11x.
         */
