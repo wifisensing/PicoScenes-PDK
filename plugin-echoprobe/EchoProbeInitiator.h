@@ -9,7 +9,6 @@
 #include <shared_mutex>
 #include <PicoScenes/AbstractNIC.hxx>
 #include <PicoScenes/AbstractSDRFrontEnd.hxx>
-#include <PicoScenes/PropertyJSONDescriptable.hxx>
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
