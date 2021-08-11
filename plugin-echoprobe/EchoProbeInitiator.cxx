@@ -409,7 +409,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     return frequencies;
 }
 
-static int closest(std::vector<double> const &vec, double value) {
+static double closest(std::vector<double> const &vec, double value) {
     if (value <= vec[0])
         return vec[0];
 
@@ -454,27 +454,27 @@ std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
         cf_begin += 10e6;
     auto closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_begin);
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS) {
-        closestFreq += 10;
+        closestFreq += 10e6;
         cf_begin += 10e6;
     }
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS) {
-        closestFreq -= 10;
+        closestFreq -= 10e6;
         cf_begin -= 10e6;
     }
-    if (cf_begin / 1e6 != closestFreq) {
-        LoggingService::warning_print("CF begin (desired {}) is forced to be {}MHz for Intel 5300 NIC.\n", cf_begin, closestFreq);
-        cf_begin = (int64_t) closestFreq * 1e6;
+    if (cf_begin != closestFreq) {
+        LoggingService::warning_print("CF begin (desired {}) is forced to be {} MHz for Intel 5300 NIC.\n", cf_begin, closestFreq / 1e6);
+        cf_begin = closestFreq;
     }
     auto cur_cf = cf_begin;
 
     closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_end);
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
-        closestFreq += 10;
+        closestFreq += 10e6;
     if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
-        closestFreq -= 10;
-    if (cf_end / 1e6 != closestFreq) {
-        LoggingService::warning_print("CF end (desired {}) is forced to be {}MHz for Intel 5300 NIC.\n", *parameters.cf_end, closestFreq);
-        cf_end = (int64_t) closestFreq * 1e6;
+        closestFreq -= 10e6;
+    if (cf_end != closestFreq) {
+        LoggingService::warning_print("CF end (desired {}) is forced to be {} MHz for Intel 5300 NIC.\n", *parameters.cf_end, closestFreq / 1e6);
+        cf_end = closestFreq;
     }
 
     do {
