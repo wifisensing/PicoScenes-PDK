@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Aug. 31, 2021
+    * [EchoProbe] Add support for MVM-based NIC
+    
 ## Aug. 11, 2021
     * [EchoProbe] Fix a bug
 
