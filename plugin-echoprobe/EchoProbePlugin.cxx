@@ -98,9 +98,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.workingMode = MODE_EchoProbeInitiator;
             nic->startRxService();
             nic->startTxService();
-        }
-
-        throw std::invalid_argument("Unsupported --mode option value by EchoProbe plugins.");
+        } else
+            throw std::invalid_argument("Unsupported --mode option value by EchoProbe plugins.");
     }
 
     if (vm.count("output")) {
