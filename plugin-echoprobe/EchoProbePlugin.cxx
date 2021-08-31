@@ -64,7 +64,7 @@ std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescripti
 }
 
 std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
-    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::VirtualSDR, PicoScenesDeviceType::USRP};
+    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::IWLMVM, PicoScenesDeviceType::VirtualSDR, PicoScenesDeviceType::USRP};
     return supportedDevices;
 }
 
@@ -99,6 +99,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             nic->startRxService();
             nic->startTxService();
         }
+
+        throw std::invalid_argument("Unsupported --mode option value by EchoProbe plugins.");
     }
 
     if (vm.count("output")) {
