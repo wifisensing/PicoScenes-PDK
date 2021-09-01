@@ -127,8 +127,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPHY().data());
-        frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+        frameBuilder.setSourceAddress(nic->getMacAddressPhy().data());
+        frameBuilder.set3rdAddress(nic->getMacAddressPhy().data());
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
@@ -155,8 +155,8 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
         frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPHY().data());
-        frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+        frameBuilder.setSourceAddress(nic->getMacAddressPhy().data());
+        frameBuilder.set3rdAddress(nic->getMacAddressPhy().data());
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);

@@ -280,12 +280,12 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->setForceSounding(false);
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPHY().data());
-        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+        fp->setSourceAddress(nic->getMacAddressPhy().data());
+        fp->set3rdAddress(nic->getMacAddressPhy().data());
         if (parameters.inj_for_intel5300.value_or(false)) {
             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPHY().data());
+            fp->set3rdAddress(nic->getMacAddressPhy().data());
             fp->setForceSounding(false);
             fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
         }
