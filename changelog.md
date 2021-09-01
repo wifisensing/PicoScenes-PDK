@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Sep. 1, 2021
+    * [EchoProbe] Adapt to nic->getMacAddressPhy() method
+
 ## Aug. 31, 2021
     * [EchoProbe] Add support for MVM-based NIC
     
