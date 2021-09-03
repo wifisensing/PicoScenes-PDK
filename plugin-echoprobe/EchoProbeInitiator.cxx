@@ -271,21 +271,21 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-        fp->setSourceAddress(picoScenesNIC->getMacAddressPhy().data());
+        fp->setSourceAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
         fp->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
         if (parameters.inj_for_intel5300.value_or(false)) {
             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(picoScenesNIC->getMacAddressPhy().data());
+            fp->set3rdAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
             fp->setForceSounding(false);
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        fp->setSourceAddress(nic->getMacAddressPhy().data());
-        fp->set3rdAddress(nic->getMacAddressPhy().data());
+        fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         if (parameters.inj_for_intel5300.value_or(false)) {
             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(nic->getMacAddressPhy().data());
+            fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
             fp->setForceSounding(false);
             fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
         }
@@ -293,7 +293,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
         fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->set3rdAddress(picoScenesNIC->getMacAddressPhy().data());
+        fp->set3rdAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
     }
 
     return fp;
