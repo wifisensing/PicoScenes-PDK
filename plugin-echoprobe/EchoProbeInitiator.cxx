@@ -2,6 +2,8 @@
 // Created by Zhiping Jiang on 10/27/17.
 //
 
+#include <PicoScenes/SystemTools.hxx>
+#include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 #include "EchoProbeInitiator.h"
 #include "EchoProbeReplySegment.hxx"
 #include "EchoProbeRequestSegment.hxx"
@@ -270,13 +272,13 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-        auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-        fp->setSourceAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
-        fp->set3rdAddress(picoScenesNIC->getMacAddressDev().data());
+        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
+        fp->setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
+        fp->set3rdAddress(macNIC->getMacAddressDev().data());
         if (parameters.inj_for_intel5300.value_or(false)) {
             fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
             fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
+            fp->set3rdAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
             fp->setForceSounding(false);
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
@@ -290,10 +292,10 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
         }
     } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-        auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
+        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
         fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
         fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->set3rdAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
+        fp->set3rdAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
     }
 
     return fp;
@@ -381,7 +383,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitrarySamplingRates() {
 }
 
 std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
-    return nic->getDeviceType() == PicoScenesDeviceType::IWL5300 ? enumerateIntelCarrierFrequencies() : enumerateArbitraryCarrierFrequencies();
+    return enumerateArbitraryCarrierFrequencies();
 }
 
 
@@ -426,74 +428,4 @@ static double closest(std::vector<double> const &vec, double value) {
         return *it2;
     }
     return *it;
-}
-
-std::vector<double> EchoProbeInitiator::enumerateIntelCarrierFrequencies() {
-    auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-    auto frontEnd = nic->getTypedFrontEnd<PicoScenesFrontEnd>();
-    auto frequencies = std::vector<double>();
-    auto cf_begin = parameters.cf_begin.value_or(frontEnd->getCarrierFrequency());
-    auto cf_end = parameters.cf_end.value_or(frontEnd->getCarrierFrequency());
-    auto cf_step = parameters.cf_step.value_or(5e6);
-
-    if (int(std::abs(cf_step)) % 5000000 != 0)
-        throw std::invalid_argument("cf_step must be the multiply of 5MHz for Intel 5300AGN.");
-
-    if (std::abs(cf_step) == 0)
-        throw std::invalid_argument("cf_step must NOT be 0 for Intel 5300AGN.");
-
-    if (cf_end < cf_begin && cf_step > 0)
-        throw std::invalid_argument("cf_step > 0, however cf_end < cf_begin.\n");
-
-    if (cf_end > cf_begin && cf_step < 0)
-        throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
-
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
-        cf_begin -= 10e6;
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
-        cf_begin += 10e6;
-    auto closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_begin);
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS) {
-        closestFreq += 10e6;
-        cf_begin += 10e6;
-    }
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS) {
-        closestFreq -= 10e6;
-        cf_begin -= 10e6;
-    }
-    if (cf_begin != closestFreq) {
-        LoggingService::warning_print("CF begin (desired {}) is forced to be {} MHz for Intel 5300 NIC.\n", cf_begin, closestFreq / 1e6);
-        cf_begin = closestFreq;
-    }
-    auto cur_cf = cf_begin;
-
-    closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cf_end);
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
-        closestFreq += 10e6;
-    if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
-        closestFreq -= 10e6;
-    if (cf_end != closestFreq) {
-        LoggingService::warning_print("CF end (desired {}) is forced to be {} MHz for Intel 5300 NIC.\n", *parameters.cf_end, closestFreq / 1e6);
-        cf_end = closestFreq;
-    }
-
-    do {
-        frequencies.emplace_back(cur_cf);
-        auto previous_closest = cur_cf / 1e6;
-        do {
-            cur_cf += cf_step;
-            if ((cur_cf > 5825e6 && cf_step > 0) || (cur_cf < 2412e6 && cf_step < 0))
-                break;
-            closestFreq = closest(frontEnd->getSystemSupportedFrequencies(), cur_cf);
-            if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_PLUS)
-                closestFreq += 10;
-            if (channelFlags2ChannelMode(frontEnd->getChannelFlags()) == ChannelModeEnum::HT40_MINUS)
-                closestFreq -= 10;
-        } while (closestFreq == previous_closest);
-        cur_cf = closestFreq * 1e6;
-        if (closestFreq == previous_closest)
-            break;
-    } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
-
-    return frequencies;
 }

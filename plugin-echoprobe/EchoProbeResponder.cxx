@@ -2,6 +2,7 @@
 // Created by Zhiping Jiang on 11/20/17.
 //
 
+#include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 #include "EchoProbeResponder.h"
 #include "EchoProbeReplySegment.hxx"
 
@@ -118,9 +119,9 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-        auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-        frameBuilder.setSourceAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(picoScenesNIC->getMacAddressDev().data());
+        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
+        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        frameBuilder.set3rdAddress(macNIC->getMacAddressDev().data());
     }
     if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -146,9 +147,9 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-        auto picoScenesNIC = std::dynamic_pointer_cast<PicoScenesNIC>(nic);
-        frameBuilder.setSourceAddress(picoScenesNIC->getFrontEnd()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(picoScenesNIC->getMacAddressDev().data());
+        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
+        frameBuilder.setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
+        frameBuilder.set3rdAddress(macNIC->getMacAddressDev().data());
     }
     if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
         frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());

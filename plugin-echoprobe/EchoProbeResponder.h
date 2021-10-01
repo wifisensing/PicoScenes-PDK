@@ -7,13 +7,10 @@
 
 #include <PicoScenes/AbstractNIC.hxx>
 #include <PicoScenes/RXSDumper.h>
-#include <PicoScenes/AbstractSDRFrontEnd.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeParameters.h"
 #include "EchoProbeRequestSegment.hxx"
 #include "EchoProbeReplySegment.hxx"
-
-class PicoScenesNIC;
 
 class EchoProbeResponder {
 public:

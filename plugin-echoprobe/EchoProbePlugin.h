@@ -6,7 +6,6 @@
 #define PICOSCENES_ECHOPROBEPLUGIN_H
 
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
-#include <PicoScenes/PicoScenesNIC.hxx>
 #include "EchoProbeInitiator.h"
 #include "EchoProbeResponder.h"
 #include "EchoProbeParameters.h"

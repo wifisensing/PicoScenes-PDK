@@ -9,7 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <optional>
-#include <PicoScenes/PicoScenesNIC.hxx>
+#include <PicoScenes/PicoScenesFrameBuilder.hxx>
 #include "EchoProbe.h"
 #include "EchoProbeRequestSegment.hxx"
 
