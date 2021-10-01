@@ -8,7 +8,7 @@
 #include <iostream>
 #include <mutex>
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
-#include <PicoScenes/PicoScenesNIC.hxx>
+#include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 
 class DemoPlugin : public AbstractPicoScenesPlugin {
 public:

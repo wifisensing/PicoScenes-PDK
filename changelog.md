@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Oct. 1, 2021
+    * [All] Adapt to new PicoScenes Platform
+
 ## Sep. 1, 2021
     * [EchoProbe] Adapt to nic->getMacAddressPhy() method
 
