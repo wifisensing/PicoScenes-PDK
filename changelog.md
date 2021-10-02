@@ -1,6 +1,6 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
-## Oct. 1, 2021
+## Oct. 1, 2021 -- Happy China National Day!
     * [All] Adapt to new PicoScenes Platform
 
 ## Sep. 1, 2021
