@@ -71,7 +71,7 @@ void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLen
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
     this->segmentLength = segmentLength;
-    isSuccessfullyDecoded = true;
+    successfullyDecoded = true;
 }
 
 std::vector<uint8_t> EchoProbeReplySegment::toBuffer() const {

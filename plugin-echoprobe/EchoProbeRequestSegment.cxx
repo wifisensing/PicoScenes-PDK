@@ -85,7 +85,7 @@ void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferL
     rawBuffer.resize(bufferLength);
     std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
     this->segmentLength = rawBuffer.size() - 4;
-    isSuccessfullyDecoded = true;
+    successfullyDecoded = true;
 }
 
 EchoProbeRequestSegment EchoProbeRequestSegment::createByBuffer(const uint8_t *buffer, uint32_t bufferLength) {
