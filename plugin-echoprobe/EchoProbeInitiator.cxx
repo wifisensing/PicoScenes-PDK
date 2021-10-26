@@ -271,7 +271,15 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->getFrame()->txParameters.idleTime = parameters.ifs.value_or(20e-6);
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
-    if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
+    if (nic->getDeviceType() == PicoScenesDeviceType::IWLMVM) {
+        fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        if (parameters.inj_for_intel5300.value_or(false)) {
+            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+            fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        }
+    } else if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
         fp->setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
         fp->set3rdAddress(macNIC->getMacAddressDev().data());
