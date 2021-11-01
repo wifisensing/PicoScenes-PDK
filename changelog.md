@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Nov. 1, 2021
+    * [EchoProbe] Add --5300 option for AX200 Tx
+
 ## Oct. 1, 2021 -- Happy China National Day!
     * [All] Adapt to new PicoScenes Platform
 
