@@ -117,7 +117,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
     frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
     frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
-    frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
+    frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3.data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
         frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
@@ -145,7 +145,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
     frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
-    frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3);
+    frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3.data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
         frameBuilder.setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
