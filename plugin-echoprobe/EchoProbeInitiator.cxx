@@ -271,7 +271,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->getFrame()->txParameters.idleTime = parameters.ifs.value_or(20e-6);
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
-    if (nic->getDeviceType() == PicoScenesDeviceType::IWLMVM) {
+    if (isIntelMVMTypeNIC(nic->getDeviceType())) {
         fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         if (parameters.inj_for_intel5300.value_or(false)) {
