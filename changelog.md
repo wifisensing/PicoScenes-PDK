@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Nov. 12, 2021
+    * [EchoProbe] Apt to AX200/AX210 device type
+
 ## Nov. 5, 2021
     * [EchoProbe] Fix bug 
 
