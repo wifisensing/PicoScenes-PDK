@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Dec. 4, 2021
+    * Remove phased-array plugin temporarily
+
 ## Nov. 12, 2021
     * [EchoProbe] Apt to AX200/AX210 device type
 
