@@ -6,4 +6,3 @@ libPDK-demo.*
 libPDK-EchoProbe.*
 libPDK-Forwarder.so
 cmake-build-*/*
-libPDK-PhasedCOTSArray.so
