@@ -33,7 +33,7 @@ public:
     std::optional<uint32_t> coding;
     std::optional<bool> txHEExtendedRange;
     std::optional<bool> heHighDoppler;
-    std::optional<uint32_t> heMidamblePeriodicity;
+    std::optional<double> heMidamblePeriodicity;
     std::optional<double> ifs;
     EchoProbeInjectionContent injectorContent;
 
