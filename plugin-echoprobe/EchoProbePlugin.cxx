@@ -41,6 +41,8 @@ void EchoProbePlugin::initialization() {
             ("ess", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
             ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default")
+            ("extended-range", "Enable 11ax extended range")
+            ("high-doppler", po::value<uint32_t>(), "High doppler [10, 20], 10 as default")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
             ("ifs", po::value<std::string>(), "Inter-Frame Spacing in seconds, 20e-6 as default");
 
@@ -240,6 +242,24 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.coding = (uint32_t) ChannelCodingEnum::LDPC;
         else if (boost::iequals(codingStr, "BCC"))
             parameters.coding = (uint32_t) ChannelCodingEnum::BCC;
+    }
+
+    if (vm.count("extended-range")) {
+        parameters.txHEExtendedRange = true;
+    }
+
+    if (vm.count("high-doppler")) {
+        auto heMidamblePeriodicity = vm["high-doppler"].as<std::uint32_t>();
+        if (*parameters.format == PacketFormatEnum::PacketFormat_HESU || *parameters.format == PacketFormatEnum::PacketFormat_HEMU) {
+            if (heMidamblePeriodicity == 10 || heMidamblePeriodicity == 20) {
+                parameters.heHighDoppler = true;
+                parameters.heMidamblePeriodicity = heMidamblePeriodicity;
+            } else
+                throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid high doppler value: {}.\n", heMidamblePeriodicity));
+
+        }else{
+            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: Only packet format of 11ax supports high doppler."));
+        }
     }
 
     if (vm.count("injector-content")) {

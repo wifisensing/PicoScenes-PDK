@@ -268,6 +268,11 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
     fp->setGuardInterval(GuardIntervalEnum(parameters.guardInterval.value_or(800)));
     fp->setNumberOfExtraSounding(parameters.numESS.value_or(0));
     fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
+    fp->setTxHEExtendedRange(parameters.txHEExtendedRange.value_or(false));
+    if(parameters.heHighDoppler.value()){
+        fp->setHEHighDoppler(true);
+        fp->setHEMidamblePeriodicity(parameters.heHighDoppler.value());
+    }
     fp->getFrame()->txParameters.idleTime = parameters.ifs.value_or(20e-6);
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
