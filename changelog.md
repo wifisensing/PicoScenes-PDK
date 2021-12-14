@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Dec. 14, 2021
+    * [EchoProbe] Add support for the 802.11ax High-Doppler mode and Extended-Range (HE-ER-SU) mode
+
 ## Dec. 4, 2021
     * Remove phased-array plugin temporarily
 
