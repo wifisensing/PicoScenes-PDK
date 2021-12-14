@@ -42,7 +42,7 @@ void EchoProbePlugin::initialization() {
             ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
             ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default")
             ("extended-range", "Enable 11ax extended range")
-            ("high-doppler", po::value<uint32_t>()->default_value(10), "Enabling 802.11ax High Doppler mode with the Midamble Periodicity of 10 or 20, 10 as default")
+            ("high-doppler", po::value<double>()->implicit_value(10), "Enabling 802.11ax High Doppler mode with the Midamble Periodicity of 10 or 20, 10 as default")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
             ("ifs", po::value<std::string>(), "Inter-Frame Spacing in seconds, 20e-6 as default");
 
@@ -249,14 +249,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     }
 
     if (vm.count("high-doppler")) {
-        auto heMidamblePeriodicity = vm["high-doppler"].as<std::uint32_t>();
+        auto heMidamblePeriodicity = vm["high-doppler"].as<double>();
         if (*parameters.format == PacketFormatEnum::PacketFormat_HESU || *parameters.format == PacketFormatEnum::PacketFormat_HEMU) {
-            if (heMidamblePeriodicity == 10 || heMidamblePeriodicity == 20) {
-                parameters.heHighDoppler = true;
-                parameters.heMidamblePeriodicity = heMidamblePeriodicity;
-            } else
-                throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid 802.11 High-Doppler Midamble Periodicity: {}. Only 10 or 20 acceptable. \n", heMidamblePeriodicity));
-
+            parameters.heHighDoppler = true;
+            parameters.heMidamblePeriodicity = heMidamblePeriodicity;
         } else {
             throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: Only packet format of 11ax supports high doppler."));
         }
