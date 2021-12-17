@@ -29,7 +29,7 @@ void EchoProbePlugin::initialization() {
             ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
 
             ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
-            ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multipler scan range, format begin:step:end, e.g., 11:11:88")
+            ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multiplier scan range, format begin:step:end, e.g., 11:11:88")
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
