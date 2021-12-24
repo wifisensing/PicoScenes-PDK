@@ -250,12 +250,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.count("high-doppler")) {
         auto heMidamblePeriodicity = vm["high-doppler"].as<double>();
-        if (*parameters.format == PacketFormatEnum::PacketFormat_HESU || *parameters.format == PacketFormatEnum::PacketFormat_HEMU) {
-            parameters.heHighDoppler = true;
-            parameters.heMidamblePeriodicity = heMidamblePeriodicity;
-        } else {
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: Only packet format of 11ax supports high doppler."));
-        }
+        parameters.heHighDoppler = true;
+        parameters.heMidamblePeriodicity = heMidamblePeriodicity;
     }
 
     if (vm.count("injector-content")) {
