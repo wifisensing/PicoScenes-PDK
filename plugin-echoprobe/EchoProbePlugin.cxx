@@ -33,18 +33,7 @@ void EchoProbePlugin::initialization() {
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
-
-            ("format", po::value<std::string>(), "802.11 frame format [nonHT, HT, VHT, HESU]")
-            ("cbw", po::value<uint32_t>(), "Channel Bandwidth (CBW) for injection(unit in MHz) [20, 40, 80, 160], 20 as default")
-            ("mcs", po::value<uint32_t>(), "MCS value [0-11], the MCS index for one single spatial stream")
-            ("sts", po::value<uint32_t>(), "Number of spatial time stream (STS) [0-4], 0 as default")
-            ("ess", po::value<uint32_t>(), "Number of Extension Spatial Stream for TX [ 0 as default, 1, 2, 3]")
-            ("gi", po::value<uint32_t>(), "Guarding Interval [400, 800, 1600, 3200], 800 as default")
-            ("coding", po::value<std::string>(), "Code scheme [LDPC, BCC], BCC as default")
-            ("extended-range", "Enable 11ax extended range")
-            ("high-doppler", po::value<double>()->implicit_value(10), "Enabling 802.11ax High Doppler mode with the Midamble Periodicity of 10 or 20, 10 as default")
-            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
-            ("ifs", po::value<std::string>(), "Inter-Frame Spacing in seconds, 20e-6 as default");
+            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
     echoOptions->add_options()
@@ -174,86 +163,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.delayed_start_seconds = vm["delayed-start"].as<uint32_t>();
     }
 
-    if (vm.count("format")) {
-        auto format = vm["format"].as<std::string>();
-        if (boost::iequals(format, "nonHT")) {
-            parameters.format = PacketFormatEnum::PacketFormat_NonHT;
-        } else if (boost::iequals(format, "HT")) {
-            parameters.format = PacketFormatEnum::PacketFormat_HT;
-        } else if (boost::iequals(format, "VHT")) {
-            parameters.format = PacketFormatEnum::PacketFormat_VHT;
-        } else if (boost::iequals(format, "HESU")) {
-            parameters.format = PacketFormatEnum::PacketFormat_HESU;
-        } else if (boost::iequals(format, "HEMU")) {
-            parameters.format = PacketFormatEnum::PacketFormat_HEMU;
-        } else
-            throw std::invalid_argument(fmt::format("[EchoProbe]: invalid packet format value: {}.\n", format));
-    }
-
-    if (vm.count("cbw")) {
-        auto bwValue = vm["cbw"].as<uint32_t>();
-        parameters.cbw = bwValue;
-    }
-
-    if (vm.count("gi")) {
-        auto sgiValue = vm["gi"].as<uint32_t>();
-        parameters.guardInterval = sgiValue;
-    }
-
-    if (vm.count("mcs")) {
-        auto mcs = vm["mcs"].as<uint32_t>();
-        if ((*parameters.format == PacketFormatEnum::PacketFormat_HEMU || *parameters.format == PacketFormatEnum::PacketFormat_HESU) && mcs < 12)
-            parameters.mcs = mcs;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && mcs < 10)
-            parameters.mcs = mcs;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_HT && mcs < 8)
-            parameters.mcs = mcs;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_NonHT && mcs < 8)
-            parameters.mcs = mcs;
-        else
-            throw std::invalid_argument(fmt::format("[EchoProbe]: invalid MCS value: {}.\n", mcs));
-    }
-
-    if (vm.count("sts")) {
-        auto sts = vm["sts"].as<uint32_t>();
-        if ((*parameters.format == PacketFormatEnum::PacketFormat_HEMU || *parameters.format == PacketFormatEnum::PacketFormat_HESU) && sts <= 8)
-            parameters.numSTS = sts;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_VHT && sts <= 8)
-            parameters.numSTS = sts;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_HT && sts <= 4)
-            parameters.numSTS = sts;
-        else if (*parameters.format == PacketFormatEnum::PacketFormat_NonHT && sts <= 1)
-            parameters.numSTS = sts;
-        else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid STS value: {}.\n", sts));
-    }
-
-    if (vm.count("ess")) {
-        auto ness = vm["ess"].as<uint32_t>();
-        if (ness < 4)
-            parameters.numESS = ness;
-        else
-            throw std::invalid_argument(fmt::format("[EchoProbe Plugin]: invalid number of extension spatial stream (NESS) value: {}.\n", ness));
-    }
-
-    if (vm.count("coding")) {
-        auto codingStr = vm["coding"].as<std::string>();
-        if (boost::iequals(codingStr, "LDPC"))
-            parameters.coding = (uint32_t) ChannelCodingEnum::LDPC;
-        else if (boost::iequals(codingStr, "BCC"))
-            parameters.coding = (uint32_t) ChannelCodingEnum::BCC;
-    }
-
-    if (vm.count("extended-range")) {
-        parameters.txHEExtendedRange = true;
-    }
-
-    if (vm.count("high-doppler")) {
-        auto heMidamblePeriodicity = vm["high-doppler"].as<double>();
-        parameters.heHighDoppler = true;
-        parameters.heMidamblePeriodicity = heMidamblePeriodicity;
-    }
-
     if (vm.count("injector-content")) {
         auto codingStr = vm["injector-content"].as<std::string>();
         if (boost::iequals(codingStr, "ndp"))
@@ -262,11 +171,6 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.injectorContent = EchoProbeInjectionContent::Header;
         else if (boost::iequals(codingStr, "full"))
             parameters.injectorContent = EchoProbeInjectionContent::Full;
-    }
-
-    if (vm.count("ifs")) {
-        auto ifs_value = boost::lexical_cast<double>(vm["ifs"].as<std::string>());
-        parameters.ifs = ifs_value;
     }
 
     if (vm.count("ack-type")) {

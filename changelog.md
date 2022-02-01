@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Feb. 2, 2022
+    * [All] plugins now skips the parsing Tx parameters
+
 ## Dec. 25, 2021
     * [EchoProbe] minor udpate
 

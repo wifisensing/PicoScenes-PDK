@@ -24,17 +24,6 @@ public:
     std::optional<uint32_t> delayed_start_seconds;
 
     std::optional<std::string> outputFileName;
-    std::optional<PacketFormatEnum> format;
-    std::optional<uint32_t> cbw;
-    std::optional<uint32_t> mcs;
-    std::optional<uint32_t> numSTS;
-    std::optional<uint32_t> numESS;
-    std::optional<uint32_t> guardInterval;
-    std::optional<uint32_t> coding;
-    std::optional<bool> txHEExtendedRange;
-    std::optional<bool> heHighDoppler;
-    std::optional<double> heMidamblePeriodicity;
-    std::optional<double> ifs;
     EchoProbeInjectionContent injectorContent;
 
     std::optional<double> cf_begin;

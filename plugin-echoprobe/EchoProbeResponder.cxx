@@ -114,9 +114,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
 
 
     frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
-    frameBuilder.setMCS(epReq.ackMCS == -1 ? (parameters.mcs ? *parameters.mcs : 0) : epReq.ackMCS);
-    frameBuilder.setNumSTS(epReq.ackNumSTS == -1 ? (parameters.numSTS ? *parameters.numSTS : 1) : epReq.ackNumSTS);
-    frameBuilder.setGuardInterval((GuardIntervalEnum) (epReq.ackGI == -1 ? (parameters.guardInterval ? *parameters.guardInterval : 800) : epReq.ackGI));
+    frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
     frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3.data());
     if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
         auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);

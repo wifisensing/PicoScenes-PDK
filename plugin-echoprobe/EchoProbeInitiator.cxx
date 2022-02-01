@@ -261,17 +261,12 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         if (frameType == EchoProbeRequestFrameType)
             fp->addExtraInfo();
     }
-    fp->setFrameFormat(PacketFormatEnum(*parameters.format));
-    fp->setMCS(parameters.mcs.value_or(0));
-    fp->setNumSTS(parameters.numSTS.value_or(1));
-    fp->setChannelBandwidth(ChannelBandwidthEnum(parameters.cbw.value_or(20)));
-    fp->setGuardInterval(GuardIntervalEnum(parameters.guardInterval.value_or(800)));
-    fp->setNumberOfExtraSounding(parameters.numESS.value_or(0));
-    fp->setChannelCoding((ChannelCodingEnum) parameters.coding.value_or((uint32_t) ChannelCodingEnum::BCC));
-    fp->setTxHEExtendedRange(parameters.txHEExtendedRange.value_or(false));
-    fp->setHEHighDoppler(parameters.heHighDoppler.value_or(false));
-    fp->setHEMidamblePeriodicity(parameters.heMidamblePeriodicity.value_or(10));
-    fp->getFrame()->txParameters.idleTime = parameters.ifs.value_or(20e-6);
+    /**
+     * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
+     * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
+     * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
+     */
+    fp->setTxParameters(nic->getUserSpecifiedTxParameters());
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (isIntelMVMTypeNIC(nic->getDeviceType())) {
