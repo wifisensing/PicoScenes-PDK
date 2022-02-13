@@ -247,8 +247,18 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
+    fp->resetFrameBuilder();
+
+    /**
+     * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
+     * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
+     * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
+     */
+    fp->setTxParameters(nic->getUserSpecifiedTxParameters());
+
     if (frameType == SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP) {
-        fp->makeFrame_NDP();
+        fp->setNDPFrame();
+        return fp;
     } else {
         fp->makeFrame_HeaderOnly();
         fp->setTaskId(taskId);
@@ -261,12 +271,6 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         if (frameType == EchoProbeRequestFrameType)
             fp->addExtraInfo();
     }
-    /**
-     * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
-     * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
-     * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
-     */
-    fp->setTxParameters(nic->getUserSpecifiedTxParameters());
 
     fp->setDestinationAddress(parameters.inj_target_mac_address->data());
     if (isIntelMVMTypeNIC(nic->getDeviceType())) {

@@ -32,8 +32,6 @@ private:
 
     std::vector<double> enumerateArbitraryCarrierFrequencies();
 
-    std::vector<double> enumerateIntelCarrierFrequencies();
-
     std::vector<double> enumerateSamplingRates();
 
     std::vector<double> enumerateArbitrarySamplingRates();

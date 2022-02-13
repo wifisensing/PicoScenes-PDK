@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Feb. 14, 2022
+    * [EchoProbe] Implement NDP frame transmission
+
 ## Feb. 2, 2022
     * [All] plugins now skips the parsing Tx parameters
 
