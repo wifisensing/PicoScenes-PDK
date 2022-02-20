@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Feb. 21, 2022
+    * [EchoProbe] Support lookback for X310 or multi-channel SDR
+
 ## Feb. 14, 2022
     * [EchoProbe] Implement NDP frame transmission
 

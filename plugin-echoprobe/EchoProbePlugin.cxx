@@ -73,13 +73,14 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         boost::algorithm::to_lower(modeString);
         boost::trim(modeString);
 
+        /**
+         * Injector and Logger no logger performs stopTx/Rx() because of loopback mode for SDR multi-channel
+         */
         if (modeString.find("injector") != std::string::npos) {
             parameters.workingMode = MODE_Injector;
-            nic->stopRxService();
             nic->startTxService();
         } else if (modeString.find("logger") != std::string::npos) {
             parameters.workingMode = MODE_Logger;
-            nic->stopTxService();
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
             parameters.workingMode = MODE_EchoProbeResponder;
