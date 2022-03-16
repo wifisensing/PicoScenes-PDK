@@ -3,6 +3,7 @@
 //
 
 #include "UDPBasedPacketForwarder.h"
+#include "boost/algorithm/string.hpp"
 
 std::string UDPBasedPacketForwarder::getPluginName() {
     return "Forwarder";
@@ -17,8 +18,7 @@ std::shared_ptr<boost::program_options::options_description> UDPBasedPacketForwa
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [&] {
         options->add_options()
-                ("forward-to-ip", po::value<std::string>(), "Destination IP for PlugIn UDPBasedPacketForwarder")
-                ("forward-to-port", po::value<uint16_t>(), "Destination Port for PlugIn UDPBasedPacketForwarder");
+                ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000");
     });
     return options;
 }
@@ -33,12 +33,16 @@ void UDPBasedPacketForwarder::parseAndExecuteCommands(const std::string &command
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*pluginOptionsDescription().get()).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    if (vm.count("forward-to-ip")) {
-        destinationIP = vm["forward-to-ip"].as<std::string>();
-    }
+    if (vm.count("forward-to")) {
+        auto input = destinationIP = vm["forward-to"].as<std::string>();
+        std::vector<std::string> segments;
+        boost::split(segments, input, boost::is_any_of(":"), boost::token_compress_on);
+        boost::trim(segments[0]);
+        boost::trim(segments[1]);
+        destinationIP = segments[0];
+        destinationPort = boost::lexical_cast<uint16_t>(segments[1]);
 
-    if (vm.count("forward-to-port")) {
-        destinationPort = vm["forward-to-port"].as<uint16_t>();
+        LoggingService_info_print("UDP Forwarder destination: {}/{}\n", destinationIP, destinationPort);
     }
 }
 

@@ -6,7 +6,7 @@
 #define PICOSCENES_RXSBROADCASTPLUGIN_H
 
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
-#include <PicoScenes/UDPService.h>
+#include <PicoScenes/UDPService.hxx>
 
 
 class UDPBasedPacketForwarder : public AbstractPicoScenesPlugin {
@@ -23,11 +23,15 @@ public:
 
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
+    static boost::shared_ptr<UDPBasedPacketForwarder> create() {
+        return boost::make_shared<UDPBasedPacketForwarder>();
+    }
+
 private:
     std::string destinationIP = "127.0.0.1";
     uint16_t destinationPort = 50000;
 };
 
-PICOSCENES_PLUGIN_INIT(UDPBasedPacketForwarder)
+BOOST_DLL_ALIAS(UDPBasedPacketForwarder::create, initPicoScenesPlugin)
 
 #endif //PICOSCENES_RXSBROADCASTPLUGIN_H
