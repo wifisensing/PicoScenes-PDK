@@ -2,18 +2,18 @@
 // Created by Zhiping Jiang on 10/20/17.
 //
 
-#include "UDPBasedPacketForwarder.h"
+#include "UDPForwarderPlugin.hxx"
 #include "boost/algorithm/string.hpp"
 
-std::string UDPBasedPacketForwarder::getPluginName() {
+std::string UDPForwarderPlugin::getPluginName() {
     return "Forwarder";
 }
 
-std::string UDPBasedPacketForwarder::getPluginDescription() {
+std::string UDPForwarderPlugin::getPluginDescription() {
     return "forward all received packets to the specified destination.";
 }
 
-std::shared_ptr<boost::program_options::options_description> UDPBasedPacketForwarder::pluginOptionsDescription() {
+std::shared_ptr<boost::program_options::options_description> UDPForwarderPlugin::pluginOptionsDescription() {
     static auto options = std::make_shared<po::options_description>("Options for plugin " + this->getPluginName());
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [&] {
@@ -23,12 +23,11 @@ std::shared_ptr<boost::program_options::options_description> UDPBasedPacketForwa
     return options;
 }
 
-std::string UDPBasedPacketForwarder::pluginStatus() {
+std::string UDPForwarderPlugin::pluginStatus() {
     return "Destination IP/Port: " + destinationIP + ":" + std::to_string(destinationPort);
 }
 
-
-void UDPBasedPacketForwarder::parseAndExecuteCommands(const std::string &commandString) {
+void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandString) {
     po::variables_map vm;
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*pluginOptionsDescription().get()).allow_unregistered().run(), vm);
     po::notify(vm);
@@ -46,7 +45,7 @@ void UDPBasedPacketForwarder::parseAndExecuteCommands(const std::string &command
     }
 }
 
-void UDPBasedPacketForwarder::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
+void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
     auto frameBuffer = rxframe.toBuffer();
     UDPService::getInstance("Forwarder" + destinationIP + std::to_string(destinationPort))->sendData(frameBuffer.data(), frameBuffer.size(), destinationIP, destinationPort);
 }
