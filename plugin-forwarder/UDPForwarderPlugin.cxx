@@ -6,20 +6,25 @@
 #include "boost/algorithm/string.hpp"
 
 std::string UDPForwarderPlugin::getPluginName() {
-    return "Forwarder";
+    return "UDPForwarder";
 }
 
 std::string UDPForwarderPlugin::getPluginDescription() {
     return "forward all received packets to the specified destination.";
 }
 
+std::vector<PicoScenesDeviceType> UDPForwarderPlugin::getSupportedDeviceTypes() {
+    static auto supportedDevices = std::vector<PicoScenesDeviceType>{PicoScenesDeviceType::IWL5300, PicoScenesDeviceType::QCA9300, PicoScenesDeviceType::IWLMVM_AX200, PicoScenesDeviceType::IWLMVM_AX210, PicoScenesDeviceType::VirtualSDR, PicoScenesDeviceType::USRP};
+    return supportedDevices;
+}
+
+void UDPForwarderPlugin::initialization() {
+    options = std::make_shared<po::options_description>("UDPForward Options");
+    options->add_options()
+            ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000");
+}
+
 std::shared_ptr<boost::program_options::options_description> UDPForwarderPlugin::pluginOptionsDescription() {
-    static auto options = std::make_shared<po::options_description>("Options for plugin " + this->getPluginName());
-    static std::once_flag onceFlag;
-    std::call_once(onceFlag, [&] {
-        options->add_options()
-                ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000");
-    });
     return options;
 }
 

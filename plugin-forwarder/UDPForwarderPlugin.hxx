@@ -17,6 +17,10 @@ public:
 
     std::string pluginStatus() override;
 
+    std::vector<PicoScenesDeviceType> getSupportedDeviceTypes() override;
+
+    void initialization() override;
+
     std::shared_ptr<boost::program_options::options_description> pluginOptionsDescription() override;
 
     void parseAndExecuteCommands(const std::string &commandString) override;
@@ -30,6 +34,7 @@ public:
 private:
     std::string destinationIP{};
     uint16_t destinationPort{0};
+    std::shared_ptr<po::options_description> options;
 };
 
 BOOST_DLL_ALIAS(UDPForwarderPlugin::create, initPicoScenesPlugin)
