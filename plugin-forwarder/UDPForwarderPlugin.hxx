@@ -32,8 +32,8 @@ public:
     }
 
 private:
-    std::string destinationIP{};
-    uint16_t destinationPort{0};
+    std::optional<std::string> destinationIP;
+    std::optional<uint16_t> destinationPort;
     std::shared_ptr<po::options_description> options;
 };
 

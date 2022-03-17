@@ -1,5 +1,8 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+## Mar. 17, 2022
+    * [UDPForward] Fix bug
+
 ## Mar. 16, 2022
     * [UDPForward] Bring back this plugin, simplified to only --forward-to option, like "--forward-to 127.0.0.1:50000"
 

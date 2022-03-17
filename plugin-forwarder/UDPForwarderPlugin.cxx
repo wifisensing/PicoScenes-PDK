@@ -29,7 +29,7 @@ std::shared_ptr<boost::program_options::options_description> UDPForwarderPlugin:
 }
 
 std::string UDPForwarderPlugin::pluginStatus() {
-    return "Destination IP/Port: " + destinationIP + ":" + std::to_string(destinationPort);
+    return "Destination IP/Port: " + destinationIP.value_or("null") + ":" + std::to_string(destinationPort.value_or(0u));
 }
 
 void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandString) {
@@ -38,7 +38,7 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
     po::notify(vm);
 
     if (vm.count("forward-to")) {
-        auto input = destinationIP = vm["forward-to"].as<std::string>();
+        auto input = vm["forward-to"].as<std::string>();
         std::vector<std::string> segments;
         boost::split(segments, input, boost::is_any_of(":"), boost::token_compress_on);
         boost::trim(segments[0]);
@@ -46,11 +46,13 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
         destinationIP = segments[0];
         destinationPort = boost::lexical_cast<uint16_t>(segments[1]);
 
-        LoggingService_info_print("UDP Forwarder destination: {}/{}\n", destinationIP, destinationPort);
+        LoggingService_info_print("UDP Forwarder destination: {}/{}\n", *destinationIP, *destinationPort);
     }
 }
 
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    auto frameBuffer = rxframe.toBuffer();
-    UDPService::getInstance("Forwarder" + destinationIP + std::to_string(destinationPort))->sendData(frameBuffer.data(), frameBuffer.size(), destinationIP, destinationPort);
+    if (destinationIP && destinationPort) {
+        auto frameBuffer = rxframe.toBuffer();
+        UDPService::getInstance("Forwarder" + *destinationIP + std::to_string(*destinationPort))->sendData(frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
+    }
 }
