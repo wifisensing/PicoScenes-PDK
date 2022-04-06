@@ -1,5 +1,9 @@
 # Changelog of PicoScenes Plugin Development Kit (PDK)
 
+
+## Apr. 6, 2022
+    * [EchoProbe][UDPForward] Add support for SoapySDR-based SDR devices
+
 ## Mar. 17, 2022
     * [UDPForward] Fix bug
 
