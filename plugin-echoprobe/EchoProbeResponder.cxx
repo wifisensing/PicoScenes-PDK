@@ -29,9 +29,10 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
     auto buffer = rxframe.toBuffer();
-    if (!parameters.outputFileName)
-        RXSDumper::getInstance("EPR_" + std::to_string(epSegment.getEchoProbeRequest().sessionId)).dumpRXS(buffer.data(), buffer.size());
-    else
+    if (!parameters.outputFileName) {
+        auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);
+        RXSDumper::getInstance(dumpId).dumpRXS(buffer.data(), buffer.size());
+    } else
         RXSDumper::getInstance(*parameters.outputFileName).dumpRXS(buffer.data(), buffer.size());
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {

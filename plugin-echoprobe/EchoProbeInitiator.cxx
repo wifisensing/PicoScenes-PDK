@@ -35,7 +35,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
 
     for (const auto &sf_value: sfList) {
-        auto dumperId = fmt::sprintf("EPI_%u_%s_bb%.1fM", sessionId, nic->getReferredInterfaceName(), sf_value / 1e6);
+        auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
         if (parameters.outputFileName)
             dumperId = *parameters.outputFileName;
         for (const auto &cf_value: cfList) {
