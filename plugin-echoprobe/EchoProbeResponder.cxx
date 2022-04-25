@@ -138,19 +138,13 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
     frameBuilder.setMCS(0);
     frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
-    frameBuilder.setDestinationAddress(rxframe.standardHeader.addr3.data());
-    if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
-        frameBuilder.setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(macNIC->getMacAddressDev().data());
-    }
-    if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-        frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        frameBuilder.set3rdAddress(PicoScenesFrameBuilder::broadcastFFMAC.data());
-    } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        frameBuilder.setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-        frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+
+    if (parameters.inj_for_intel5300.value_or(false)) {
+        frameBuilder.setForceSounding(false);
+        frameBuilder.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
