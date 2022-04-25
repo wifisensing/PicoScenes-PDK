@@ -11,6 +11,9 @@
 
 void EchoProbeInitiator::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
+    if (parameters.workingMode == MODE_EchoProbeInitiator) {
+        nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+    }
     unifiedEchoProbeWork();
 }
 

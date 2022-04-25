@@ -72,6 +72,9 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
 void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
+    if (parameters.workingMode == MODE_EchoProbeResponder) {
+        nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+    }
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
