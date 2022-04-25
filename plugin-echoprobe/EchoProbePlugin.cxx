@@ -84,10 +84,14 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
             parameters.workingMode = MODE_EchoProbeResponder;
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("initiator") != std::string::npos) {
             parameters.workingMode = MODE_EchoProbeInitiator;
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else

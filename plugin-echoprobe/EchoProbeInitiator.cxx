@@ -11,9 +11,6 @@
 
 void EchoProbeInitiator::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
-    if (parameters.workingMode == MODE_EchoProbeInitiator) {
-        nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
-    }
     unifiedEchoProbeWork();
 }
 
@@ -75,7 +72,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto nextSF = sf_value;
                     auto connectionEstablished = false;
                     for (auto i = 0; i < parameters.tx_max_retry; i++) {
-                        if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                        if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
                             LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                             if (shiftSF) frontEnd->setSamplingRate(nextSF);
                             if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
@@ -86,7 +83,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             if (shiftSF) frontEnd->setSamplingRate(nextSF);
                             if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
                             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                            if (auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                            if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
                                 LoggingService::info_print("EchoProbe responder confirms the channel changes.\n");
                                 if (shiftSF) frontEnd->setSamplingRate(nextSF);
                                 if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
@@ -124,7 +121,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 } else if (workingMode == MODE_EchoProbeInitiator) {
                     fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
-                    auto[rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
+                    auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
                     total_tx_count += retryPerTx;
                     if (rxframe && ackframe) {
@@ -279,41 +276,13 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->addExtraInfo();
     }
 
-    fp->setDestinationAddress(parameters.inj_target_mac_address->data());
-    if (isIntelMVMTypeNIC(nic->getDeviceType())) {
-        fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-        if (parameters.inj_for_intel5300.value_or(false)) {
-            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-            fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
-        }
-    } else if (nic->getDeviceType() == PicoScenesDeviceType::QCA9300) {
-        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
-        fp->setSourceAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
-        fp->set3rdAddress(macNIC->getMacAddressDev().data());
-        if (parameters.inj_for_intel5300.value_or(false)) {
-            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
-            fp->setForceSounding(false);
-        }
-    } else if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
-        fp->setSourceAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-        if (parameters.inj_for_intel5300.value_or(false)) {
-            fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-            fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
-            fp->setForceSounding(false);
-            fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
-        }
-    } else if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-        auto macNIC = std::dynamic_pointer_cast<MAC80211CSIExtractableNIC>(nic);
-        fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->set3rdAddress(macNIC->getFrontEnd()->getMacAddressPhy().data());
+    fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+
+    if (parameters.inj_for_intel5300.value_or(false)) {
+        fp->setForceSounding(false);
+        fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
 
     return fp;
