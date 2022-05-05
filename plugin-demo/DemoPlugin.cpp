@@ -17,7 +17,7 @@ std::string DemoPlugin::pluginStatus() {
 }
 
 std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginOptionsDescription() {
-    static auto instance = std::make_shared<boost::program_options::options_description>("Demo Options based on boost::program_options");
+    static auto instance = std::make_shared<boost::program_options::options_description>("Demo Options based on boost::program_options", 120);
     static std::once_flag onceFlag;
     std::call_once(onceFlag, [&] {
         instance->add_options()

@@ -19,7 +19,7 @@ std::vector<PicoScenesDeviceType> UDPForwarderPlugin::getSupportedDeviceTypes() 
 }
 
 void UDPForwarderPlugin::initialization() {
-    options = std::make_shared<po::options_description>("UDPForward Options");
+    options = std::make_shared<po::options_description>("UDPForward Options", 120);
     options->add_options()
             ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000");
 }

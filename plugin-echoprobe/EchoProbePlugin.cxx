@@ -23,7 +23,7 @@ void EchoProbePlugin::initialization() {
     responder = std::make_shared<EchoProbeResponder>(std::dynamic_pointer_cast<AbstractNIC>(nic));
 
 
-    injectionOptions = std::make_shared<po::options_description>("EchoProbe Initiator Options");
+    injectionOptions = std::make_shared<po::options_description>("EchoProbe Initiator Options", 120);
     injectionOptions->add_options()
             ("target-mac-address", po::value<std::string>(), "MAC address of the injection target [ magic Intel 00:16:ea:12:34:56 is default]")
             ("5300", "Both Destination and Source MAC addresses are set to 'magic Intel 00:16:ea:12:34:56'")
