@@ -35,7 +35,7 @@ void EchoProbePlugin::initialization() {
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
-    echoOptions = std::make_shared<po::options_description>("Echo Responder Options");
+    echoOptions = std::make_shared<po::options_description>("Echo Responder Options", 120);
     echoOptions->add_options()
             ("ack-type", po::value<std::string>(), "EchoProbe reply strategy [full, csi, extra, header], full as default")
             ("ack-mcs", po::value<uint32_t>(), "mcs value (for one single spatial stream) for ack packets [0-11], unspecified as default")
