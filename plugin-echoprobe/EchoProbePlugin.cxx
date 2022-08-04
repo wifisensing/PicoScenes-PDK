@@ -46,6 +46,7 @@ void EchoProbePlugin::initialization() {
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
             ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]")
+            ("random-mac", po::value<bool>()->default_value(false), "Random MAC address for Injector or Initiator")
             ("output", po::value<std::string>(), "Output CSI file name w/o .csi extension");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
@@ -96,6 +97,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             nic->startTxService();
         } else
             throw std::invalid_argument("Unsupported --mode option value by EchoProbe plugins.");
+    }
+
+    if (vm.count("random-mac")) {
+        parameters.randomMAC = vm["random-mac"].as<bool>();
     }
 
     if (vm.count("output")) {
