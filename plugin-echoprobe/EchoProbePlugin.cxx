@@ -46,6 +46,7 @@ void EchoProbePlugin::initialization() {
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
             ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]")
+            ("random-mac", po::value<bool>()->default_value(false), "Random MAC address for Injector or Initiator")
             ("output", po::value<std::string>(), "Output CSI file name w/o .csi extension");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
 }
