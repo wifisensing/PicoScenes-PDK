@@ -276,19 +276,11 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->addExtraInfo();
     }
 
-    auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
-    if (parameters.randomMAC) {
-        sourceAddr[0] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
-        sourceAddr[1] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
-    }
-    fp->setSourceAddress(sourceAddr.data());
+    fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
     fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
     fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
-        fp->setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-        fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         fp->setForceSounding(false);
         fp->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
@@ -381,7 +373,6 @@ std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
     return enumerateArbitraryCarrierFrequencies();
 }
 
-
 std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
@@ -397,7 +388,23 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
 
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
-
+    if(cf_step == 160e6) {
+        auto allFrequencies160 = std::vector<double>();
+        allFrequencies160.emplace_back(0);
+        auto band160 = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
+        for (auto i = 0; i < band160.size(); i++) {
+            if (std::get<1>(band160[i]) == 160)
+                allFrequencies160.emplace_back((double) std::get<2>(band160[i]) * 1000000);
+        }
+        for(auto i = 0; i < allFrequencies160.size(); i++){
+            if(allFrequencies160[i] >= cf_begin && allFrequencies160[i] <= cf_end ) {
+                auto temp = allFrequencies160[i];
+                if(std::find(frequencies.begin(),frequencies.end(),temp) == frequencies.end())
+                    frequencies.emplace_back(allFrequencies160[i]);
+            }
+        }
+        return frequencies;
+    }
     do {
         frequencies.emplace_back(cur_cf);
         cur_cf += cf_step;

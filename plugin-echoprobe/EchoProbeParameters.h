@@ -24,7 +24,6 @@ public:
     std::optional<uint32_t> delayed_start_seconds;
 
     std::optional<std::string> outputFileName;
-    bool randomMAC;
     EchoProbeInjectionContent injectorContent;
 
     std::optional<double> cf_begin;
