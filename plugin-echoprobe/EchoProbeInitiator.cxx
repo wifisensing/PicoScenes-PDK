@@ -389,19 +389,15 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
     if(cf_step == 160e6) {
-        auto allFrequencies160 = std::vector<double>();
-        allFrequencies160.emplace_back(0);
+        auto allFrequencies160 = std::set<double>();
         auto band160 = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
         for (auto i = 0; i < band160.size(); i++) {
             if (std::get<1>(band160[i]) == 160)
-                allFrequencies160.emplace_back((double) std::get<2>(band160[i]) * 1000000);
+                allFrequencies160.insert((double) std::get<2>(band160[i]) * 1000000);
         }
-        for(auto i = 0; i < allFrequencies160.size(); i++){
-            if(allFrequencies160[i] >= cf_begin && allFrequencies160[i] <= cf_end ) {
-                auto temp = allFrequencies160[i];
-                if(std::find(frequencies.begin(),frequencies.end(),temp) == frequencies.end())
-                    frequencies.emplace_back(allFrequencies160[i]);
-            }
+        for(auto freq : allFrequencies160){
+            if(freq >= cf_begin && freq <= cf_end )
+                frequencies.emplace_back(freq);
         }
         return frequencies;
     }
