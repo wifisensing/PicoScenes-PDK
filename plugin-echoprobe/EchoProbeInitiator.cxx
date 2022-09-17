@@ -378,6 +378,9 @@ std::vector<double> EchoProbeInitiator::enumerateArbitrarySamplingRates() {
 }
 
 std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
+    if (false && isIntelMVMTypeNIC(nic->getFrontEnd()->getFrontEndType())) {
+        return enumerateIntelMVMCarrierFrequencies();
+    }
     return enumerateArbitraryCarrierFrequencies();
 }
 
@@ -396,15 +399,15 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
 
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
-    if(cf_step == 160e6) {
+    if (cf_step == 160e6) {
         auto allFrequencies160 = std::set<double>();
         auto band160 = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
         for (auto i = 0; i < band160.size(); i++) {
             if (std::get<1>(band160[i]) == 160)
                 allFrequencies160.insert((double) std::get<2>(band160[i]) * 1000000);
         }
-        for(auto freq : allFrequencies160){
-            if(freq >= cf_begin && freq <= cf_end )
+        for (auto freq: allFrequencies160) {
+            if (freq >= cf_begin && freq <= cf_end)
                 frequencies.emplace_back(freq);
         }
         return frequencies;
@@ -415,6 +418,18 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
 
     return frequencies;
+}
+
+std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
+    auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
+    auto cf_end = parameters.cf_end.value_or(nic->getFrontEnd()->getCarrierFrequency());
+    auto cf_step = parameters.cf_step.value_or(20e6);
+    auto cur_cf = cf_begin;
+
+    auto frequencies = std::vector<double>{cur_cf};
+    auto availableChannels = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
+
+
 }
 
 static double closest(std::vector<double> const &vec, double value) {
