@@ -381,10 +381,20 @@ std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
     if (false && isIntelMVMTypeNIC(nic->getFrontEnd()->getFrontEndType())) {
         return enumerateIntelMVMCarrierFrequencies();
     }
-    return enumerateArbitraryCarrierFrequencies();
+    auto cf_step = parameters.cf_step.value_or(5e6);
+    std::vector<std::tuple<int, int, int>> allFrequencies;
+    if(cf_step == 160e6)
+        allFrequencies = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
+    else if(cf_step == 80e6)
+        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
+    else if(cf_step == 40e6)
+        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
+    else if(cf_step == 20e6)
+        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
+    return enumerateArbitraryCarrierFrequencies(allFrequencies);
 }
 
-std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
+std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies(std::vector<std::tuple<int, int, int>> allFrequencies) {
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
     auto cf_end = parameters.cf_end.value_or(nic->getFrontEnd()->getCarrierFrequency());
@@ -399,15 +409,15 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
 
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
-    if (cf_step == 160e6) {
-        auto allFrequencies160 = std::set<double>();
-        auto band160 = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
-        for (auto i = 0; i < band160.size(); i++) {
-            if (std::get<1>(band160[i]) == 160)
-                allFrequencies160.insert((double) std::get<2>(band160[i]) * 1000000);
+    
+    if(cf_step == 160e6 || cf_step == 40e6){
+        auto uniqueFrequencies = std::set<double>();
+        for (auto i = 0; i < allFrequencies.size(); i++) {
+            if (std::get<1>(allFrequencies[i]) == 160)
+                uniqueFrequencies.insert((double) std::get<2>(allFrequencies[i]) * 1000000);
         }
-        for (auto freq: allFrequencies160) {
-            if (freq >= cf_begin && freq <= cf_end)
+        for(auto freq : uniqueFrequencies){
+            if(freq >= cf_begin && freq <= cf_end )
                 frequencies.emplace_back(freq);
         }
         return frequencies;
