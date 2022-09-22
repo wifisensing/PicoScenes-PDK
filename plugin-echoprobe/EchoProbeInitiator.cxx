@@ -276,7 +276,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
             fp->addExtraInfo();
     }
 
-    auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
+    auto sourceAddr = PicoScenesFrameBuilder::magicIntel123456;
     if (parameters.randomMAC) {
         sourceAddr[0] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
         sourceAddr[1] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
@@ -381,20 +381,10 @@ std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
     if (false && isIntelMVMTypeNIC(nic->getFrontEnd()->getFrontEndType())) {
         return enumerateIntelMVMCarrierFrequencies();
     }
-    auto cf_step = parameters.cf_step.value_or(5e6);
-    std::vector<std::tuple<int, int, int>> allFrequencies;
-    if(cf_step == 160e6)
-        allFrequencies = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
-    else if(cf_step == 80e6)
-        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
-    else if(cf_step == 40e6)
-        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
-    else if(cf_step == 20e6)
-        allFrequencies = MAC80211FrontEndUtils::standard2_4_5GHzbandChannelsUpTo40MHzBW();
-    return enumerateArbitraryCarrierFrequencies(allFrequencies);
+    return enumerateArbitraryCarrierFrequencies();
 }
 
-std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies(std::vector<std::tuple<int, int, int>> allFrequencies) {
+std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     auto frequencies = std::vector<double>();
     auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
     auto cf_end = parameters.cf_end.value_or(nic->getFrontEnd()->getCarrierFrequency());
@@ -410,18 +400,6 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies(std
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
     
-    if(cf_step == 160e6 || cf_step == 40e6){
-        auto uniqueFrequencies = std::set<double>();
-        for (auto i = 0; i < allFrequencies.size(); i++) {
-            if (std::get<1>(allFrequencies[i]) == 160)
-                uniqueFrequencies.insert((double) std::get<2>(allFrequencies[i]) * 1000000);
-        }
-        for(auto freq : uniqueFrequencies){
-            if(freq >= cf_begin && freq <= cf_end )
-                frequencies.emplace_back(freq);
-        }
-        return frequencies;
-    }
     do {
         frequencies.emplace_back(cur_cf);
         cur_cf += cf_step;
@@ -434,12 +412,21 @@ std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
     auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
     auto cf_end = parameters.cf_end.value_or(nic->getFrontEnd()->getCarrierFrequency());
     auto cf_step = parameters.cf_step.value_or(20e6);
-    auto cur_cf = cf_begin;
 
-    auto frequencies = std::vector<double>{cur_cf};
+    auto frequencies = std::vector<double>();
     auto availableChannels = MAC80211FrontEndUtils::standardChannelsIn2_4_5_6GHzBandUpTo160MHzBW();
+    auto uniqueFrequencies = std::set<double>();
+    cf_step /= 1e6;
+    for (auto i = 0; i < availableChannels.size(); i++) {
+        if (std::get<1>(availableChannels[i]) == cf_step)
+            uniqueFrequencies.insert((double) std::get<2>(availableChannels[i]) * 1e6);
+    }
+    for(auto freq : uniqueFrequencies){
+        if(freq >= cf_begin && freq <= cf_end )
+            frequencies.emplace_back(freq);
+    }
 
-
+    return frequencies;
 }
 
 static double closest(std::vector<double> const &vec, double value) {
