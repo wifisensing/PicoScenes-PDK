@@ -45,6 +45,7 @@ private:
     EchoProbeRequest makeRequestSegment(uint16_t sessionId, std::optional<double> newCF = std::nullopt, std::optional<double> newSF = std::nullopt);
 
 
+    std::vector<double> enumerateIntelMVMCarrierFrequencies();
 };
 
 #endif //PICOSCENES_ECHOPROBEINITIATOR_H
