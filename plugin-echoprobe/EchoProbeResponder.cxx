@@ -27,7 +27,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegmentMap.at("EchoProbeRequest");
-    auto epSegment = EchoProbeRequestSegment::createByBuffer(&epBuffer[0], epBuffer.size());
+    auto epSegment = EchoProbeRequestSegment(&epBuffer[0], epBuffer.size());
     auto buffer = rxframe.toBuffer();
     if (!parameters.outputFileName) {
         auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);

@@ -196,11 +196,10 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
         if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
-            timeGap = std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count() / 1000.0;
+            timeGap = double(std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count()) / 1000.0;
             responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
             const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
-            EchoProbeReplySegment replySeg;
-            replySeg.fromBuffer(&replySegBytes[0], replySegBytes.size());
+            EchoProbeReplySegment replySeg(&replySegBytes[0], replySegBytes.size());
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader || replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
                 if (LoggingService::localDisplayLevel <= Debug) {
                     LoggingService::debug_printf("Round-trip delay %.3fms, only header", timeGap);
@@ -211,7 +210,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
                 const auto payloadName = replySeg.getEchoProbeReply().payloadName;
                 auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const PayloadSegment &payloadSegment) {
-                    return payloadSegment.getPayload().payloadDescription == payloadName;
+                    return payloadSegment.getPayloadData().payloadDescription == payloadName;
                 });
                 if (foundIt != replyFrame->payloadSegments.cend()) {
                     LoggingService::debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
@@ -222,10 +221,10 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
                 const auto payloadName = replySeg.getEchoProbeReply().payloadName;
                 auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const PayloadSegment &payloadSegment) {
-                    return payloadSegment.getPayload().payloadDescription == payloadName;
+                    return payloadSegment.getPayloadData().payloadDescription == payloadName;
                 });
                 if (foundIt != replyFrame->payloadSegments.cend()) {
-                    if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->getPayload().payloadData.data(), foundIt->getPayload().payloadData.size())) {
+                    if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->getPayloadData().payloadData.data(), foundIt->getPayloadData().payloadData.size())) {
                         if (LoggingService::localDisplayLevel <= Debug) {
                             LoggingService::debug_print("Raw ACK: {}\n", *replyFrame);
                             LoggingService::debug_print("ACKed Tx: {}\n", *ackFrame);
@@ -399,7 +398,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
 
     if (cf_end > cf_begin && cf_step < 0)
         throw std::invalid_argument("cf_step < 0, however cf_end > cf_begin.\n");
-    
+
     do {
         frequencies.emplace_back(cur_cf);
         cur_cf += cf_step;
@@ -421,8 +420,8 @@ std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
         if (std::get<1>(availableChannels[i]) == cf_step)
             uniqueFrequencies.insert((double) std::get<2>(availableChannels[i]) * 1e6);
     }
-    for(auto freq : uniqueFrequencies){
-        if(freq >= cf_begin && freq <= cf_end )
+    for (auto freq: uniqueFrequencies) {
+        if (freq >= cf_begin && freq <= cf_end)
             frequencies.emplace_back(freq);
     }
 
