@@ -198,8 +198,10 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
             timeGap = double(std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count()) / 1000.0;
             responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
-            const auto &replySegBytes = replyFrame->txUnknownSegmentMap.at("EchoProbeReply");
-            EchoProbeReplySegment replySeg(&replySegBytes[0], replySegBytes.size());
+            const auto &replySegBytes = *std::find_if(replyFrame->txUnkownSegments.begin(), replyFrame->txUnkownSegments.end(), [](const AbstractPicoScenesFrameSegment &segment) {
+                return segment.segmentName == "EchoProbeReply";
+            });
+            EchoProbeReplySegment replySeg(replySegBytes.rawBuffer.data(), replySegBytes.rawBuffer.size());
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader || replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
                 if (LoggingService::localDisplayLevel <= Debug) {
                     LoggingService::debug_printf("Round-trip delay %.3fms, only header", timeGap);

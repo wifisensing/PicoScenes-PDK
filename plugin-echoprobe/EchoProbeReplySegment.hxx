@@ -30,6 +30,8 @@ public:
 
     EchoProbeReplySegment(const EchoProbeReply &reply);
 
+    EchoProbeReplySegment(const AbstractPicoScenesFrameSegment &basicSegment);
+
     EchoProbeReplySegment(const uint8_t *buffer, uint32_t bufferLength);
 
     const EchoProbeReply &getEchoProbeReply() const;
