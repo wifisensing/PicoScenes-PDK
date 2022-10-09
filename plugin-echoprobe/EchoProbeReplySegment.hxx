@@ -30,9 +30,9 @@ public:
 
     EchoProbeReplySegment(const EchoProbeReply &reply);
 
-    void fromBuffer(const uint8_t *buffer, uint32_t bufferLength) override;
+    EchoProbeReplySegment(const AbstractPicoScenesFrameSegment &basicSegment);
 
-    std::vector<uint8_t> toBuffer() const override;
+    EchoProbeReplySegment(const uint8_t *buffer, uint32_t bufferLength);
 
     const EchoProbeReply &getEchoProbeReply() const;
 

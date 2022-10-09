@@ -56,6 +56,10 @@ static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoP
     return r;
 };
 
+std::vector<uint8_t> EchoProbeRequest::toBuffer() {
+    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(EchoProbeRequest));
+}
+
 std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> EchoProbeRequestSegment::versionedSolutionMap = initializeSolutionMap();
 
 std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> EchoProbeRequestSegment::initializeSolutionMap() noexcept {
@@ -67,47 +71,23 @@ std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> E
 EchoProbeRequestSegment::EchoProbeRequestSegment() : AbstractPicoScenesFrameSegment("EchoProbeRequest", 0x1U) {}
 
 EchoProbeRequestSegment::EchoProbeRequestSegment(const EchoProbeRequest &echoProbeRequestV) : EchoProbeRequestSegment() {
-//    echoProbeRequest = echoProbeRequestV;
     setEchoProbeRequest(echoProbeRequestV);
 }
 
-void EchoProbeRequestSegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
-    auto[segmentName, segmentLength, versionId, offset] = extractSegmentMetaData(buffer, bufferLength);
+EchoProbeRequestSegment::EchoProbeRequestSegment(const uint8_t *buffer, uint32_t bufferLength) : AbstractPicoScenesFrameSegment(buffer, bufferLength) {
     if (segmentName != "EchoProbeRequest")
         throw std::runtime_error("EchoProbeRequestSegment cannot parse the segment named " + segmentName + ".");
-    if (segmentLength + 4 > bufferLength)
-        throw std::underflow_error("EchoProbeRequestSegment cannot parse the segment with less than " + std::to_string(segmentLength + 4) + "B.");
-    if (!versionedSolutionMap.contains(versionId)) {
-        throw std::runtime_error("EchoProbeRequestSegment cannot parse the segment with version v" + std::to_string(versionId) + ".");
-    }
+    if (!versionedSolutionMap.contains(segmentVersionId))
+        throw std::runtime_error("EchoProbeRequestSegment cannot parse the segment with version v" + std::to_string(segmentVersionId) + ".");
 
-    echoProbeRequest = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
-    rawBuffer.resize(bufferLength);
-    std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
-    this->segmentLength = rawBuffer.size() - 4;
-    successfullyDecoded = true;
-}
-
-EchoProbeRequestSegment EchoProbeRequestSegment::createByBuffer(const uint8_t *buffer, uint32_t bufferLength) {
-    auto seg = EchoProbeRequestSegment();
-    seg.fromBuffer(buffer, bufferLength);
-    return seg;
-}
-
-std::vector<uint8_t> EchoProbeRequestSegment::toBuffer() const {
-    return AbstractPicoScenesFrameSegment::toBuffer(true);
+    echoProbeRequest = versionedSolutionMap.at(segmentVersionId)(segmentPayload.data(), segmentPayload.size());
 }
 
 void EchoProbeRequestSegment::setEchoProbeRequest(const EchoProbeRequest &probeRequest) {
     echoProbeRequest = probeRequest;
-    clearFieldCache();
-    addField("epr", echoProbeRequest.toBuffer());
+    setSegmentPayload(echoProbeRequest.toBuffer());
 }
 
 const EchoProbeRequest &EchoProbeRequestSegment::getEchoProbeRequest() const {
     return echoProbeRequest;
-}
-
-std::vector<uint8_t> EchoProbeRequest::toBuffer() {
-    return std::vector<uint8_t>((uint8_t *) this, (uint8_t *) this + sizeof(EchoProbeRequest));
 }

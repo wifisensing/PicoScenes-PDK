@@ -10,7 +10,7 @@
 #include <PicoScenes/PicoScenesCommons.hxx>
 #include <PicoScenes/AbstractPicoScenesFrameSegment.hxx>
 
-enum class EchoProbeReplyStrategy: uint8_t {
+enum class EchoProbeReplyStrategy : uint8_t {
     ReplyOnlyHeader = 0,
     ReplyWithExtraInfo,
     ReplyWithCSI,
@@ -38,17 +38,12 @@ public:
 
     explicit EchoProbeRequestSegment(const EchoProbeRequest &echoProbeRequest);
 
-    static EchoProbeRequestSegment createByBuffer(const uint8_t *buffer, uint32_t bufferLength);
-
-    void fromBuffer(const uint8_t *buffer, uint32_t bufferLength) override;
-
-
-    std::vector<uint8_t> toBuffer() const override;
+    EchoProbeRequestSegment(const uint8_t *buffer, uint32_t bufferLength);
 
 //    EchoProbeRequest echoProbeRequest;
     const EchoProbeRequest &getEchoProbeRequest() const;
 
-    void setEchoProbeRequest(const EchoProbeRequest & probeRequest);
+    void setEchoProbeRequest(const EchoProbeRequest &probeRequest);
 
 private:
     static std::map<uint16_t, std::function<EchoProbeRequest(const uint8_t *, uint32_t)>> versionedSolutionMap;

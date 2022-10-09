@@ -57,25 +57,13 @@ EchoProbeReplySegment::EchoProbeReplySegment(const EchoProbeReply &reply) : Echo
     setEchoProbeReply(reply);
 }
 
-void EchoProbeReplySegment::fromBuffer(const uint8_t *buffer, uint32_t bufferLength) {
-    auto[segmentName, segmentLength, versionId, offset] = extractSegmentMetaData(buffer, bufferLength);
+EchoProbeReplySegment::EchoProbeReplySegment(const uint8_t *buffer, uint32_t bufferLength) : AbstractPicoScenesFrameSegment(buffer, bufferLength) {
     if (segmentName != "EchoProbeReply")
         throw std::runtime_error("EchoProbeReplySegment cannot parse the segment named " + segmentName + ".");
-    if (segmentLength + 4 > bufferLength)
-        throw std::underflow_error("EchoProbeReplySegment cannot parse the segment with less than " + std::to_string(segmentLength + 4) + "B.");
-    if (!versionedSolutionMap.contains(versionId)) {
-        throw std::runtime_error("EchoProbeReplySegment cannot parse the segment with version v" + std::to_string(versionId) + ".");
-    }
+    if (!versionedSolutionMap.contains(segmentVersionId))
+        throw std::runtime_error("EchoProbeReplySegment cannot parse the segment with version v" + std::to_string(segmentVersionId) + ".");
 
-    echoProbeReply = versionedSolutionMap.at(versionId)(buffer + offset, bufferLength - offset);
-    rawBuffer.resize(bufferLength);
-    std::copy(buffer, buffer + bufferLength, rawBuffer.begin());
-    this->segmentLength = segmentLength;
-    successfullyDecoded = true;
-}
-
-std::vector<uint8_t> EchoProbeReplySegment::toBuffer() const {
-    return AbstractPicoScenesFrameSegment::toBuffer(true);
+    echoProbeReply = versionedSolutionMap.at(segmentVersionId)(segmentPayload.data(), segmentPayload.size());
 }
 
 const EchoProbeReply &EchoProbeReplySegment::getEchoProbeReply() const {
@@ -84,6 +72,5 @@ const EchoProbeReply &EchoProbeReplySegment::getEchoProbeReply() const {
 
 void EchoProbeReplySegment::setEchoProbeReply(const EchoProbeReply &probeReply) {
     echoProbeReply = probeReply;
-    clearFieldCache();
-    addField("core", probeReply.toBuffer());
+    setSegmentPayload(probeReply.toBuffer());
 }
