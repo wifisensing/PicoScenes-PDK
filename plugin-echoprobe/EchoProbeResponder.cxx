@@ -83,7 +83,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const Modula
         return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
     }
 
-    return std::vector<PicoScenesFrameBuilder>();
+    return std::vector<PicoScenesFrameBuilder>{};
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
