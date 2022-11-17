@@ -22,14 +22,11 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequestFrameType && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequestFrameType))
         return;
 
-    const auto requestIt = std::find_if(rxframe.txUnkownSegments.begin(), rxframe.txUnkownSegments.end(), [](const AbstractPicoScenesFrameSegment &segment) {
-        return segment.segmentName == "EchoProbeRequest";
-    });
-    if (requestIt == rxframe.txUnkownSegments.end())
+    if (!rxframe.txUnknownSegments.contains("EchoProbeRequest"))
         return;
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
-    const auto &epBuffer = *requestIt;
+    const auto &epBuffer = rxframe.txUnknownSegments.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment(epBuffer.rawBuffer.data(), epBuffer.rawBuffer.size());
     auto buffer = rxframe.toBuffer();
     if (!parameters.outputFileName) {
