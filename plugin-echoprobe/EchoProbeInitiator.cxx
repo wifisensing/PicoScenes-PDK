@@ -2,12 +2,14 @@
 // Created by Zhiping Jiang on 10/27/17.
 //
 
+#include <PicoScenes/LicenseService.hxx>
 #include <PicoScenes/SystemTools.hxx>
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 #include "EchoProbeInitiator.h"
 #include "EchoProbeReplySegment.hxx"
 #include "EchoProbeRequestSegment.hxx"
 
+std::optional<std::chrono::system_clock::time_point> lastTxTime;
 
 void EchoProbeInitiator::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
@@ -188,8 +190,23 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
             totalTimeOut += 50;
 
-        auto tx_time = std::chrono::system_clock::now();
+        /*
+         * This section is to prevent direct crash of PicoScenes.
+         */
+        if (uint8_t(frameBuilder->getFrame()->txParameters.cbw) > 40 && (nic->getDeviceType() == PicoScenesDeviceType::IWLMVM_AX200 || nic->getDeviceType() == PicoScenesDeviceType::IWLMVM_AX210)) {
+            do {
+                auto txFreq = 0;
+                if (lastTxTime) {
+                    txFreq = std::abs(1e9 / std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - lastTxTime).count());
+                }
+                if (!License::LicenseService::getInstance()->testFeatureValue(License::FeatureNaming::MVM_TxMaxRate4CBW80N160, txFreq)) {
+                    std::this_thread::sleep_for(5ms);
+                } else
+                    break;
+            } while (true);
+        }
         frameBuilder->transmit();
+        lastTxTime = std::chrono::system_clock::now();
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
