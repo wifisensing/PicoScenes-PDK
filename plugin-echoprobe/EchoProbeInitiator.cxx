@@ -197,7 +197,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             do {
                 auto txFreq = 0;
                 if (lastTxTime) {
-                    txFreq = std::abs(1e9 / std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - lastTxTime).count());
+                    txFreq = std::abs(1e9 / std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - *lastTxTime).count());
                 }
                 if (!License::LicenseService::getInstance()->testFeatureValue(License::FeatureNaming::MVM_TxMaxRate4CBW80N160, txFreq)) {
                     std::this_thread::sleep_for(5ms);
