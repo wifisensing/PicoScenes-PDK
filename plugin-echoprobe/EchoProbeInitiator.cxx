@@ -212,7 +212,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
 
         if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
-            auto delayDuration = std::chrono::system_clock::now() - tx_time;
+            auto delayDuration = std::chrono::system_clock::now() - *lastTxTime;
             timeGap = double(std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count()) / 1000.0;
             responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
             const auto echoProbeReplySegment = replyFrame->txUnknownSegments.at("EchoProbeReply");
