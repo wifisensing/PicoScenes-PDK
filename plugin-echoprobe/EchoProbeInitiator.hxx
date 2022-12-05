@@ -11,7 +11,7 @@
 #include <PicoScenes/AbstractSDRFrontEnd.hxx>
 #include <PicoScenes/RXSDumper.h>
 #include "EchoProbe.hxx"
-#include "EchoProbeParameters.h"
+#include "EchoProbeParameters.hxx"
 
 
 class EchoProbeInitiator {

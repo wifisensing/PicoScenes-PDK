@@ -3,7 +3,7 @@
 //
 
 
-#include "EchoProbeParameters.h"
+#include "EchoProbeParameters.hxx"
 
 EchoProbeParameters::EchoProbeParameters() {
     inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;

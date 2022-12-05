@@ -8,7 +8,7 @@
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include "EchoProbeInitiator.hxx"
 #include "EchoProbeResponder.hxx"
-#include "EchoProbeParameters.h"
+#include "EchoProbeParameters.hxx"
 
 class EchoProbePlugin : public AbstractPicoScenesPlugin {
 public:
