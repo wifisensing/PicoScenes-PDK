@@ -3,7 +3,7 @@
 //
 
 #include <boost/algorithm/string/predicate.hpp>
-#include "EchoProbePlugin.h"
+#include "EchoProbePlugin.hxx"
 
 
 std::string EchoProbePlugin::getPluginName() {

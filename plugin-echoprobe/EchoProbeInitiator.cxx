@@ -4,7 +4,7 @@
 
 #include <PicoScenes/SystemTools.hxx>
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
-#include "EchoProbeInitiator.h"
+#include "EchoProbeInitiator.hxx"
 #include "EchoProbeReplySegment.hxx"
 #include "EchoProbeRequestSegment.hxx"
 
@@ -182,7 +182,6 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         auto totalTimeOut = timeout_us_scaling * *parameters.timeout_ms;
         if (nic->getDeviceType() == PicoScenesDeviceType::USRP) {
             totalTimeOut += 50;
-            nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->resetRxBuffer();
         }
 
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
