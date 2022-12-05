@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <optional>
 #include <PicoScenes/PicoScenesFrameBuilder.hxx>
-#include "EchoProbe.h"
+#include "EchoProbe.hxx"
 #include "EchoProbeRequestSegment.hxx"
 
 class EchoProbeParameters {

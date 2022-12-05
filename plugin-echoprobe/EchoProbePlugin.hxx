@@ -6,8 +6,8 @@
 #define PICOSCENES_ECHOPROBEPLUGIN_H
 
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
-#include "EchoProbeInitiator.h"
-#include "EchoProbeResponder.h"
+#include "EchoProbeInitiator.hxx"
+#include "EchoProbeResponder.hxx"
 #include "EchoProbeParameters.h"
 
 class EchoProbePlugin : public AbstractPicoScenesPlugin {

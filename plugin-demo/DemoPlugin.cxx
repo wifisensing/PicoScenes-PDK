@@ -2,7 +2,7 @@
 // Created by Zhiping Jiang on 10/20/17.
 //
 
-#include "DemoPlugin.h"
+#include "DemoPlugin.hxx"
 
 std::string DemoPlugin::getPluginName() {
     return "PicoScenes Demo Plugin";

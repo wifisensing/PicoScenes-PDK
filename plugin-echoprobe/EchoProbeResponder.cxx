@@ -3,7 +3,7 @@
 //
 
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
-#include "EchoProbeResponder.h"
+#include "EchoProbeResponder.hxx"
 #include "EchoProbeReplySegment.hxx"
 
 void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {

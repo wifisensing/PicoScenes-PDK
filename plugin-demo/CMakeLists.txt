@@ -1,5 +1,5 @@
 # The PicoScenes Plugins MUST be named in "PDK-xxx" pattern.
-ADD_LIBRARY(PDK-demo SHARED DemoPlugin.cpp)
+ADD_LIBRARY(PDK-demo SHARED DemoPlugin.cxx)
 if (APPLE)
     TARGET_LINK_LIBRARIES(PDK-demo Utilities fmt::fmt-header-only EnhancedConsoleText ${Boost_LIBRARIES})
 else ()
