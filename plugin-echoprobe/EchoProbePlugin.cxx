@@ -113,7 +113,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         std::vector<std::string> eachHexs;
         boost::split(eachHexs, macAddressString, boost::is_any_of(":-"), boost::token_compress_on);
         if (eachHexs.size() != 6)
-            LoggingService::warning_print("[target-mac-address] Specified mac address has wrong number of digits.\n");
+            LoggingService_warning_print("[target-mac-address] Specified mac address has wrong number of digits.\n");
         else {
             std::array<uint8_t, 6> address = {0};
             for (auto i = 0; i < eachHexs.size() && i < 6; i++) {
@@ -154,7 +154,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.sf_end = boost::lexical_cast<double>(rangeParts[2]);
 
         if (nic->getDeviceType() == PicoScenesDeviceType::IWL5300) {
-            LoggingService::warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
+            LoggingService_warning_print("Intel 5300 NIC does not support sampling rate configuration.\n");
             parameters.sf_begin = 0;
             parameters.sf_step = 0;
             parameters.sf_end = 0;
