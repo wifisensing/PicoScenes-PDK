@@ -35,6 +35,6 @@ void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
 
     if (vm.count("option1")) {
         auto option1Value = vm["option1"].as<uint32_t>();
-        LoggingService::info_print("Demo Plugin: option1={}.\n", int(option1Value));
+        LoggingService_info_print("Demo Plugin: option1={}.\n", int(option1Value));
     }
 }
