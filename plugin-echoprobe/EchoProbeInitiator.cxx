@@ -128,8 +128,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         total_acked_count++;
                         mean_delay_single += rtDelay / cf_repeat;
                         total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        auto frameBuffer = rxframe->toBuffer();
-                        RXSDumper::getInstance(dumperId).dumpRXS(frameBuffer.data(), frameBuffer.size());
+                        FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
                         LoggingService_detail_print("TaskId {} done!\n", int(rxframe->PicoScenesHeader->taskId));
                         printDots(acked_count);
                         SystemTools::Time::delay_periodic(parameters.tx_delay_us);
@@ -147,11 +146,11 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 LoggingService_info_printf("EchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.\n", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
         }
 
-        RXSDumper::getInstance(dumperId).finishCurrentSession();
+        FrameDumper::getInstance(dumperId)->finishCurrentSession();
         continue;
 
         failed:
-        RXSDumper::getInstance(dumperId).finishCurrentSession();
+        FrameDumper::getInstance(dumperId)->finishCurrentSession();
         break;
     }
 

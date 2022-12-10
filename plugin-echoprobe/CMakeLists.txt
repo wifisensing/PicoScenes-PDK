@@ -1,7 +1,3 @@
 ADD_LIBRARY(PDK-EchoProbe SHARED EchoProbePlugin.cxx EchoProbeParameters.cxx EchoProbeInitiator.cxx EchoProbeResponder.cxx EchoProbeRequestSegment.cxx EchoProbeReplySegment.cxx)
-if (APPLE)
-    TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL Utilities fmt::fmt-header-only EnhancedConsoleText rxs_parsing ${Boost_LIBRARIES} FrontEnd)
-else ()
-    TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL ${Boost_LIBRARIES} FrontEnd)
-endif ()
+TARGET_LINK_LIBRARIES(PDK-EchoProbe NICHAL)
 install(TARGETS PDK-EchoProbe DESTINATION ${INSTALL_PLUGIN_DIR})

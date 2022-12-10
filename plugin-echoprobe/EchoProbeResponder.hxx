@@ -6,7 +6,7 @@
 #define PICOSCENES_ECHOPROBERESPONDER_H
 
 #include <PicoScenes/AbstractNIC.hxx>
-#include <PicoScenes/RXSDumper.h>
+#include <PicoScenes/FrameDumper.hxx>
 #include "EchoProbe.hxx"
 #include "EchoProbeParameters.h"
 #include "EchoProbeRequestSegment.hxx"

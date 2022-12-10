@@ -11,11 +11,10 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
 
     if (parameters.workingMode == MODE_Logger) {
-        auto buffer = rxframe.toBuffer();
         if (!parameters.outputFileName)
-            RXSDumper::getInstance("rx_" + nic->getReferredInterfaceName()).dumpRXS(buffer.data(), buffer.size());
+            FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
         else
-            RXSDumper::getInstance(*parameters.outputFileName).dumpRXS(buffer.data(), buffer.size());
+            FrameDumper::getInstance(*parameters.outputFileName)->dumpRxFrame(rxframe);
         return;
     }
 
@@ -28,12 +27,11 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegments.at("EchoProbeRequest");
     auto epSegment = EchoProbeRequestSegment(epBuffer.rawBuffer.data(), epBuffer.rawBuffer.size());
-    auto buffer = rxframe.toBuffer();
     if (!parameters.outputFileName) {
         auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);
-        RXSDumper::getInstance(dumpId).dumpRXS(buffer.data(), buffer.size());
+        FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
     } else
-        RXSDumper::getInstance(*parameters.outputFileName).dumpRXS(buffer.data(), buffer.size());
+        FrameDumper::getInstance(*parameters.outputFileName)->dumpRxFrame(rxframe);
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());

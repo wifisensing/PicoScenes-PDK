@@ -53,6 +53,6 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
     if (destinationIP && destinationPort) {
         auto frameBuffer = rxframe.toBuffer();
-        UDPService::getInstance("Forwarder" + *destinationIP + std::to_string(*destinationPort))->sendData(frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
+        SystemTools::Net::udpSendData("Forwarder" + *destinationIP + std::to_string(*destinationPort), frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
     }
 }

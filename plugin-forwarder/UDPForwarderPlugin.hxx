@@ -6,7 +6,7 @@
 #define PICOSCENES_RXSBROADCASTPLUGIN_H
 
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
-#include <PicoScenes/UDPService.hxx>
+#include <PicoScenes/SystemTools.hxx>
 
 
 class UDPForwarderPlugin : public AbstractPicoScenesPlugin {

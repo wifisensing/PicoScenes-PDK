@@ -9,7 +9,7 @@
 #include <shared_mutex>
 #include <PicoScenes/AbstractNIC.hxx>
 #include <PicoScenes/AbstractSDRFrontEnd.hxx>
-#include <PicoScenes/RXSDumper.h>
+#include <PicoScenes/FrameDumper.hxx>
 #include "EchoProbe.hxx"
 #include "EchoProbeParameters.h"
 
