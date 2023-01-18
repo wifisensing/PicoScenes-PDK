@@ -14,7 +14,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         if (!parameters.outputFileName)
             FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
         else
-            FrameDumper::getInstance(*parameters.outputFileName)->dumpRxFrame(rxframe);
+            FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe);
         return;
     }
 
@@ -31,7 +31,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);
         FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
     } else
-        FrameDumper::getInstance(*parameters.outputFileName)->dumpRxFrame(rxframe);
+        FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe);
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());

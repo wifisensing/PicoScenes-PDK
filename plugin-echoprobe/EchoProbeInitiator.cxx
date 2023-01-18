@@ -128,7 +128,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         total_acked_count++;
                         mean_delay_single += rtDelay / cf_repeat;
                         total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
+                        if (parameters.outputFileName)
+                            FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
+                        else
+                            FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
                         LoggingService_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
                         printDots(acked_count);
                         SystemTools::Time::delay_periodic(parameters.tx_delay_us);
