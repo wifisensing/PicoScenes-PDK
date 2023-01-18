@@ -36,8 +36,6 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     for (const auto &sf_value: sfList) {
         auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
-        if (parameters.outputFileName)
-            dumperId = *parameters.outputFileName;
         for (const auto &cf_value: cfList) {
             if (workingMode == MODE_Injector) {
                 if (sf_value != frontEnd->getSamplingRate()) {
