@@ -20,10 +20,10 @@ if (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fno-stack-check")
 endif ()
 
-# boost
 find_package(Boost COMPONENTS filesystem system thread program_options regex REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 find_package(fmt REQUIRED)
+add_definitions(-DFMT_DEPRECATED_OSTREAM)
 
 # make plug-ins
 add_subdirectory(plugin-demo)
