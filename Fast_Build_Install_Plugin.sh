@@ -11,7 +11,6 @@ elif [ $(uname) = Darwin ]; then
     ncpu=$(sysctl -n hw.ncpu)
 fi
 
-
 if [ ! -d $scriptDir/build ]; then
     mkdir $scriptDir/build
 else
