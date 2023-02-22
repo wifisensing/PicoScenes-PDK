@@ -2,9 +2,27 @@
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-sudo apt purge picoscenes-plugins-demo-echoprobe-forwarder -y
+if [ $(uname) = Linux ]; then
+    scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    ncpu=$(nproc)
+    sudo apt purge picoscenes-plugins-demo-echoprobe-forwarder -y
+elif [ $(uname) = Darwin ]; then
+    scriptDir=$(cd "$(dirname "$0")"; pwd)
+    ncpu=$(sysctl -n hw.ncpu)
+fi
 
-cd $scriptDir && rm -rf $scriptDir/build && mkdir $scriptDir/build && cd $scriptDir/build
-cmake .. && make package -j`nproc`
 
-cd $scriptDir/build && sudo dpkg -i ./picoscenes*.deb
+if [ ! -d $scriptDir/build ]; then
+    mkdir $scriptDir/build
+else
+    rm -rf $scriptDir/build/*.deb 2>/dev/null
+fi
+
+cd $scriptDir/build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --target all -j$ncpu
+
+if [ $(uname) = Linux ]; then
+    cpack
+    cd $scriptDir/build && sudo dpkg -i ./picoscenes*.deb
+fi
