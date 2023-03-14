@@ -243,7 +243,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
          * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
          * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
          */
-        fp->setTxParameters(nic->getUserSpecifiedTxParameters());
+        fp->setTxParameters(nic->getUserSpecifiedTxParameters()).setNDPFrame();
         return fp;
     } else {
         fp->makeFrame_HeaderOnly();
