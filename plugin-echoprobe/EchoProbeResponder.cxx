@@ -70,10 +70,6 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
 void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
-    if (isSDR(nic->getDeviceType())) {
-        LoggingService_Plugin_debug_print("Establishing noise floor...");
-        std::this_thread::sleep_for(5s);
-    }
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
