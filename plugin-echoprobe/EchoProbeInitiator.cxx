@@ -130,7 +130,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
                         else
                             FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
-                        LoggingService_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
+                        LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
                         printDots(acked_count);
                         SystemTools::Time::delay_periodic(parameters.tx_delay_us);
                     } else {
