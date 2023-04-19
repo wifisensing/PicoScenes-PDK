@@ -35,10 +35,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
-        for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
-            for (auto &reply: replies) {
-                reply.transmit();
-            }
+        for (auto &reply: replies) {
+            reply.transmit();
         }
     }
 
@@ -60,10 +58,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         }
 
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
-        for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
-            for (auto &reply: replies) {
-                reply.transmit();
-            }
+        for (auto &reply: replies) {
+            reply.transmit();
         }
     }
 }
@@ -95,7 +91,13 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.payloadName = "EchoProbeReplyFull";
         frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+        if (rxframe.basebandSignalSegment) {
+            auto copied = rxframe;
+            copied.basebandSignalSegment = std::nullopt;
+            copied.preEQSymbolsSegment = std::nullopt;
+            frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+        } else
+            frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
         frameBuilder.addExtraInfo();
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
