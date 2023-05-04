@@ -1,7 +1,5 @@
 #!/bin/bash
 
-scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
 if [ $(uname) = Linux ]; then
     scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
     ncpu=$(nproc)
