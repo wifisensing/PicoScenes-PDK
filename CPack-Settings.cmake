@@ -8,7 +8,7 @@ set(CPACK_STRIP_FILES true)
 
 if(APPLE)
     set(CPACK_GENERATOR "productbuild")
-	set(CPACK_COMPONENTS_ALL Unspecified)
+	set(CPACK_COMPONENTS_ALL Unspecified) # Must be Unspecified, or else empty .pkg content
 else()
     if(${PICOSCENES_PLATFORM_VERSION})
         message(STATUS "Use given PICOSCENES_PLATFORM_VERSION=${PICOSCENES_PLATFORM_VERSION}")
