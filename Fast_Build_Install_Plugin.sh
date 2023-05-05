@@ -18,8 +18,8 @@ fi
 cd $scriptDir/build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . --target all -j$ncpu
+cpack
 
 if [ $(uname) = Linux ]; then
-    cpack
     cd $scriptDir/build && sudo dpkg -i ./picoscenes*.deb
 fi

@@ -31,6 +31,4 @@ add_subdirectory(plugin-echoprobe)
 add_subdirectory(plugin-forwarder)
 
 # include CPack settings
-if (UNIX AND NOT APPLE)
-    include(CPack-Settings.txt)
-endif()
+include(CPack-Settings.cmake)
