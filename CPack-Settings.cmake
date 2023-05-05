@@ -4,6 +4,7 @@ include(CPack-AutoVersioning.cmake)
 set(CPACK_PACKAGE_NAME "picoscenes-plugins-demo-echoprobe-forwarder")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Three Sample Plugins of PicoScenes System \n The plug-ins are: EchoProbe, ms-level round-trip CSI measurement in UWB spectrum; UDP-Forwarder, forwards received frames to the remote via UDP; and Demo, a basic sample code of PicoScenes Plug-In Development Kit (PSPDK). For more information, please visit https://ps.zpj.io. \n\n Wanna see which components are upgraded in this release? Check it out at <https://zpj.io/PicoScenes/pdk-changelog>.")
 set(CPACK_PACKAGE_CONTACT "zpj@xidian.edu.cn")
+set(CPACK_STRIP_FILES true)
 
 if(APPLE)
     set(CPACK_GENERATOR "productbuild")
