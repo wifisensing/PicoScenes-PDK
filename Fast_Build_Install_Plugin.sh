@@ -1,7 +1,5 @@
 #!/bin/bash
 
-scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
 if [ $(uname) = Linux ]; then
     scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd )"
     ncpu=$(nproc)
@@ -20,8 +18,8 @@ fi
 cd $scriptDir/build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . --target all -j$ncpu
+cpack
 
 if [ $(uname) = Linux ]; then
-    cpack
     cd $scriptDir/build && sudo dpkg -i ./picoscenes*.deb
 fi
