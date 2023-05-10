@@ -20,6 +20,7 @@ if (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fno-stack-check")
 endif ()
 
+add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS) # to suppress internal warnings of boost
 find_package(Boost COMPONENTS filesystem system thread program_options regex REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 find_package(fmt REQUIRED)
