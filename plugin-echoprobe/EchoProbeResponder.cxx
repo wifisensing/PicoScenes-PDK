@@ -35,10 +35,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
-        for (auto i = 0; i < 1 + (rxframe.PicoScenesHeader->deviceType == PicoScenesDeviceType::USRP ? 5 : 0); i++) {
-            for (auto &reply: replies) {
-                reply.transmit();
-            }
+        for (auto &reply: replies) {
+            reply.transmit();
         }
     }
 
