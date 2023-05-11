@@ -70,7 +70,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     auto nextSF = sf_value;
                     auto connectionEstablished = false;
                     for (auto i = 0; i < parameters.tx_max_retry; i++) {
-                        if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                        if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 2); rxframe) {
                             LoggingService_info_print("EchoProbe responder confirms the channel changes.");
                             if (shiftSF) frontEnd->setSamplingRate(nextSF);
                             if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
@@ -81,7 +81,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             if (shiftSF) frontEnd->setSamplingRate(nextSF);
                             if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
                             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                            if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 1); rxframe) {
+                            if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp, 2); rxframe) {
                                 LoggingService_info_print("EchoProbe responder confirms the channel changes.");
                                 if (shiftSF) frontEnd->setSamplingRate(nextSF);
                                 if (shiftCF) frontEnd->setCarrierFrequency(nextCF);

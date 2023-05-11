@@ -41,25 +41,26 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     }
 
     if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
+        auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
+        for (auto &reply: replies) {
+            reply.transmit();
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         auto cf = epSegment.getEchoProbeRequest().cf;
         auto sf = epSegment.getEchoProbeRequest().sf;
         if (cf > 0 && nic->getFrontEnd()->getCarrierFrequency() != cf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-            LoggingService_info_print("EchoProbe responder shifting {}'s CF to {}MHz...\n", nic->getReferredInterfaceName(), (double) cf / 1e6);
+            LoggingService_info_print("EchoProbe responder shifting {}'s CF to {}MHz...", nic->getReferredInterfaceName(), (double) cf / 1e6);
             nic->getFrontEnd()->setCarrierFrequency(cf);
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
         }
 
         if (sf > 0 && nic->getFrontEnd()->getSamplingRate() != sf) {
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-            LoggingService_info_print("EchoProbe responder shifting {}'s BW to {}MHz...\n", nic->getReferredInterfaceName(), sf / 1e6);
+            LoggingService_info_print("EchoProbe responder shifting {}'s BW to {}MHz...", nic->getReferredInterfaceName(), sf / 1e6);
             nic->getFrontEnd()->setSamplingRate(sf);
             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-        }
-
-        auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
-        for (auto &reply: replies) {
-            reply.transmit();
         }
     }
 }
@@ -148,13 +149,5 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     }
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
-
-    if (initiatorDeviceType == PicoScenesDeviceType::USRP) {
-        std::this_thread::sleep_for(2ms);
-    }
-    fps.reserve(10);
-    for (auto i = 0; i < 10; i++)
-        fps.emplace_back(frameBuilder);
-
-    return fps;
+    return std::vector<PicoScenesFrameBuilder>{frameBuilder};
 }
