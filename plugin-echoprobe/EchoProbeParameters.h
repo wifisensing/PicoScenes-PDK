@@ -26,6 +26,7 @@ public:
     std::optional<std::string> outputFileName;
     bool randomMAC;
     EchoProbeInjectionContent injectorContent;
+    std::optional<uint32_t> randomPayloadLength;
 
     std::optional<double> cf_begin;
     std::optional<double> cf_end;

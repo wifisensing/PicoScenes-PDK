@@ -33,6 +33,8 @@ void EchoProbePlugin::initialization() {
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
+            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
+            ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options", 120);
@@ -182,6 +184,9 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         else if (boost::iequals(codingStr, "full"))
             parameters.injectorContent = EchoProbeInjectionContent::Full;
     }
+
+    if (vm.count("random-payload"))
+        parameters.randomPayloadLength = vm["random-payload"].as<uint32_t>();
 
     if (vm.count("ack-type")) {
         auto ackType = vm["ack-type"].as<std::string>();

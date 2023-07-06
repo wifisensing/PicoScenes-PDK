@@ -263,6 +263,13 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
 
         if (frameType == EchoProbeRequestFrameType)
             fp->addExtraInfo();
+
+        if (parameters.randomPayloadLength) {
+            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
+            std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
+            auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
+            fp->addSegment(segment);
+        }
     }
 
     auto sourceAddr = PicoScenesFrameBuilder::magicIntel123456;
