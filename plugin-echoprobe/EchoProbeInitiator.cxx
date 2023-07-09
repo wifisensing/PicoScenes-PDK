@@ -181,6 +181,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         if (!responderDeviceType || responderDeviceType == PicoScenesDeviceType::USRP)
             totalTimeOut += 50;
 
+        totalTimeOut += 50 * (int(frameBuilder->getFrame()->txParameters.cbw) / 20);
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
