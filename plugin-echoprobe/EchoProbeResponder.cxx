@@ -132,21 +132,20 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     std::vector<PicoScenesFrameBuilder> fps;
-    // Use txpower(30), MCS(0) , LGI and BW20 to boost the ACK
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
 
     frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
-    frameBuilder.setMCS(0);
-    frameBuilder.setGuardInterval(GuardIntervalEnum::GI_800);
-    frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
     frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
     frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
         frameBuilder.setForceSounding(false);
         frameBuilder.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
+
     frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
     frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
     return std::vector<PicoScenesFrameBuilder>{frameBuilder};
