@@ -95,7 +95,6 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
         if (rxframe.basebandSignalSegment) {
             auto copied = rxframe;
             copied.basebandSignalSegment = std::nullopt;
-            copied.preEQSymbolsSegment = std::nullopt;
             frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
         } else
             frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
