@@ -32,8 +32,7 @@ void EchoProbePlugin::initialization() {
             ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multiplier scan range, format begin:step:end, e.g., 11:11:88")
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
-            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
-            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
+            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
