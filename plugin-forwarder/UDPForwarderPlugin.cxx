@@ -4,6 +4,7 @@
 
 #include "UDPForwarderPlugin.hxx"
 #include "boost/algorithm/string.hpp"
+#include </home/leedong/Desktop/Script/json.hpp>
 
 std::string UDPForwarderPlugin::getPluginName() {
     return "UDPForwarder";
@@ -50,9 +51,121 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
     }
 }
 
+nlohmann::json generatePico2UI(const ModularPicoScenesRxFrame &rxframe){
+    nlohmann:: json pico2UI;
+    pico2UI["centerFreq"] = rxframe.rxSBasicSegment.getBasic().centerFreq;
+    pico2UI["bandwith"] = rxframe.rxSBasicSegment.getBasic().cbw;
+    auto mcs = rxframe.rxSBasicSegment.getBasic().mcs;
+    if(0 == mcs) {
+        pico2UI["modulationScheme"] = "BPSK";
+        pico2UI["modulationRatio"] = "1/2";
+    }
+    else if(1 == mcs){
+        pico2UI["modulationScheme"] = "QPSK";
+        pico2UI["modulationRatio"] = "1/2";
+    }
+    else if(2 == mcs){
+        pico2UI["modulationScheme"] = "QPSK";
+        pico2UI["modulationRatio"] = "3/4";
+    }
+    else if(3 == mcs){
+        pico2UI["modulationScheme"] = "16-QAM";
+        pico2UI["modulationRatio"] = "1/2";
+    }
+    else if(4 == mcs){
+        pico2UI["modulationScheme"] = "16-QAM";
+        pico2UI["modulationRatio"] = "3/4";
+    }
+    else if(5 == mcs){
+        pico2UI["modulationScheme"] = "64-QAM";
+        pico2UI["modulationRatio"] = "1/2";
+    }
+    else if(6 == mcs){
+        pico2UI["modulationScheme"] = "64-QAM";
+        pico2UI["modulationRatio"] = "3/4";
+    }
+    else if(7 == mcs){
+        pico2UI["modulationScheme"] = "64-QAM";
+        pico2UI["modulationRatio"] = "5/6";
+    }
+    pico2UI["guardInterval"] = rxframe.rxSBasicSegment.getBasic().guardInterval;
+    pico2UI["payloadLength"] = rxframe.mpdus.size();
+    pico2UI["rssi"] = rxframe.rxSBasicSegment.getBasic().rssi;
+    pico2UI["measureDelay"] = rxframe.sdrExtraSegment->getSdrExtra().decodingDelay();
+//       带宽利用率（子载波带宽 * 子载波个数 / 带宽）
+    double subBandwidth = rxframe.legacyCSISegment->getCSI().subcarrierBandwidth / 1000;
+    int subNum = rxframe.legacyCSISegment->getCSI().subcarrierIndices.size();
+    double bandwidthRatio = (subBandwidth * subNum) / (rxframe.legacyCSISegment->getCSI().samplingRate / 1000);
+    pico2UI["bandwidthRatio"] = bandwidthRatio;
+//      FFT频点数
+//    pico2UI["points4FFT"]
+//      误码率
+//    pico2UI["bitErrorRate"]
+    std::vector<double> signalNoiseRatio;
+    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    pico2UI["signalNoiseRatio"] = signalNoiseRatio;
+    return pico2UI;
+}
+
+nlohmann::json generateNonsignaling(const ModularPicoScenesRxFrame &rxframe){
+    nlohmann::json nonsignaling;
+    nonsignaling["sendBandwidth"] = rxframe.rxSBasicSegment.getBasic().cbw;
+    nonsignaling["receiveBandwidth"] = rxframe.rxSBasicSegment.getBasic().cbw;
+    nonsignaling["responseTime"] = rxframe.sdrExtraSegment->getSdrExtra().decodingDelay();
+    nonsignaling["subCarrierBandwidth"] = rxframe.legacyCSISegment->getCSI().subcarrierBandwidth;
+
+    std::vector<std::complex<double>> spectrum = rxframe.csiSegment.getCSI().CSIArray.array;
+    std::vector<double> frequencySpectrum;
+    for(int i=0; i<spectrum.size(); i++){
+        double temp = spectrum[i].real() * spectrum[i].real() + spectrum[i].imag() * spectrum[i].imag();
+        frequencySpectrum.push_back(temp);
+    }
+    nonsignaling["frequencySpectrum"] = frequencySpectrum;
+    return nonsignaling;
+}
+
+nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe){
+    nlohmann::json signaling;
+    signaling["SFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().sfo;
+    signaling["CFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().cfo;
+    signaling["EVM"] = rxframe.sdrExtraSegment->getSdrExtra().sigEVM;
+    signaling["AGC"] = rxframe.rxExtraInfoSegment.getExtraInfo().agc;
+//    signaling["PacketLossRate"]
+    std::vector<std::string> csi;
+    auto csiArray = rxframe.csiSegment.getCSI().CSIArray.array;
+    for(int i=0; i<csiArray.size(); i++){
+        if(csiArray[i].imag() < 0) csi.push_back(std::to_string(csiArray[i].real()) + std::to_string(csiArray[i].imag()) + "i");
+        else csi.push_back(std::to_string(csiArray[i].real()) + "+" + std::to_string(csiArray[i].imag()) + "i");
+    }
+    signaling["csi"] = csi;
+    return signaling;
+}
+
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    if (destinationIP && destinationPort) {
-        auto frameBuffer = rxframe.toBuffer();
-        SystemTools::Net::udpSendData("Forwarder" + *destinationIP + std::to_string(*destinationPort), frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
+    counter = (counter+1) % 50;
+    if(counter == 0){
+        if (destinationIP && destinationPort) {
+            auto frameBuffer = rxframe.toBuffer(); //发送PicoScenes解析出的数据帧
+            //测试发送JSON数据
+            nlohmann::json data;
+
+            nlohmann::json pico2UI = generatePico2UI(rxframe);
+            nlohmann::json nonsignaling = generateNonsignaling(rxframe);
+            nlohmann::json signaling = generateSignaling(rxframe);
+
+            pico2UI["nonsignaling"] = {nonsignaling};
+            pico2UI["signaling"] = {signaling};
+            data["Pico2UI"] = {pico2UI};
+
+            std::string jsonString = data.dump();
+
+            Uint8Vector  jsonBuffer;
+
+            for(char c : jsonString) jsonBuffer.push_back(static_cast<u_int8_t>(c));
+
+            SystemTools::Net::udpSendData("Forwarder " + *destinationIP + std::to_string(*destinationPort), jsonBuffer.data(), jsonBuffer.size(), *destinationIP, *destinationPort);
+        }
     }
 }

@@ -35,6 +35,7 @@ private:
     std::optional<std::string> destinationIP;
     std::optional<uint16_t> destinationPort;
     std::shared_ptr<po::options_description> options;
+    int counter = 0;
 };
 
 BOOST_DLL_ALIAS(UDPForwarderPlugin::create, initPicoScenesPlugin)
