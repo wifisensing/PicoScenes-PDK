@@ -4,7 +4,7 @@
 
 #include "UDPForwarderPlugin.hxx"
 #include "boost/algorithm/string.hpp"
-#include </home/leedong/Desktop/Script/json.hpp>
+#include "json.hpp"
 
 std::string UDPForwarderPlugin::getPluginName() {
     return "UDPForwarder";
@@ -140,6 +140,9 @@ nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe){
         else csi.push_back(std::to_string(csiArray[i].real()) + "+" + std::to_string(csiArray[i].imag()) + "i");
     }
     signaling["csi"] = csi;
+
+    signaling["mpdu"] = rxframe.mpdus[0];
+
     return signaling;
 }
 

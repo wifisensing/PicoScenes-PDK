@@ -61,6 +61,21 @@ std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
     return supportedDevices;
 }
 
+void sendUDPPacket(){
+    auto sendTask = [](){
+        std::string destinationIP = "127.0.0.1";
+        uint16_t  destinationPort = 5050;
+        std::string beatsStr = "Alive\n";
+        Uint8Vector beatsStrBuffer;
+        for(char c : beatsStr) beatsStrBuffer.push_back(static_cast<u_int8_t>(c));
+        SystemTools::Net::udpSendData("Forwarder " + destinationIP + std::to_string(destinationPort), beatsStrBuffer.data(), beatsStrBuffer.size(), destinationIP, destinationPort);
+    };
+    while(true){
+        sendTask();
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+}
+
 void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) {
     po::variables_map vm;
     auto style = pos::allow_long | pos::allow_dash_for_short |
@@ -81,7 +96,14 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         if (modeString.find("injector") != std::string::npos) {
             parameters.workingMode = MODE_Injector;
             nic->startTxService();
-        } else if (modeString.find("logger") != std::string::npos) {
+        } else if (modeString.find("equip") != std::string::npos) {
+            auto task = [this](){
+                sendUDPPacket();
+            };
+            ThreadPoolSingleton::getInstance().AddJob(task);
+            parameters.workingMode = MODE_Injector;
+            nic->startTxService();
+        }else if (modeString.find("logger") != std::string::npos) {
             parameters.workingMode = MODE_Logger;
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
