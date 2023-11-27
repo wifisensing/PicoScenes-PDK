@@ -98,9 +98,7 @@ nlohmann::json generatePico2UI(const ModularPicoScenesRxFrame &rxframe){
     double bandwidthRatio = (subBandwidth * subNum) / (rxframe.legacyCSISegment->getCSI().samplingRate / 1000);
     pico2UI["bandwidthRatio"] = bandwidthRatio;
 //      FFT频点数
-//    pico2UI["points4FFT"]
-//      误码率
-//    pico2UI["bitErrorRate"]
+    pico2UI["points4FFT"] = 64;
     std::vector<double> signalNoiseRatio;
     signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
     signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
@@ -126,13 +124,14 @@ nlohmann::json generateNonsignaling(const ModularPicoScenesRxFrame &rxframe){
     return nonsignaling;
 }
 
-nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe){
+nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe, int numErrorFrame, int numTotalFrame){
     nlohmann::json signaling;
     signaling["SFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().sfo;
     signaling["CFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().cfo;
     signaling["EVM"] = rxframe.sdrExtraSegment->getSdrExtra().sigEVM;
     signaling["AGC"] = rxframe.rxExtraInfoSegment.getExtraInfo().agc;
-//    signaling["PacketLossRate"]
+    signaling["errorFrame"] = numErrorFrame;
+    signaling["totalFrame"] = numTotalFrame;
     std::vector<std::string> csi;
     auto csiArray = rxframe.csiSegment.getCSI().CSIArray.array;
     for(int i=0; i<csiArray.size(); i++){
@@ -147,19 +146,23 @@ nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe){
 }
 
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    counter = (counter+1) % 50;
+    counter = (counter+1) % 100;
+    numTotalFrame++;
+    if(rxframe.errorFrame) numErrorFrame++;
     if(counter == 0){
         if (destinationIP && destinationPort) {
-            auto frameBuffer = rxframe.toBuffer(); //发送PicoScenes解析出的数据帧
             //测试发送JSON数据
             nlohmann::json data;
 
+            double BER = (double)numErrorFrame / numTotalFrame;
+
             nlohmann::json pico2UI = generatePico2UI(rxframe);
             nlohmann::json nonsignaling = generateNonsignaling(rxframe);
-            nlohmann::json signaling = generateSignaling(rxframe);
+            nlohmann::json signaling = generateSignaling(rxframe, numErrorFrame, numTotalFrame);
 
             pico2UI["nonsignaling"] = {nonsignaling};
             pico2UI["signaling"] = {signaling};
+            pico2UI["BER"] = BER;
             data["Pico2UI"] = {pico2UI};
 
             std::string jsonString = data.dump();
