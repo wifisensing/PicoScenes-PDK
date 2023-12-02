@@ -6,7 +6,6 @@
 #include "EchoProbeParameters.h"
 
 EchoProbeParameters::EchoProbeParameters() {
-    inj_target_mac_address = PicoScenesFrameBuilder::magicIntel123456;
     injectorContent = EchoProbeInjectionContent::Full;
     tx_delay_us = 5e5;
     timeout_ms = 150;

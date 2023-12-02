@@ -278,7 +278,7 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
         sourceAddr[1] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
     }
     fp->setSourceAddress(sourceAddr.data());
-    fp->setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
+    fp->setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : PicoScenesFrameBuilder::magicIntel123456.data());
     fp->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
