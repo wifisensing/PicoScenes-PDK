@@ -17,7 +17,7 @@ class EchoProbeParameters {
 public:
     EchoProbeParameters();
 
-    EchoProbeWorkingMode workingMode = MODE_Standby;
+    EchoProbeWorkingMode workingMode = EchoProbeWorkingMode::Standby;
     std::optional<std::array<uint8_t, 6>> inj_target_mac_address;
     std::optional<bool> inj_for_intel5300;
     uint32_t tx_delay_us;

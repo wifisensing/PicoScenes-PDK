@@ -37,7 +37,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     for (const auto &sf_value: sfList) {
         auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
         for (const auto &cf_value: cfList) {
-            if (workingMode == MODE_Injector) {
+            if (workingMode == EchoProbeWorkingMode::Injector) {
                 if (sf_value != frontEnd->getSamplingRate()) {
                     LoggingService_info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value / 1e6);
                     frontEnd->setSamplingRate(sf_value);
@@ -49,7 +49,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     frontEnd->setCarrierFrequency(cf_value);
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
-            } else if (workingMode == MODE_EchoProbeInitiator) {
+            } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != frontEnd->getSamplingRate()) {
                     LoggingService_info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value);
@@ -62,7 +62,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
                 if (shiftCF || shiftSF) {
                     auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto fp = buildBasicFrame(taskId, EchoProbeFreqChangeRequestFrameType, sessionId);
+                    auto fp = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId, shiftCF ? std::optional<double>(cf_value) : std::nullopt, shiftSF ? std::optional<double>(sf_value) : std::nullopt)));
                     auto currentCF = frontEnd->getCarrierFrequency();
                     auto currentSF = frontEnd->getSamplingRate();
@@ -108,15 +108,15 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
 
-                if (workingMode == MODE_Injector) {
-                    fp = buildBasicFrame(taskId, SimpleInjectionFrameType, sessionId);
+                if (workingMode == EchoProbeWorkingMode::Injector) {
+                    fp = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
                     fp->transmitSync();
                     tx_count++;
                     total_tx_count++;
                     printDots(tx_count);
                     SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                } else if (workingMode == MODE_EchoProbeInitiator) {
-                    fp = buildBasicFrame(taskId, EchoProbeRequestFrameType, sessionId);
+                } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
+                    fp = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
                     fp->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
                     auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(fp);
                     tx_count += retryPerTx;
@@ -141,9 +141,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 }
             }
             printf("\n");
-            if (workingMode == MODE_Injector)
+            if (workingMode == EchoProbeWorkingMode::Injector)
                 LoggingService_info_printf("EchoProbe injector %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
-            else if (workingMode == MODE_EchoProbeInitiator)
+            else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator)
                 LoggingService_info_printf("EchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
         }
 
@@ -155,9 +155,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         break;
     }
 
-    if (workingMode == MODE_Injector)
+    if (workingMode == EchoProbeWorkingMode::Injector)
         LoggingService_info_printf("Job done! #.total_tx=%d.", total_tx_count);
-    else if (workingMode == MODE_EchoProbeInitiator)
+    else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator)
         LoggingService_info_printf("Job done! #.total_tx=%d #.total_acked=%d, echo_delay=%.1fms, success_rate =%.1f%%.", total_tx_count, total_acked_count, total_mean_delay, 100.0 * total_acked_count / total_tx_count);
 }
 
@@ -185,10 +185,10 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         auto tx_time = std::chrono::system_clock::now();
         frameBuilder->transmit();
         auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame &rxframe) -> bool {
-            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == EchoProbeReplyFrameType || rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) && rxframe.PicoScenesHeader->taskId == taskId;
+            return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType) || rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType)) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
 
-        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeReplyFrameType) {
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType)) {
             auto delayDuration = std::chrono::system_clock::now() - tx_time;
             timeGap = double(std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count()) / 1000.0;
             responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
@@ -226,7 +226,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             }
         }
 
-        if (replyFrame && replyFrame->PicoScenesHeader->frameType == EchoProbeFreqChangeACKFrameType) {
+        if (replyFrame && replyFrame->PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType)) {
             return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
         }
     }
@@ -237,7 +237,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const {
     auto fp = std::make_shared<PicoScenesFrameBuilder>(nic);
 
-    if (frameType == SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP) {
+    if (frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP) {
         fp->makeFrame_NDP();
         /**
          * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
@@ -255,13 +255,13 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
          */
         fp->setTxParameters(nic->getUserSpecifiedTxParameters());
         fp->setTaskId(taskId);
-        fp->setPicoScenesFrameType(frameType);
+        fp->setPicoScenesFrameType(static_cast<uint8_t>(frameType));
 
-        if (frameType == SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::Full) {
+        if (frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::Full) {
             fp->addExtraInfo();
         }
 
-        if (frameType == EchoProbeRequestFrameType)
+        if (frameType == EchoProbePacketFrameType::EchoProbeRequestFrameType)
             fp->addExtraInfo();
 
         if (parameters.randomPayloadLength) {

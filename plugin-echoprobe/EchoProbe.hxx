@@ -7,12 +7,12 @@
 
 #include <PicoScenes/ModularPicoScenesFrame.hxx>
 
-enum EchoProbeWorkingMode: uint8_t {
-    MODE_Standby = 14,
-    MODE_Injector,
-    MODE_Logger,
-    MODE_EchoProbeInitiator,
-    MODE_EchoProbeResponder,
+enum class EchoProbeWorkingMode : uint8_t {
+    Standby = 14,
+    Injector,
+    Logger,
+    EchoProbeInitiator,
+    EchoProbeResponder,
 };
 
 enum class EchoProbeInjectionContent: uint8_t {
@@ -21,7 +21,7 @@ enum class EchoProbeInjectionContent: uint8_t {
     Full,
 };
 
-enum EchoProbePacketFrameType: uint8_t {
+enum class EchoProbePacketFrameType : uint8_t {
     SimpleInjectionFrameType = 10,
     EchoProbeRequestFrameType,
     EchoProbeReplyFrameType,

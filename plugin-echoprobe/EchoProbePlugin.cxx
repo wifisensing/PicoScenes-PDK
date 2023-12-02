@@ -33,7 +33,6 @@ void EchoProbePlugin::initialization() {
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
-            ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in us, 0 as default)")
             ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
@@ -80,19 +79,19 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
          * Injector and Logger no logger performs stopTx/Rx() because of loopback mode for SDR multi-channel
          */
         if (modeString.find("injector") != std::string::npos) {
-            parameters.workingMode = MODE_Injector;
+            parameters.workingMode = EchoProbeWorkingMode::Injector;
             nic->startTxService();
         } else if (modeString.find("logger") != std::string::npos) {
-            parameters.workingMode = MODE_Logger;
+            parameters.workingMode = EchoProbeWorkingMode::Logger;
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
-            parameters.workingMode = MODE_EchoProbeResponder;
+            parameters.workingMode = EchoProbeWorkingMode::EchoProbeResponder;
             nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("initiator") != std::string::npos) {
-            parameters.workingMode = MODE_EchoProbeInitiator;
+            parameters.workingMode = EchoProbeWorkingMode::EchoProbeInitiator;
             nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->startRxService();
@@ -223,15 +222,15 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         parameters.ack_guardInterval = giValue;
     }
 
-    if (parameters.workingMode == MODE_EchoProbeInitiator || parameters.workingMode == MODE_Injector) {
+    if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeInitiator || parameters.workingMode == EchoProbeWorkingMode::Injector) {
         initiator->startJob(parameters);
         nic->stopRxService();
         nic->stopTxService();
-    } else if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
+    } else if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger)
         responder->startJob(parameters);
 }
 
 void EchoProbePlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    if (parameters.workingMode == MODE_EchoProbeResponder || parameters.workingMode == MODE_Logger)
+    if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger)
         responder->handle(rxframe);
 }

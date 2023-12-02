@@ -7,10 +7,10 @@
 #include "EchoProbeReplySegment.hxx"
 
 void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
-    if (parameters.workingMode == MODE_Injector || parameters.workingMode == MODE_EchoProbeInitiator)
+    if (parameters.workingMode == EchoProbeWorkingMode::Injector || parameters.workingMode == EchoProbeWorkingMode::EchoProbeInitiator)
         return;
 
-    if (parameters.workingMode == MODE_Logger) {
+    if (parameters.workingMode == EchoProbeWorkingMode::Logger) {
         if (!parameters.outputFileName)
             FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
         else
@@ -33,14 +33,14 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     } else
         FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe);
 
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
+    if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
             reply.transmit();
         }
     }
 
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
+    if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)) {
         auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
             reply.transmit();
@@ -70,11 +70,11 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
 }
 
 std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeRequestFrameType) {
+    if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
         return makeRepliesForEchoProbeRequest(rxframe, epReq);
     }
 
-    if (rxframe.PicoScenesHeader->frameType == EchoProbeFreqChangeRequestFrameType) {
+    if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)) {
         return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
     }
 
@@ -114,7 +114,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeR
     }
 
 
-    frameBuilder.setPicoScenesFrameType(EchoProbeReplyFrameType);
+    frameBuilder.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType));
     frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
     frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
     frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
@@ -134,7 +134,7 @@ std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeF
     auto frameBuilder = PicoScenesFrameBuilder(nic);
     frameBuilder.makeFrame_HeaderOnly();
 
-    frameBuilder.setPicoScenesFrameType(EchoProbeFreqChangeACKFrameType);
+    frameBuilder.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType));
     frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
     frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
     frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
