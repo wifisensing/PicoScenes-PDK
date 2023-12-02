@@ -46,7 +46,7 @@ void EchoProbePlugin::initialization() {
 
     echoProbeOptions = std::make_shared<po::options_description>("Echo Probe Options");
     echoProbeOptions->add_options()
-            ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder]")
+            ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder, radar]")
             ("random-mac", po::value<bool>()->default_value(false), "Random MAC address for Injector or Initiator")
             ("output", po::value<std::string>(), "Output CSI file name w/o .csi extension");
     echoProbeOptions->add(*injectionOptions).add(*echoOptions);
@@ -94,6 +94,13 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             parameters.workingMode = EchoProbeWorkingMode::EchoProbeInitiator;
             nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
             nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+            nic->startRxService();
+            nic->startTxService();
+        } else if (modeString.find("radar") != std::string::npos) {
+            parameters.workingMode = EchoProbeWorkingMode::Radar;
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{PicoScenesFrameBuilder::magicIntel123456});
+            nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->setFullDuplex(true);
             nic->startRxService();
             nic->startTxService();
         } else
@@ -226,11 +233,17 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         initiator->startJob(parameters);
         nic->stopRxService();
         nic->stopTxService();
-    } else if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger)
+    } else if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger) {
         responder->startJob(parameters);
+    } else if (parameters.workingMode == EchoProbeWorkingMode::Radar) {
+        responder->startJob(parameters);
+        initiator->startJob(parameters);
+        nic->stopRxService();
+        nic->stopTxService();
+    }
 }
 
 void EchoProbePlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger)
+    if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger || parameters.workingMode == EchoProbeWorkingMode::Radar)
         responder->handle(rxframe);
 }

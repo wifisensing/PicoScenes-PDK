@@ -18,6 +18,14 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
     }
 
+    if (parameters.workingMode == EchoProbeWorkingMode::Radar) {
+        if (!parameters.outputFileName)
+            FrameDumper::getInstance("radar_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
+        else
+            FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe);
+        return;
+    }
+
     if (parameters.workingMode != EchoProbeWorkingMode::EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType) && rxframe.PicoScenesHeader->frameType != static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)))
         return;
 

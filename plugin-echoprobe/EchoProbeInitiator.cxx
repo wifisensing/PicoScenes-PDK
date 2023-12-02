@@ -37,7 +37,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     for (const auto &sf_value: sfList) {
         auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
         for (const auto &cf_value: cfList) {
-            if (workingMode == EchoProbeWorkingMode::Injector) {
+            if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
                 if (sf_value != frontEnd->getSamplingRate()) {
                     LoggingService_info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value / 1e6);
                     frontEnd->setSamplingRate(sf_value);
@@ -108,7 +108,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                 auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                 std::shared_ptr<PicoScenesFrameBuilder> fp = nullptr;
 
-                if (workingMode == EchoProbeWorkingMode::Injector) {
+                if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
                     fp = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
                     fp->transmitSync();
                     tx_count++;

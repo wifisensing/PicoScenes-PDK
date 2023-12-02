@@ -13,6 +13,7 @@ enum class EchoProbeWorkingMode : uint8_t {
     Logger,
     EchoProbeInitiator,
     EchoProbeResponder,
+    Radar
 };
 
 enum class EchoProbeInjectionContent: uint8_t {
