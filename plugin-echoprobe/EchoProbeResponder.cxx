@@ -18,7 +18,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         return;
     }
 
-    if (parameters.workingMode != MODE_EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != EchoProbeRequestFrameType && rxframe.PicoScenesHeader->frameType != EchoProbeFreqChangeRequestFrameType))
+    if (parameters.workingMode != EchoProbeWorkingMode::EchoProbeResponder || !rxframe.PicoScenesHeader || (rxframe.PicoScenesHeader->frameType != static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType) && rxframe.PicoScenesHeader->frameType != static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)))
         return;
 
     if (!rxframe.txUnknownSegments.contains("EchoProbeRequest"))
