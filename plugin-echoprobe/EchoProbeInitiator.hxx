@@ -38,9 +38,9 @@ private:
 
     void printDots(int count) const;
 
-    std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> transmitAndSyncRxUnified(const std::shared_ptr<PicoScenesFrameBuilder> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
+    std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> transmitAndSyncRxUnified(const std::shared_ptr<ModularPicoScenesTxFrame> &frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
 
-    [[nodiscard]] std::shared_ptr<PicoScenesFrameBuilder> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
+    [[nodiscard]] std::shared_ptr<ModularPicoScenesTxFrame> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
 
     EchoProbeRequest makeRequestSegment(uint16_t sessionId, std::optional<double> newCF = std::nullopt, std::optional<double> newSF = std::nullopt);
 
