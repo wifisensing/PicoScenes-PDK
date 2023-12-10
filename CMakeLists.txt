@@ -30,6 +30,7 @@ add_definitions(-DFMT_DEPRECATED_OSTREAM)
 add_subdirectory(plugin-demo)
 add_subdirectory(plugin-echoprobe)
 add_subdirectory(plugin-forwarder)
+add_subdirectory(plugin-sllh)
 
 # include CPack settings
 include(CPack-Settings.cmake)
