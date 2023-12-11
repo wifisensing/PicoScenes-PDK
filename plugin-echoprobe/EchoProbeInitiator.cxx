@@ -218,8 +218,8 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
                 });
                 if (foundIt != replyFrame->payloadSegments.cend()) {
                     if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->getPayloadData().payloadData.data(), foundIt->getPayloadData().payloadData.size())) {
-                        LoggingService_debug_print("Raw ACK: {}", *replyFrame);
-                        LoggingService_debug_print("ACKed Tx: {}", *ackFrame);
+                        LoggingService_debug_print("Raw ACK: {}", replyFrame->toString());
+                        LoggingService_debug_print("ACKed Tx: {}", ackFrame->toString());
                         LoggingService_debug_printf("Round-trip delay %.3fms, full payload", timeGap);
                         return std::make_tuple(replyFrame, ackFrame, retryCount, timeGap);
                     }
