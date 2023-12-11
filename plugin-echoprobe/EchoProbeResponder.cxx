@@ -34,7 +34,8 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegments.at("EchoProbeRequest");
-    auto epSegment = EchoProbeRequestSegment(epBuffer.rawBuffer.data(), epBuffer.rawBuffer.size());
+    auto epRawBuffer = epBuffer.toBuffer();
+    auto epSegment = EchoProbeRequestSegment(epRawBuffer.data(), epRawBuffer.size());
     if (!parameters.outputFileName) {
         auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);
         FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
@@ -42,16 +43,16 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
         FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe);
 
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
-        auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
+        auto replies = makeRepliesFrames(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
-            reply.transmit();
+            nic->transmitPicoScenesFrame(*reply);
         }
     }
 
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)) {
-        auto replies = makeReplies(rxframe, epSegment.getEchoProbeRequest());
+        auto replies = makeRepliesFrames(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
-            reply.transmit();
+            nic->transmitPicoScenesFrame(*reply);
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
@@ -77,83 +78,79 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeReplies(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
-        return makeRepliesForEchoProbeRequest(rxframe, epReq);
+        return makeRepliesForEchoProbeRequestFrames(rxframe, epReq);
     }
 
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)) {
-        return makeRepliesForEchoProbeFreqChangeRequest(rxframe, epReq);
+        return makeRepliesForEchoProbeFreqChangeRequestFrames(rxframe, epReq);
     }
 
-    return std::vector<PicoScenesFrameBuilder>{};
+    return {};
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
-    auto frameBuilder = PicoScenesFrameBuilder(nic);
-    frameBuilder.makeFrame_HeaderOnly();
+std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesForEchoProbeRequestFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+    auto frame = nic->initializeTxFrame();
 
     EchoProbeReply reply;
     reply.sessionId = epReq.sessionId;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
-        frameBuilder.addExtraInfo();
+        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.payloadName = "EchoProbeReplyFull";
-        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
         if (rxframe.basebandSignalSegment) {
             auto copied = rxframe;
             copied.basebandSignalSegment = std::nullopt;
-            frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+            frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
         } else
-            frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+            frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
-        frameBuilder.addExtraInfo();
+        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
         reply.payloadName = "EchoProbeReplyCSI";
-        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frameBuilder.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer(), PayloadDataType::SignalMatrix));
+        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer(), PayloadDataType::SignalMatrix));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
-        frameBuilder.addExtraInfo();
+        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
-        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader) {
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
-        frameBuilder.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     }
 
-
-    frameBuilder.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType));
-    frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
-    frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-    frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-    frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame->setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType));
+    frame->setTxParameters(nic->getUserSpecifiedTxParameters());
+    frame->setSourceAddress(MagicIntel123456.data());
+    frame->setDestinationAddress(MagicIntel123456.data());
+    frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
-        frameBuilder.setForceSounding(false);
-        frameBuilder.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
+        frame->setForceSounding(false);
+        frame->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
-    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
-    frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
-    return std::vector<PicoScenesFrameBuilder>{frameBuilder};
+    frame->setTaskId(rxframe.PicoScenesHeader->taskId);
+    frame->setTxId(rxframe.PicoScenesHeader->txId);
+    return {frame};
 }
 
-std::vector<PicoScenesFrameBuilder> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequest(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
-    std::vector<PicoScenesFrameBuilder> fps;
-    auto frameBuilder = PicoScenesFrameBuilder(nic);
-    frameBuilder.makeFrame_HeaderOnly();
+std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequestFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+    auto frame = nic->initializeTxFrame();
 
-    frameBuilder.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType));
-    frameBuilder.setTxParameters(nic->getUserSpecifiedTxParameters());
-    frameBuilder.setSourceAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-    frameBuilder.setDestinationAddress(PicoScenesFrameBuilder::magicIntel123456.data());
-    frameBuilder.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame->setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType));
+    frame->setTxParameters(nic->getUserSpecifiedTxParameters());
+    frame->setSourceAddress(MagicIntel123456.data());
+    frame->setDestinationAddress(MagicIntel123456.data());
+    frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
-        frameBuilder.setForceSounding(false);
-        frameBuilder.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
+        frame->setForceSounding(false);
+        frame->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
 
-    frameBuilder.setTaskId(rxframe.PicoScenesHeader->taskId);
-    frameBuilder.setTxId(rxframe.PicoScenesHeader->txId);
-    return std::vector<PicoScenesFrameBuilder>{frameBuilder};
+    frame->setTaskId(rxframe.PicoScenesHeader->taskId);
+    frame->setTxId(rxframe.PicoScenesHeader->txId);
+    return {frame};
 }
