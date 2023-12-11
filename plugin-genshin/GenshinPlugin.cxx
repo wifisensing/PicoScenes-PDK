@@ -25,7 +25,8 @@ std::vector<PicoScenesDeviceType> GenshinPlugin::getSupportedDeviceTypes() {
 void GenshinPlugin::initialization() {
     options = std::make_shared<po::options_description>("Genshin Options", 120);
     options->add_options()
-            ("genshin", po::value<std::string>(), "--genshin 神里绫华");
+            ("genshin", po::value<std::string>(), "--genshin 神里绫华")
+            ("genshin2", po::value<std::vector<std::string>>()->multitoken(), "Genshin2");
 }
 
 std::shared_ptr<boost::program_options::options_description> GenshinPlugin::pluginOptionsDescription() {
@@ -39,9 +40,18 @@ void GenshinPlugin::parseAndExecuteCommands(const std::string &commandString) {
     po::store(parsedOptions, vm);
     po::notify(vm);
     if (vm.count("genshin")) {
-        auto option1Value = vm["genshin"].as<std::string>();
-        boost::algorithm::to_lower(option1Value);
-        boost::trim(option1Value);
-        LoggingService_Plugin_info_print("我是{}的狗~",std::string(option1Value));
+        auto genshinValue = vm["genshin"].as<std::string>();
+        boost::algorithm::to_lower(genshinValue);
+        boost::trim(genshinValue);
+        LoggingService_Plugin_info_print("我是{}的狗~",std::string(genshinValue));
+    }
+    if (vm.count("genshin2")) {
+        auto genshin2Value = vm["genshin2"].as<std::vector<std::string>>();
+        std::string concatenatedString;
+        for (const auto& genshin2_value : genshin2Value)
+        {
+            concatenatedString += genshin2_value;
+        }
+        LoggingService_Plugin_info_print("我是{}的狗~",std::string(concatenatedString));
     }
 }
