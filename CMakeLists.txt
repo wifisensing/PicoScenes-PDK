@@ -31,6 +31,7 @@ add_subdirectory(plugin-demo)
 add_subdirectory(plugin-echoprobe)
 add_subdirectory(plugin-forwarder)
 add_subdirectory(plugin-sllh)
+add_subdirectory(plugin-genshin)
 
 # include CPack settings
 include(CPack-Settings.cmake)
