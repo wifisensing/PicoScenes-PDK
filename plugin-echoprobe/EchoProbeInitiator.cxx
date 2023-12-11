@@ -193,7 +193,8 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
             timeGap = double(std::chrono::duration_cast<std::chrono::microseconds>(delayDuration).count()) / 1000.0;
             responderDeviceType = (PicoScenesDeviceType) replyFrame->PicoScenesHeader->deviceType;
             const auto echoProbeReplySegment = replyFrame->txUnknownSegments.at("EchoProbeReply");
-            EchoProbeReplySegment replySeg(echoProbeReplySegment.rawBuffer.data(), echoProbeReplySegment.rawBuffer.size());
+            auto replyBuffer = echoProbeReplySegment.toBuffer();
+            EchoProbeReplySegment replySeg(replyBuffer.data(), replyBuffer.size());
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader || replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
                 LoggingService_debug_printf("Round-trip delay %.3fms, only header", timeGap);
                 return std::make_tuple(replyFrame, replyFrame, retryCount, timeGap);
