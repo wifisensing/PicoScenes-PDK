@@ -245,7 +245,6 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
          * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
          */
         frame->setTxParameters(nic->getUserSpecifiedTxParameters()).txParameters.NDPFrame = true;
-        frame;
     } else {
         /**
          * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
