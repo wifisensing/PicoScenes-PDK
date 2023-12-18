@@ -38,6 +38,7 @@ private:
     int counter = 0;
     int numTotalFrame = 0;
     int numErrorFrame = 0;
+    std::string receiveCBW = "";
 };
 
 BOOST_DLL_ALIAS(UDPForwarderPlugin::create, initPicoScenesPlugin)

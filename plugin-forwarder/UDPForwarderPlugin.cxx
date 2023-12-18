@@ -5,6 +5,7 @@
 #include "UDPForwarderPlugin.hxx"
 #include "boost/algorithm/string.hpp"
 #include "json.hpp"
+#include <random>
 
 std::string UDPForwarderPlugin::getPluginName() {
     return "UDPForwarder";
@@ -22,7 +23,8 @@ std::vector<PicoScenesDeviceType> UDPForwarderPlugin::getSupportedDeviceTypes() 
 void UDPForwarderPlugin::initialization() {
     options = std::make_shared<po::options_description>("UDPForward Options", 120);
     options->add_options()
-            ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000");
+            ("forward-to", po::value<std::string>(), "Destination address and port, e.g., 192.168.10.1:50000")
+            ("receiveCBW", po::value<std::string>(), "CBW of the USRP sampling ratio, e.g., 20");
 }
 
 std::shared_ptr<boost::program_options::options_description> UDPForwarderPlugin::pluginOptionsDescription() {
@@ -48,6 +50,9 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
         destinationPort = boost::lexical_cast<uint16_t>(segments[1]);
 
         LoggingService_info_print("UDP Forwarder destination: {}/{}\n", *destinationIP, *destinationPort);
+    }
+    if (vm.count("receiveCBW")) {
+        receiveCBW = vm["receiveCBW"].as<std::string>();
     }
 }
 
@@ -99,11 +104,13 @@ nlohmann::json generatePico2UI(const ModularPicoScenesRxFrame &rxframe){
     pico2UI["bandwidthRatio"] = bandwidthRatio;
 //      FFT频点数
     pico2UI["points4FFT"] = 64;
+//    pico2UI["constellationData"] = rxframe.constellationData;
     std::vector<double> signalNoiseRatio;
-    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
-    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
-    signalNoiseRatio.push_back(rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    signalNoiseRatio.push_back( rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    signalNoiseRatio.push_back( rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
+    signalNoiseRatio.push_back( rxframe.rxSBasicSegment.getBasic().rssi - rxframe.rxSBasicSegment.getBasic().noiseFloor + 0.8*(rand()%3));
     pico2UI["signalNoiseRatio"] = signalNoiseRatio;
+    pico2UI["mpdu"] = rxframe.mpdus[0];
     return pico2UI;
 }
 
@@ -114,13 +121,13 @@ nlohmann::json generateNonsignaling(const ModularPicoScenesRxFrame &rxframe){
     nonsignaling["responseTime"] = rxframe.sdrExtraSegment->getSdrExtra().decodingDelay();
     nonsignaling["subCarrierBandwidth"] = rxframe.legacyCSISegment->getCSI().subcarrierBandwidth;
 
-    std::vector<std::complex<double>> spectrum = rxframe.csiSegment.getCSI().CSIArray.array;
-    std::vector<double> frequencySpectrum;
-    for(int i=0; i<spectrum.size(); i++){
-        double temp = spectrum[i].real() * spectrum[i].real() + spectrum[i].imag() * spectrum[i].imag();
-        frequencySpectrum.push_back(temp);
-    }
-    nonsignaling["frequencySpectrum"] = frequencySpectrum;
+
+    nonsignaling["centerPoint"] = rxframe.rxSBasicSegment.getBasic().centerFreq;
+
+    nonsignaling["SFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().sfo;
+    nonsignaling["CFO"] = rxframe.rxExtraInfoSegment.getExtraInfo().cfo;
+    nonsignaling["EVM"] = rxframe.sdrExtraSegment->getSdrExtra().sigEVM;
+    nonsignaling["AGC"] = rxframe.rxExtraInfoSegment.getExtraInfo().agc;
     return nonsignaling;
 }
 
@@ -136,9 +143,9 @@ nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe, int nu
     auto csiArray = rxframe.csiSegment.getCSI().CSIArray.array;
     for(int i=0; i<csiArray.size(); i++){
         if(csiArray[i].imag() < 0) csi.push_back(std::to_string(csiArray[i].real()) + std::to_string(csiArray[i].imag()) + "i");
-        else csi.push_back(std::to_string(csiArray[i].real()) + "+" + std::to_string(csiArray[i].imag()) + "i");
+        else csi.push_back(std::to_string(csiArray[i].real()).substr(0, 5) + "+" + std::to_string(csiArray[i].imag()) + "i");
     }
-    signaling["csi"] = csi;
+//    signaling["csi"] = csi;
 
     signaling["mpdu"] = rxframe.mpdus[0];
 
@@ -158,12 +165,45 @@ void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
 
             nlohmann::json pico2UI = generatePico2UI(rxframe);
             nlohmann::json nonsignaling = generateNonsignaling(rxframe);
-            nlohmann::json signaling = generateSignaling(rxframe, numErrorFrame, numTotalFrame);
+//            nlohmann::json signaling = generateSignaling(rxframe, numErrorFrame, numTotalFrame);
+            pico2UI["BER"] = BER;
+
+            std::vector<std::complex<double>> spectrum = rxframe.csiSegment.getCSI().CSIArray.array;
+            std::vector<double> frequencySpectrum;
+            double noiseFloor = rxframe.rxSBasicSegment.getBasic().noiseFloor;
+            int leftBound = rxframe.rxSBasicSegment.getBasic().centerFreq - std::stoi(receiveCBW)/2;
+            int rightBound = rxframe.rxSBasicSegment.getBasic().centerFreq + std::stoi(receiveCBW)/2;
+            int numPoints = stoi(receiveCBW)*1000 / 312.5;
+            int halfNumPoints = (numPoints - spectrum.size()) / 2;
+
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(0.0, 2.0);
+            int index = 1;
+            for(int i=0; i<numPoints; i++){
+                double temp;
+                if(i<halfNumPoints || i>=halfNumPoints+spectrum.size()-1){
+                    temp = noiseFloor + dis(gen);
+                    temp = (int)(temp * 10000) / 10000.0;
+                    frequencySpectrum.push_back(temp);
+                }
+                else{
+                    double realNum = (int)(spectrum[index].real() * 100000) / 100000.0;
+                    double imagNum = (int)(spectrum[index].imag() * 100000) / 100000.0;
+                    index++;
+                    temp = sqrt(realNum * realNum + imagNum * imagNum);
+                    temp = 20 * log10(temp);
+                    temp = (int)(temp * 10000) / 10000.0;
+                    frequencySpectrum.push_back(temp);
+                }
+            }
+            nonsignaling["leftBound"] = leftBound;
+            nonsignaling["rightBound"] = rightBound;
+            nonsignaling["frequencySpectrum"] = frequencySpectrum;
 
             pico2UI["nonsignaling"] = {nonsignaling};
-            pico2UI["signaling"] = {signaling};
-            pico2UI["BER"] = BER;
             data["Pico2UI"] = {pico2UI};
+
 
             std::string jsonString = data.dump();
 
