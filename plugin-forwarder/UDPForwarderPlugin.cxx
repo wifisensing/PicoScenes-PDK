@@ -173,7 +173,7 @@ void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
             double noiseFloor = rxframe.rxSBasicSegment.getBasic().noiseFloor;
             int leftBound = rxframe.rxSBasicSegment.getBasic().centerFreq - std::stoi(receiveCBW)/2;
             int rightBound = rxframe.rxSBasicSegment.getBasic().centerFreq + std::stoi(receiveCBW)/2;
-            int numPoints = stoi(receiveCBW)*1000 / 312.5;
+            int numPoints = std::stoi(receiveCBW)*1000 / 312.5;
             int halfNumPoints = (numPoints - spectrum.size()) / 2;
 
             std::random_device rd;
