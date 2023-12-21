@@ -27,8 +27,8 @@ public:
 
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
-    static boost::shared_ptr<UDPForwarderPlugin> create() {
-        return boost::make_shared<UDPForwarderPlugin>();
+    static std::shared_ptr<UDPForwarderPlugin> create() {
+        return std::make_shared<UDPForwarderPlugin>();
     }
 
 private:
