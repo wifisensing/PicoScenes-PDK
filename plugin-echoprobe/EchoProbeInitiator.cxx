@@ -266,16 +266,18 @@ std::shared_ptr<PicoScenesFrameBuilder> EchoProbeInitiator::buildBasicFrame(uint
 
         // mpdu 指定为40以内的质数
         if (parameters.randomPayloadLength) {
-            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
+//            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
             std::vector<uint8_t> verifyMpdu = {1,3,5,7,11,13,17,19,23,29,31,37};
 //            std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
-            int index = 0;
-            for(auto it = vec.begin(); it!=vec.end(); it++){
-                *it = verifyMpdu[index];
-                index++;
-            }
-            auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
-            fp->addSegment(segment);
+//            int index = 0;
+//            auto itVec = vec.begin();
+//            for(auto it = verifyMpdu.begin(); it!=verifyMpdu.end(); it++){
+//                *itVec = *it;
+//                itVec++;
+//            }
+//            auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
+//            fp->addSegment(segment);
+            fp->getFrame()->arbitraryMPDUContent = verifyMpdu;
         }
     }
 
