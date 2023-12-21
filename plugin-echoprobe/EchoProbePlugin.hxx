@@ -28,8 +28,8 @@ public:
 
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
-    static boost::shared_ptr<EchoProbePlugin> create() {
-        return boost::make_shared<EchoProbePlugin>();
+    static std::shared_ptr<EchoProbePlugin> create() {
+        return std::make_shared<EchoProbePlugin>();
     }
 
 private:
