@@ -10,7 +10,10 @@
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 
+#include "EchoProbeParameters.h"
+
 class DemoPlugin : public AbstractPicoScenesPlugin {
+
 public:
     std::string getPluginName() override;
 
@@ -22,9 +25,19 @@ public:
 
     void parseAndExecuteCommands(const std::string &commandString) override;
 
+    std::vector<PicoScenesDeviceType> getSupportedDeviceTypes() override;
+
+    void initialization() override;
+
     static std::shared_ptr<DemoPlugin> create() {
         return std::make_shared<DemoPlugin>();
     }
+private:
+    std::shared_ptr<po::options_description> options;
+    std::shared_ptr<po::options_description> echoProbeOptions;
+    EchoProbeParameters parameters;
+
+
 };
 
 BOOST_DLL_ALIAS(DemoPlugin::create, initPicoScenesPlugin)
