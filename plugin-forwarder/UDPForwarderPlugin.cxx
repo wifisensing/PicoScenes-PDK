@@ -153,7 +153,7 @@ nlohmann::json generateSignaling(const ModularPicoScenesRxFrame &rxframe, int nu
 }
 
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    counter = (counter+1) % 100;
+    counter = (counter+1) % 50;
     numTotalFrame++;
     if(rxframe.errorFrame) numErrorFrame++;
     if(counter == 0){

@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include "EchoProbePlugin.hxx"
+#include <chrono>
 
 
 std::string EchoProbePlugin::getPluginName() {
@@ -63,6 +64,8 @@ std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
 
 void sendUDPPacket(){
     auto sendTask = [](){
+        std::chrono::seconds duration(2);
+        std::this_thread::sleep_for(duration);
         std::string destinationIP = "127.0.0.1";
         uint16_t  destinationPort = 5050;
         std::string beatsStr = "Alive\n";
