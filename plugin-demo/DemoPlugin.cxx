@@ -24,7 +24,10 @@ std::vector<PicoScenesDeviceType> DemoPlugin::getSupportedDeviceTypes() {
 }
 
 void DemoPlugin::initialization() {
+    // Create an options description for the DemoPlugin with a specific name and line length
     options = std::make_shared<po::options_description>("Demo Options", 120);
+
+    // Add a command-line option for the DemoPlugin
     options->add_options()
             ("demo", po::value<std::string>(), "--demo <param>");
 }
