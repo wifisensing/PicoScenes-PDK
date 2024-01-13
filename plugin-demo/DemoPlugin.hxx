@@ -1,12 +1,6 @@
-//
-// Created by Zhiping Jiang on 10/20/17.
-//
-
-#ifndef PICOSCENES_DEMOPLUGIN
-#define PICOSCENES_DEMOPLUGIN
+// DemoPlugin.hxx
 
 #include <iostream>
-#include <mutex>
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
 
@@ -35,13 +29,15 @@ public:
     void parseAndExecuteCommands(const std::string &commandString) override;
 
     // Create an instance of the DemoPlugin
-    static boost::shared_ptr<DemoPlugin> create();
+    static std::shared_ptr<DemoPlugin> create()
+    {
+        return std::make_shared<DemoPlugin>();
+    }
 
-    // Handle received frames in the plugin
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
-    // Build a basic transmission frame for the plugin
-    [[nodiscard]] std::shared_ptr<ModularPicoScenesTxFrame> buildBasicFrame(uint16_t taskId = 0) const;
+    [[nodiscard]] std::shared_ptr<ModularPicoScenesTxFrame> buildBasicFrame(uint16_t taskId = 0) const ;
+
 
 private:
 
@@ -51,5 +47,3 @@ private:
 
 // Alias the create function to 'initPicoScenesPlugin' using BOOST_DLL_ALIAS
 BOOST_DLL_ALIAS(DemoPlugin::create, initPicoScenesPlugin)
-
-#endif //PICOSCENES_DEMOPLUGIN
