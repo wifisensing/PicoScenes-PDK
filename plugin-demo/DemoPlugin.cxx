@@ -70,7 +70,7 @@ void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
 }
 
 void DemoPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    LoggingService_debug_print("This is my rxframe: {}",rxframe.toString());
+    // LoggingService_debug_print("This is my rxframe: {}",rxframe.toString());
 }
 
 std::shared_ptr<ModularPicoScenesTxFrame> DemoPlugin::buildBasicFrame(uint16_t taskId) const
