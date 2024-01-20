@@ -1,6 +1,4 @@
-//
-// Created by Zhiping Jiang on 10/20/17.
-//
+// DemoPlugin.cxx
 #include "DemoPlugin.hxx"
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -24,6 +22,19 @@ std::vector<PicoScenesDeviceType> DemoPlugin::getSupportedDeviceTypes() {
 }
 
 void DemoPlugin::initialization() {
+    // Create an options description for the DemoPlugin with a specific name and line length
+    options = std::make_shared<po::options_description>("Demo Options", 120);
+
+    // Add a command-line option for the DemoPlugin
+    options->add_options()
+            ("demo", po::value<std::string>(), "--demo <param>");
+}
+
+std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginOptionsDescription() {
+    return options;
+}
+
+void DemoPlugin::initialization() {
 
     /* In this area, you can customize commands,
      * but be mindful not to replicate the commands used by other plugins.
@@ -41,36 +52,48 @@ std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginO
 
 void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
 
-    /* The inputted command and parameters will be stored in the vm object  */
-
+    // Create a variables map to store parsed options
     po::variables_map vm;
 
+    // Define the command line options style
     auto style = pos::allow_long | pos::allow_dash_for_short |
                  pos::long_allow_adjacent | pos::long_allow_next |
                  pos::short_allow_adjacent | pos::short_allow_next;
 
+    // Parse the command string using Boost.ProgramOptions and store options in the variables map
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*options).style(style).allow_unregistered().run(), vm);
+
+    // Notify the variables map about the parsed options
     po::notify(vm);
 
-    if (vm.count("demo"))
-    {
+    // Check if the "demo" option is present
+    if (vm.count("demo")) {
+        // Get the value of the "demo" option
         auto modeString = vm["demo"].as<std::string>();
+
+        // Check if the modeString contains "logger" and start the Rx service accordingly
         if (modeString.find("logger") != std::string::npos) {
             nic->startRxService();
         }
-        else if (modeString.find("injector") != std::string::npos)
-        {
+        // Check if the modeString contains "injector" and start the Tx service with basic frame transmission
+        else if (modeString.find("injector") != std::string::npos) {
             nic->startTxService();
-            auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-            auto txframe = buildBasicFrame(taskId);
-            nic->transmitPicoScenesFrameSync(*txframe);
 
+            // Generate a random task ID within a specified range
+            auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+
+            // Build a basic transmission frame with the generated task ID
+            auto txframe = buildBasicFrame(taskId);
+
+            // Transmit the PicoScenes frame synchronously
+            nic->transmitPicoScenesFrameSync(*txframe);
         }
     }
+
 }
 
 void DemoPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
-    // LoggingService_debug_print("This is my rxframe: {}",rxframe.toString());
+    LoggingService_debug_print("This is my rxframe: {}",rxframe.toString());
 }
 
 std::shared_ptr<ModularPicoScenesTxFrame> DemoPlugin::buildBasicFrame(uint16_t taskId) const
@@ -78,9 +101,7 @@ std::shared_ptr<ModularPicoScenesTxFrame> DemoPlugin::buildBasicFrame(uint16_t t
     auto frame = nic->initializeTxFrame();
 
     /**
-     * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
      * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
-     * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
      */
 
     frame->setTxParameters(nic->getUserSpecifiedTxParameters());
