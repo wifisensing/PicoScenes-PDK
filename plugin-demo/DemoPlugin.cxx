@@ -1,6 +1,9 @@
 // DemoPlugin.cxx
 #include "DemoPlugin.hxx"
 
+#include <boost/algorithm/string/case_conv.hpp>
+
+
 std::string DemoPlugin::getPluginName() {
     return "PicoScenes Demo Plugin";
 }
@@ -30,6 +33,22 @@ void DemoPlugin::initialization() {
 std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginOptionsDescription() {
     return options;
 }
+
+void DemoPlugin::initialization() {
+
+    /* In this area, you can customize commands,
+     * but be mindful not to replicate the commands used by other plugins.
+     */
+
+    options = std::make_shared<po::options_description>("Demo Options", 120);
+    options->add_options()
+            ("demo", po::value<std::string>(), "--demo <param>");
+}
+
+std::shared_ptr<boost::program_options::options_description> DemoPlugin::pluginOptionsDescription() {
+    return options;
+}
+
 
 void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
 

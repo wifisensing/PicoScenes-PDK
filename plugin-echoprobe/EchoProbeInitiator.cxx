@@ -270,7 +270,7 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
         }
     }
 
-    auto sourceAddr = MagicIntel123456;
+    auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
     if (parameters.randomMAC) {
         sourceAddr[0] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
         sourceAddr[1] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
@@ -278,6 +278,7 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
     frame->setSourceAddress(sourceAddr.data());
     frame->setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : MagicIntel123456.data());
     frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame->txParameters.forceSounding = true;
 
     if (parameters.inj_for_intel5300.value_or(false)) {
         frame->setSourceAddress(MagicIntel123456.data());
