@@ -70,7 +70,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*echoProbeOptions).style(style).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    if (vm.count("mode")) {
+    if (vm.contains("mode")) {
         auto modeString = vm["mode"].as<std::string>();
         boost::algorithm::to_lower(modeString);
         boost::trim(modeString);
@@ -86,20 +86,19 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
             nic->startRxService();
         } else if (modeString.find("responder") != std::string::npos) {
             parameters.workingMode = EchoProbeWorkingMode::EchoProbeResponder;
-            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
-            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector{MagicIntel123456});
+            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector{MagicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("initiator") != std::string::npos) {
             parameters.workingMode = EchoProbeWorkingMode::EchoProbeInitiator;
-            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
-            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector{MagicIntel123456});
+            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector{MagicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("radar") != std::string::npos) {
             parameters.workingMode = EchoProbeWorkingMode::Radar;
-            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
-            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector<std::array<uint8_t, 6>>{MagicIntel123456});
+            nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector{MagicIntel123456});
             nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->setFullDuplex(true);
             nic->startRxService();
             nic->startTxService();
