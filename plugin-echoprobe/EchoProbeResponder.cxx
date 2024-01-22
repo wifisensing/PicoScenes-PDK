@@ -34,8 +34,7 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
 
     initiatorDeviceType = rxframe.PicoScenesHeader->deviceType;
     const auto &epBuffer = rxframe.txUnknownSegments.at("EchoProbeRequest");
-    auto epRawBuffer = epBuffer.toBuffer();
-    auto epSegment = EchoProbeRequestSegment(epRawBuffer.data(), epRawBuffer.size());
+    auto epSegment = EchoProbeRequestSegment(epBuffer->getSyncedRawBuffer().data(), epBuffer->getSyncedRawBuffer().size());
     if (!parameters.outputFileName) {
         auto dumpId = fmt::sprintf("EPR_%s_%u", nic->getReferredInterfaceName(), epSegment.getEchoProbeRequest().sessionId);
         FrameDumper::getInstance("rx_" + nic->getReferredInterfaceName())->dumpRxFrame(rxframe);
@@ -102,7 +101,7 @@ std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeR
         frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
         if (rxframe.basebandSignalSegment) {
             auto copied = rxframe;
-            copied.basebandSignalSegment = std::nullopt;
+            copied.basebandSignalSegment = nullptr;
             frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
         } else
             frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
@@ -111,7 +110,7 @@ std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeR
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
         reply.payloadName = "EchoProbeReplyCSI";
         frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment.toBuffer(), PayloadDataType::SignalMatrix));
+        frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment->getSyncedRawBuffer(), PayloadDataType::SignalMatrix));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
         frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
