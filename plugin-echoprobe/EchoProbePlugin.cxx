@@ -33,6 +33,7 @@ void EchoProbePlugin::initialization() {
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
+            ("batch", "Use BatchTx API to precisely time the injecting frames.")
             ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
@@ -189,6 +190,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         else if (boost::iequals(codingStr, "full"))
             parameters.injectorContent = EchoProbeInjectionContent::Full;
     }
+
+    if (vm.contains("batch")) {
+        parameters.useBatchAPI = true;
+    } else
+        parameters.useBatchAPI = false;
 
     if (vm.count("random-payload"))
         parameters.randomPayloadLength = vm["random-payload"].as<uint32_t>();

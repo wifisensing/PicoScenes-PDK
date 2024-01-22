@@ -21,6 +21,7 @@ public:
     std::optional<bool> inj_for_intel5300;
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
+    bool useBatchAPI;
 
     std::optional<std::string> outputFileName;
     bool randomMAC;

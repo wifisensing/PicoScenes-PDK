@@ -288,6 +288,47 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
     return frame;
 }
 
+std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeInitiator::buildBatchFrames(uint16_t taskId, const EchoProbePacketFrameType& frameType, uint16_t sessionId) const {
+    std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> frameBatches;
+
+    auto batchLength = *parameters.cf_repeat > 4096 ? 4096 : *parameters.cf_repeat;
+    auto repeats = std::ceil(1.0 * *parameters.cf_repeat / 4096);
+    for (uint32_t frameIndex = 0; frameIndex < batchLength; frameIndex++) {
+        auto frame = nic->initializeTxFrame();
+        frame->setTaskId(SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, 30000))
+                .setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType))
+                .addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()))
+                .setDestinationAddress(MagicIntel123456.data())
+                .setSourceAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
+                .set3rdAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
+                .setTxParameters(nic->getUserSpecifiedTxParameters())
+                .setForceSounding(!parameters.inj_for_intel5300)
+                .setChannelCoding(parameters.inj_for_intel5300 ? ChannelCodingEnum::BCC : frame->txParameters.coding[0]);
+        frame->txParameters.NDPFrame = frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP;
+        if (parameters.randomPayloadLength) {
+            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
+            std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
+            auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
+            frame->addSegment(segment);
+        }
+        frameBatches.emplace_back(std::move(frame));
+    }
+
+    if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !frameBatches.empty()) {
+        auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(*frameBatches[0], nic->getFrontEnd()->getTxChannels().size());
+        auto signalLength = signals[0].size();
+        auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getFrontEnd()->getSamplingRate();
+
+        std::for_each(frameBatches.begin(), frameBatches.end(), [&](const std::shared_ptr<ModularPicoScenesTxFrame> &currentFrame) {
+            auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
+            currentFrame->txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
+            nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(*currentFrame, nic->getFrontEnd()->getTxChannels().size());
+        });
+    }
+
+    return frameBatches;
+}
+
 EchoProbeRequest EchoProbeInitiator::makeRequestSegment(uint16_t sessionId, std::optional<double> newCF, std::optional<double> newSF) {
     EchoProbeRequest echoProbeRequest;
     echoProbeRequest.sessionId = sessionId;
