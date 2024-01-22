@@ -104,39 +104,50 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             tx_count = 0;
             acked_count = 0;
             mean_delay_single = 0.0;
-            for (uint32_t i = 0; i < cf_repeat; ++i) {
-                auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                std::shared_ptr<ModularPicoScenesTxFrame> txframe = nullptr;
+            if (parameters.useBatchAPI) {
+                auto frames = buildBatchFrames(EchoProbePacketFrameType::SimpleInjectionFrameType);
+                std::vector<const ModularPicoScenesTxFrame *> framePoints;
+                for(const auto & frame: frames) {
+                    framePoints.emplace_back(frame.get());
+                }
 
-                if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
-                    txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
-                    nic->transmitPicoScenesFrameSync(*txframe);
-                    tx_count++;
-                    total_tx_count++;
-                    printDots(tx_count);
-                    SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
-                    txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
-                    txframe->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
-                    auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe);
-                    tx_count += retryPerTx;
-                    total_tx_count += retryPerTx;
-                    if (rxframe && ackframe) {
-                        acked_count++;
-                        total_acked_count++;
-                        mean_delay_single += rtDelay / cf_repeat;
-                        total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        if (parameters.outputFileName)
-                            FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
-                        else
-                            FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
-                        LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
-                        printDots(acked_count);
+                auto repeats = std::ceil(1.0f * *parameters.cf_repeat / framePoints.size());
+                nic->getFrontEnd()->transmitFramesInBatch(framePoints, repeats);
+            } else {
+                for (uint32_t i = 0; i < cf_repeat; ++i) {
+                    auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                    std::shared_ptr<ModularPicoScenesTxFrame> txframe = nullptr;
+
+                    if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
+                        txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
+                        nic->transmitPicoScenesFrameSync(*txframe);
+                        tx_count++;
+                        total_tx_count++;
+                        printDots(tx_count);
                         SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                    } else {
-                        printf("\n");
-                        LoggingService_warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...", cf_value);
-                        goto failed;
+                    } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
+                        txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
+                        txframe->addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
+                        auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe);
+                        tx_count += retryPerTx;
+                        total_tx_count += retryPerTx;
+                        if (rxframe && ackframe) {
+                            acked_count++;
+                            total_acked_count++;
+                            mean_delay_single += rtDelay / cf_repeat;
+                            total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
+                            if (parameters.outputFileName)
+                                FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
+                            else
+                                FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
+                            LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
+                            printDots(acked_count);
+                            SystemTools::Time::delay_periodic(parameters.tx_delay_us);
+                        } else {
+                            printf("\n");
+                            LoggingService_warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...", cf_value);
+                            goto failed;
+                        }
                     }
                 }
             }
@@ -288,15 +299,15 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
     return frame;
 }
 
-std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeInitiator::buildBatchFrames(uint16_t taskId, const EchoProbePacketFrameType& frameType, uint16_t sessionId) const {
+std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeInitiator::buildBatchFrames(const EchoProbePacketFrameType& frameType) const {
     std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> frameBatches;
 
     auto batchLength = *parameters.cf_repeat > 4096 ? 4096 : *parameters.cf_repeat;
-    auto repeats = std::ceil(1.0 * *parameters.cf_repeat / 4096);
+    LoggingService_Plugin_info_print("Building {} EchoProbe frames spaced by {} us...", batchLength, parameters.tx_delay_us);
     for (uint32_t frameIndex = 0; frameIndex < batchLength; frameIndex++) {
         auto frame = nic->initializeTxFrame();
         frame->setTaskId(SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, 30000))
-                .setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType))
+                .setPicoScenesFrameType(static_cast<uint8_t>(frameType))
                 .addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()))
                 .setDestinationAddress(MagicIntel123456.data())
                 .setSourceAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())

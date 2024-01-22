@@ -42,7 +42,7 @@ private:
 
     [[nodiscard]] std::shared_ptr<ModularPicoScenesTxFrame> buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
 
-    [[nodiscard]] std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> buildBatchFrames(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
+    [[nodiscard]] std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> buildBatchFrames(const EchoProbePacketFrameType &frameType) const;
 
     EchoProbeRequest makeRequestSegment(uint16_t sessionId, std::optional<double> newCF = std::nullopt, std::optional<double> newSF = std::nullopt);
 
