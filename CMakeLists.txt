@@ -27,6 +27,7 @@ find_package(fmt REQUIRED)
 add_subdirectory(plugin-demo)
 add_subdirectory(plugin-echoprobe)
 add_subdirectory(plugin-forwarder)
+add_subdirectory(udp-remote-logger)
 
 # include CPack settings
 include(CPack-Settings.cmake)
