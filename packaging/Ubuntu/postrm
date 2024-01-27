@@ -1,0 +1,4 @@
+#! /bin/sh -e
+
+find /usr/bin/ -lname "/usr/local/PicoScenes/bin/UDPRemoteLogger" -delete
+rm -rf /usr/local/PicoScenes/bin/UDPRemoteLogger 2>/dev/null

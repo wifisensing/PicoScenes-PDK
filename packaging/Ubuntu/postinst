@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+# Add the UDPRemoteLogger to /usr/bin
+ln -s /usr/local/PicoScenes/bin/UDPRemoteLogger /usr/bin/UDPRemoteLogger

@@ -54,7 +54,7 @@ public:
         activateUDPAsyncReceiving();
     }
 
-    auto activateUDPAsyncReceiving() {
+    auto activateUDPAsyncReceiving() -> void {
         socket->async_receive_from(boost::asio::buffer(rxTempBuffer), endPoint, [this](const boost::system::error_code&error, std::size_t bytes_transferred) {
             if (!error)
                 this->rxHandler(error, bytes_transferred);
@@ -64,7 +64,7 @@ public:
     }
 
     // This is the callback function invoked by socket->async_receive_from
-    auto rxHandler(const boost::system::error_code&errorCode, const std::size_t bytesTransferred) {
+    auto rxHandler(const boost::system::error_code&errorCode, const std::size_t bytesTransferred) -> void {
         if (!errorCode) {
             // Use dual-AsyncPipeline approach to prevent the possible UDP packet loss
             decoderPipeline->send(std::vector<uint8_t>(rxTempBuffer.data(), rxTempBuffer.data() + bytesTransferred));
