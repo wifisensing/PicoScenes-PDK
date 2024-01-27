@@ -53,6 +53,12 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string &commandStrin
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
     if (destinationIP && destinationPort) {
         auto frameBuffer = rxframe.toBuffer();
-        SystemTools::Net::udpSendData("Forwarder" + *destinationIP + std::to_string(*destinationPort), frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
+
+        // TODO UDP splitting and auto merging...
+        if (frameBuffer.size() < 65535)
+            SystemTools::Net::udpSendData("Forwarder" + *destinationIP + std::to_string(*destinationPort), frameBuffer.data(), frameBuffer.size(), *destinationIP, *destinationPort);
+        else {
+            LoggingService_Plugin_warning_print("Frame size ({} bytes) is too large to perform UDP forwarding, exceeding max. 65535 bytes UDP limit...", frameBuffer.size());
+        }
     }
 }
