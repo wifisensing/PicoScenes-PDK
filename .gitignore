@@ -5,3 +5,4 @@ libPDK-demo.*
 libPDK-EchoProbe.*
 libPDK-UDPForwarder.*
 cmake-build-*/*
+UDPRemoteLogger
