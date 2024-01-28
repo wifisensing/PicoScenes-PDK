@@ -271,8 +271,10 @@ std::shared_ptr<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBasicFrame(ui
             frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
 
         if (parameters.randomPayloadLength) {
-            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
-            std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
+            std::vector<uint8_t> vec;
+            vec.reserve(*parameters.randomPayloadLength);
+            for(auto i = 0 ;i < *parameters.randomPayloadLength ; i++)
+                vec.emplace_back(i % 256);
             auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
             frame->addSegment(segment);
         }
