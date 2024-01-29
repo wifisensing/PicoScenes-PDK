@@ -44,14 +44,14 @@ void EchoProbeResponder::handle(const ModularPicoScenesRxFrame &rxframe) {
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
         auto replies = makeRepliesFrames(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
-            nic->transmitPicoScenesFrame(*reply);
+            nic->transmitPicoScenesFrame(reply);
         }
     }
 
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType)) {
         auto replies = makeRepliesFrames(rxframe, epSegment.getEchoProbeRequest());
         for (auto &reply: replies) {
-            nic->transmitPicoScenesFrame(*reply);
+            nic->transmitPicoScenesFrame(reply);
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
@@ -77,7 +77,7 @@ void EchoProbeResponder::startJob(const EchoProbeParameters &parametersV) {
     this->parameters = parametersV;
 }
 
-std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+std::vector<ModularPicoScenesTxFrame> EchoProbeResponder::makeRepliesFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     if (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeRequestFrameType)) {
         return makeRepliesForEchoProbeRequestFrames(rxframe, epReq);
     }
@@ -89,67 +89,67 @@ std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeR
     return {};
 }
 
-std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesForEchoProbeRequestFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+std::vector<ModularPicoScenesTxFrame> EchoProbeResponder::makeRepliesForEchoProbeRequestFrames(const ModularPicoScenesRxFrame&rxframe, const EchoProbeRequest&epReq) {
     auto frame = nic->initializeTxFrame();
 
     EchoProbeReply reply;
     reply.sessionId = epReq.sessionId;
     if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
-        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
+        frame.addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithFullPayload;
         reply.payloadName = "EchoProbeReplyFull";
-        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
         if (rxframe.basebandSignalSegment) {
             auto copied = rxframe;
             copied.basebandSignalSegment = nullptr;
-            frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+            frame.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, copied.toBuffer(), PayloadDataType::FullPicoScenesPacket));
         } else
-            frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
+            frame.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.toBuffer(), PayloadDataType::FullPicoScenesPacket));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
-        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
+        frame.addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
         reply.payloadName = "EchoProbeReplyCSI";
-        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
-        frame->addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment->getSyncedRawBuffer(), PayloadDataType::SignalMatrix));
+        frame.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame.addSegment(std::make_shared<PayloadSegment>(reply.payloadName, rxframe.csiSegment->getSyncedRawBuffer(), PayloadDataType::SignalMatrix));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyWithExtraInfo) {
-        frame->addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
+        frame.addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()));
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyWithExtraInfo;
-        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     } else if (epReq.replyStrategy == EchoProbeReplyStrategy::ReplyOnlyHeader) {
         reply.replyStrategy = EchoProbeReplyStrategy::ReplyOnlyHeader;
-        frame->addSegment(std::make_shared<EchoProbeReplySegment>(reply));
+        frame.addSegment(std::make_shared<EchoProbeReplySegment>(reply));
     }
 
-    frame->setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType));
-    frame->setTxParameters(nic->getUserSpecifiedTxParameters());
-    frame->setSourceAddress(MagicIntel123456.data());
-    frame->setDestinationAddress(MagicIntel123456.data());
-    frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType));
+    frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+    frame.setSourceAddress(MagicIntel123456.data());
+    frame.setDestinationAddress(MagicIntel123456.data());
+    frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
-        frame->setForceSounding(false);
-        frame->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
+        frame.setForceSounding(false);
+        frame.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
-    frame->setTaskId(rxframe.PicoScenesHeader->taskId);
-    frame->setTxId(rxframe.PicoScenesHeader->txId);
+    frame.setTaskId(rxframe.PicoScenesHeader->taskId);
+    frame.setTxId(rxframe.PicoScenesHeader->txId);
     return {frame};
 }
 
-std::vector<std::shared_ptr<ModularPicoScenesTxFrame>> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequestFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
+std::vector<ModularPicoScenesTxFrame> EchoProbeResponder::makeRepliesForEchoProbeFreqChangeRequestFrames(const ModularPicoScenesRxFrame &rxframe, const EchoProbeRequest &epReq) {
     auto frame = nic->initializeTxFrame();
 
-    frame->setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType));
-    frame->setTxParameters(nic->getUserSpecifiedTxParameters());
-    frame->setSourceAddress(MagicIntel123456.data());
-    frame->setDestinationAddress(MagicIntel123456.data());
-    frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame.setPicoScenesFrameType(static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType));
+    frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+    frame.setSourceAddress(MagicIntel123456.data());
+    frame.setDestinationAddress(MagicIntel123456.data());
+    frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     if (parameters.inj_for_intel5300.value_or(false)) {
-        frame->setForceSounding(false);
-        frame->setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
+        frame.setForceSounding(false);
+        frame.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
 
-    frame->setTaskId(rxframe.PicoScenesHeader->taskId);
-    frame->setTxId(rxframe.PicoScenesHeader->txId);
+    frame.setTaskId(rxframe.PicoScenesHeader->taskId);
+    frame.setTxId(rxframe.PicoScenesHeader->txId);
     return {frame};
 }

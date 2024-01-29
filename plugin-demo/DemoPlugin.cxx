@@ -72,7 +72,7 @@ void DemoPlugin::parseAndExecuteCommands(const std::string &commandString) {
             auto txframe = buildBasicFrame(taskId);
 
             // Transmit the PicoScenes frame synchronously
-            nic->transmitPicoScenesFrameSync(*txframe);
+            nic->transmitPicoScenesFrameSync(txframe);
         }
     }
 
@@ -82,7 +82,7 @@ void DemoPlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
     // LoggingService_debug_print("This is my rxframe: {}",rxframe.toString());
 }
 
-std::shared_ptr<ModularPicoScenesTxFrame> DemoPlugin::buildBasicFrame(uint16_t taskId) const
+ModularPicoScenesTxFrame DemoPlugin::buildBasicFrame(uint16_t taskId) const
 {
     auto frame = nic->initializeTxFrame();
 
@@ -90,11 +90,11 @@ std::shared_ptr<ModularPicoScenesTxFrame> DemoPlugin::buildBasicFrame(uint16_t t
      * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
      */
 
-    frame->setTxParameters(nic->getUserSpecifiedTxParameters());
-    frame->setTaskId(taskId);
+    frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+    frame.setTaskId(taskId);
     auto sourceAddr = MagicIntel123456;
-    frame->setSourceAddress(sourceAddr.data());
-    frame->set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+    frame.setSourceAddress(sourceAddr.data());
+    frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
 
     return frame;
 

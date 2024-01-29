@@ -36,7 +36,7 @@ public:
 
     void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
 
-    [[nodiscard]] std::shared_ptr<ModularPicoScenesTxFrame> buildBasicFrame(uint16_t taskId = 0) const ;
+    [[nodiscard]] ModularPicoScenesTxFrame buildBasicFrame(uint16_t taskId = 0) const ;
 
 
 private:
