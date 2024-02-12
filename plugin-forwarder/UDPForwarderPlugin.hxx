@@ -8,7 +8,6 @@
 #include <PicoScenes/AbstractPicoScenesPlugin.hxx>
 #include <PicoScenes/SystemTools.hxx>
 
-
 class UDPForwarderPlugin : public AbstractPicoScenesPlugin {
 public:
     std::string getPluginName() override;
@@ -23,9 +22,9 @@ public:
 
     std::shared_ptr<boost::program_options::options_description> pluginOptionsDescription() override;
 
-    void parseAndExecuteCommands(const std::string &commandString) override;
+    void parseAndExecuteCommands(const std::string& commandString) override;
 
-    void rxHandle(const ModularPicoScenesRxFrame &rxframe) override;
+    void rxHandle(const ModularPicoScenesRxFrame& rxframe) override;
 
     static std::shared_ptr<UDPForwarderPlugin> create() {
         return std::make_shared<UDPForwarderPlugin>();
