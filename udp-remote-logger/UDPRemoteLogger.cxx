@@ -25,28 +25,30 @@ public:
             std::cout << "Output file prefix: " << *outputPrefix << std::endl;
 
         // This AsyncPipeline is used to decode the input bytes to frames
-        decoderPipeline = std::make_shared<AsyncPipeline<std::vector<uint8_t>>>();
-        decoderPipeline->registerAsyncHandler("RxFrameDecoder", [&](const std::vector<uint8_t>& bytes) {
+        udpDiagramReceivingPipeline = std::make_shared<AsyncPipeline<std::vector<uint8_t>>>();
+        udpDiagramReceivingPipeline->registerAsyncHandler("RxFrameDecoder", [&](const std::vector<uint8_t>& bytes) {
             if (const auto metaHeader = PicoScenesFrameUDPForwardingDiagramHeader::fromBuffer(bytes.data())) {
                 // Cut through to dumper if only one diagram
-                if (metaHeader->numDiagrams == 1) {
+                if (metaHeader->numDiagrams == 1 && metaHeader->diagramId == 0) {
                     if (const auto decodedFrame = ModularPicoScenesRxFrame::fromBuffer(bytes.data() + sizeof(PicoScenesFrameUDPForwardingDiagramHeader), bytes.size() - sizeof(PicoScenesFrameUDPForwardingDiagramHeader))) {
                         // Delegate the parsed frame to frame dumping pipeline
                         dumperPipeline->send(*decodedFrame);
                     }
                 } else {
+
                     frameConcatPipeline->send(std::make_pair(*metaHeader, U8Vector(bytes.data() + sizeof(PicoScenesFrameUDPForwardingDiagramHeader), bytes.data() + bytes.size())));
                 }
             }
         }).startService();
 
+        // This pipeline buffers the frame segments, concat them (if all segments are collected), and delegate the concatenated frame to dumperPipeline
         frameConcatPipeline = std::make_shared<AsyncPipeline<std::pair<PicoScenesFrameUDPForwardingDiagramHeader, U8Vector>>>();
         frameConcatPipeline->registerAsyncHandler("FrameConcat", [&](const std::pair<PicoScenesFrameUDPForwardingDiagramHeader, U8Vector>& headerAndBuffer) {
             if (const auto& [header, buffer] = headerAndBuffer; !frameConcatBuffer.contains(header.diagramTaskId)) {
                 frameConcatBuffer.emplace(header.diagramTaskId, std::make_pair(std::vector{std::make_pair(header, buffer)}, 0));
             } else {
                 auto& queue = frameConcatBuffer[header.diagramTaskId];
-                queue.first.emplace_back(std::make_pair(header, buffer));
+                queue.first.emplace_back(header, buffer);
                 std::ranges::sort(queue.first, [](const auto& x, const auto& y) {
                     return x.first.diagramId < y.first.diagramId;
                 });
@@ -58,7 +60,7 @@ public:
                     auto mergeBuffer = U8Vector{};
                     mergeBuffer.reserve(task.second.first[0].first.totalDiagramLength);
                     for (const auto& segment: task.second.first) {
-                        std::copy(segment.second.cbegin(), segment.second.cend(), std::back_inserter(mergeBuffer));
+                        std::ranges::copy(segment.second, std::back_inserter(mergeBuffer));
                     }
 
                     if (const auto decodedFrame = ModularPicoScenesRxFrame::fromBuffer(mergeBuffer.data(), mergeBuffer.size())) {
@@ -78,7 +80,7 @@ public:
             for (const auto& task: toBeRemovedTasks)
                 if (frameConcatBuffer.contains(task))
                     frameConcatBuffer.erase(task);
-        });
+        }).startService();
 
         // This AsyncPipeline is used to dump the decoded frames.
         dumperPipeline = std::make_shared<AsyncPipeline<ModularPicoScenesRxFrame>>();
@@ -104,7 +106,7 @@ public:
     }
 
     auto activateUDPAsyncReceiving() -> void {
-        socket->async_receive_from(boost::asio::buffer(rxTempBuffer), endPoint, [this](const boost::system::error_code& error, std::size_t bytes_transferred) {
+        socket->async_receive_from(boost::asio::buffer(rxTempBuffer), endPoint, [this](const boost::system::error_code& error, const std::size_t bytes_transferred) {
             if (!error)
                 this->rxHandler(error, bytes_transferred);
             else
@@ -115,12 +117,13 @@ public:
     // This is the callback function invoked by socket->async_receive_from
     auto rxHandler(const boost::system::error_code& errorCode, const std::size_t bytesTransferred) -> void {
         if (!errorCode) {
-            // Use dual-AsyncPipeline approach to prevent the possible UDP packet loss
-            decoderPipeline->send(std::vector<uint8_t>(rxTempBuffer.data(), rxTempBuffer.data() + bytesTransferred));
+            // Use async pipeline approach to prevent the possible UDP packet loss
+            udpDiagramReceivingPipeline->send(std::vector<uint8_t>(rxTempBuffer.data(), rxTempBuffer.data() + bytesTransferred));
 
-            // re-activate the receiving
+            // re-activate the UDP receiving
             activateUDPAsyncReceiving();
-        }
+        } else
+            LoggingService_Plugin_error_print("Rx error: {}", errorCode.message());
     }
 
     /**
@@ -145,19 +148,22 @@ public:
     }
 
 private:
-    // BOOST ASIO facilities
+    // BOOST ASIO facilities, used for UDP data receiving
     boost::asio::io_service io_service;
     std::shared_ptr<udp::socket> socket;
     udp::endpoint endPoint;
 
-    // Large buffer for large frames, e.g., super long frames with MIMO and large CBW
+    // Rx temp buffer for UDP diagram receiving
     std::array<uint8_t, 65536> rxTempBuffer{};
 
-    // Two asynchronous pipelines used to prevent UDP blocking or packet loss
-    std::shared_ptr<AsyncPipeline<std::vector<uint8_t>>> decoderPipeline;
+    // This pipeline forwards the received bytes to frameConcatPipeline to prevent the blocking of UDP receiving
+    std::shared_ptr<AsyncPipeline<std::vector<uint8_t>>> udpDiagramReceivingPipeline;
+    // This pipeline used for concatnating multiple UDP diagrams
     std::shared_ptr<AsyncPipeline<std::pair<PicoScenesFrameUDPForwardingDiagramHeader, U8Vector>>> frameConcatPipeline;
+    // This pipeline is used for dumping the decoded frame into .csi file
     std::shared_ptr<AsyncPipeline<ModularPicoScenesRxFrame>> dumperPipeline;
 
+    // A large data structure used for frame concatenation. frameConcatBuffer.first holds the taskId, frameConcatBuffer.second.first holds the received segments, and frameConcatBuffer.second.second hold the live count
     std::map<uint16_t, std::pair<std::vector<std::pair<PicoScenesFrameUDPForwardingDiagramHeader, U8Vector>>, int>> frameConcatBuffer;
 
     // User specified output file prefix

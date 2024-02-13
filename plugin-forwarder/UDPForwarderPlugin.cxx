@@ -35,7 +35,7 @@ std::string UDPForwarderPlugin::pluginStatus() {
 
 void UDPForwarderPlugin::parseAndExecuteCommands(const std::string& commandString) {
     po::variables_map vm;
-    po::store(po::command_line_parser(po::split_unix(commandString)).options(*pluginOptionsDescription().get()).allow_unregistered().run(), vm);
+    po::store(po::command_line_parser(po::split_unix(commandString)).options(*pluginOptionsDescription()).allow_unregistered().run(), vm);
     po::notify(vm);
 
     if (vm.contains("forward-to")) {
@@ -52,7 +52,7 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string& commandStrin
 }
 
 void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame& rxframe) {
-    thread_local constexpr auto maxDiagramLength = 64000;
+    thread_local constexpr auto maxDiagramLength = 65000;
     thread_local auto transferBuffer = std::array<uint8_t, maxDiagramLength + sizeof(PicoScenesFrameUDPForwardingDiagramHeader)>();
 
     if (!destinationIP || !destinationPort)
@@ -75,8 +75,8 @@ void UDPForwarderPlugin::rxHandle(const ModularPicoScenesRxFrame& rxframe) {
         });
     } else {
         for (auto pos = 0; pos < frameBuffer.size(); pos += maxDiagramLength) {
-            segments.emplace_back(frameBuffer.cbegin() + pos, frameBuffer.cbegin() + pos + maxDiagramLength);
-            pos += maxDiagramLength;
+            auto stepLength = pos + maxDiagramLength < frameBuffer.size() ? maxDiagramLength : frameBuffer.size() - pos;
+            segments.emplace_back(frameBuffer.cbegin() + pos, frameBuffer.cbegin() + pos + stepLength);
         }
         for (auto i = 0; i < segments.size(); i++) {
             headers.emplace_back(PicoScenesFrameUDPForwardingDiagramHeader{
