@@ -35,7 +35,6 @@ public:
                         dumperPipeline->send(*decodedFrame);
                     }
                 } else {
-
                     frameConcatPipeline->send(std::make_pair(*metaHeader, U8Vector(bytes.data() + sizeof(PicoScenesFrameUDPForwardingDiagramHeader), bytes.data() + bytes.size())));
                 }
             }
@@ -49,7 +48,7 @@ public:
             } else {
                 auto& queue = frameConcatBuffer[header.diagramTaskId];
                 queue.first.emplace_back(header, buffer);
-                std::ranges::sort(queue.first, [](const auto& x, const auto& y) {
+                std::sort(queue.first.begin(), queue.first.end(), [](const auto& x, const auto& y) {
                     return x.first.diagramId < y.first.diagramId;
                 });
             }
@@ -60,7 +59,7 @@ public:
                     auto mergeBuffer = U8Vector{};
                     mergeBuffer.reserve(task.second.first[0].first.totalDiagramLength);
                     for (const auto& segment: task.second.first) {
-                        std::ranges::copy(segment.second, std::back_inserter(mergeBuffer));
+                        std::copy(segment.second.cbegin(), segment.second.cend(), std::back_inserter(mergeBuffer));
                     }
 
                     if (const auto decodedFrame = ModularPicoScenesRxFrame::fromBuffer(mergeBuffer.data(), mergeBuffer.size())) {
