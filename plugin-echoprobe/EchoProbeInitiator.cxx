@@ -310,7 +310,7 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
 std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const EchoProbePacketFrameType&frameType) const {
     std::vector<ModularPicoScenesTxFrame> frameBatches;
 
-    auto batchLength = *parameters.cf_repeat > 4096 ? 4096 : *parameters.cf_repeat;
+    auto batchLength = *parameters.cf_repeat > 1024 ? 1024 : *parameters.cf_repeat;
     LoggingService_Plugin_info_print("Building {} EchoProbe frames spaced by {} us...", batchLength, parameters.tx_delay_us);
     for (uint32_t frameIndex = 0; frameIndex < batchLength; frameIndex++) {
         auto frame = nic->initializeTxFrame();
