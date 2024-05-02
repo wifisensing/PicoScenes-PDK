@@ -330,19 +330,22 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
             auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
             frame.addSegment(segment);
         }
-        frameBatches.emplace_back(std::move(frame));
-    }
 
-    if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !frameBatches.empty()) {
-        auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(frameBatches[0], nic->getFrontEnd()->getTxChannels().size());
-        auto signalLength = signals[0].size();
-        auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getFrontEnd()->getSamplingRate();
+        auto splitFrames = frame.autoSplit(1350);
 
-        std::for_each(frameBatches.begin(), frameBatches.end(), [&](ModularPicoScenesTxFrame&currentFrame) {
-            auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
-            currentFrame.txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
-            nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(currentFrame, nic->getFrontEnd()->getTxChannels().size());
-        });
+        if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !splitFrames.empty()) {
+            auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(splitFrames[0], nic->getFrontEnd()->getTxChannels().size());
+            auto signalLength = signals[0].size();
+            auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
+
+            std::for_each(splitFrames.begin(), splitFrames.end(), [&](ModularPicoScenesTxFrame&currentFrame) {
+                auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
+                currentFrame.txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
+                nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(currentFrame, nic->getFrontEnd()->getTxChannels().size());
+            });
+        }
+
+        std::copy(splitFrames.cbegin(), splitFrames.cend(), std::back_inserter(frameBatches));
     }
 
     return frameBatches;
