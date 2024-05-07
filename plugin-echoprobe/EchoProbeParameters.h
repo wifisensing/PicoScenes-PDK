@@ -22,6 +22,7 @@ public:
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
     bool useBatchAPI;
+    uint32_t batchLength;
 
     std::optional<std::string> outputFileName;
     bool randomMAC;

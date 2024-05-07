@@ -9,7 +9,7 @@
 #include "EchoProbeRequestSegment.hxx"
 
 
-void EchoProbeInitiator::startJob(const EchoProbeParameters&parametersV) {
+void EchoProbeInitiator::startJob(const EchoProbeParameters& parametersV) {
     this->parameters = parametersV;
     unifiedEchoProbeWork();
 }
@@ -34,9 +34,9 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     if (tx_delayed_start > 0)
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
 
-    for (const auto&sf_value: sfList) {
+    for (const auto& sf_value: sfList) {
         auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
-        for (const auto&cf_value: cfList) {
+        for (const auto& cf_value: cfList) {
             if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
                 if (sf_value != frontEnd->getSamplingRate()) {
                     LoggingService_info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value / 1e6);
@@ -49,8 +49,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                     frontEnd->setCarrierFrequency(cf_value);
                     std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                 }
-            }
-            else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
+            } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
                 bool shiftSF = false, shiftCF = false;
                 if (sf_value != frontEnd->getSamplingRate()) {
                     LoggingService_info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value);
@@ -78,8 +77,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                             connectionEstablished = true;
                             break;
-                        }
-                        else {
+                        } else {
                             if (shiftSF) frontEnd->setSamplingRate(nextSF);
                             if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
                             std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
@@ -90,8 +88,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
                                 connectionEstablished = true;
                                 break;
-                            }
-                            else {
+                            } else {
                                 if (shiftSF) frontEnd->setSamplingRate(currentSF);
                                 if (shiftCF) frontEnd->setCarrierFrequency(currentCF);
                                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
@@ -110,14 +107,13 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
             if (parameters.useBatchAPI) {
                 auto frames = buildBatchFrames(EchoProbePacketFrameType::SimpleInjectionFrameType);
                 std::vector<const ModularPicoScenesTxFrame *> framePoints;
-                for (const auto&frame: frames) {
+                for (const auto& frame: frames) {
                     framePoints.emplace_back(&frame);
                 }
 
                 auto repeats = std::ceil(1.0f * *parameters.cf_repeat / framePoints.size());
                 nic->getFrontEnd()->transmitFramesInBatch(framePoints, repeats);
-            }
-            else {
+            } else {
                 for (uint32_t i = 0; i < cf_repeat; ++i) {
                     auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
 
@@ -128,8 +124,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         total_tx_count++;
                         printDots(tx_count);
                         SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                    }
-                    else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
+                    } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
                         auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
                         txframe.addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
                         auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe);
@@ -147,8 +142,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
                             printDots(acked_count);
                             SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                        }
-                        else {
+                        } else {
                             printf("\n");
                             LoggingService_warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...", cf_value);
                             goto failed;
@@ -177,7 +171,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         LoggingService_info_printf("Job done! #.total_tx=%d #.total_acked=%d, echo_delay=%.1fms, success_rate =%.1f%%.", total_tx_count, total_acked_count, total_mean_delay, 100.0 * total_acked_count / total_tx_count);
 }
 
-std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(ModularPicoScenesTxFrame&frame, std::optional<uint32_t> maxRetry) {
+std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> EchoProbeInitiator::transmitAndSyncRxUnified(ModularPicoScenesTxFrame& frame, std::optional<uint32_t> maxRetry) {
     auto taskId = frame.frameHeader->taskId;
     auto retryCount = 0;
     auto timeGap = -1.0;
@@ -200,7 +194,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
         totalTimeOut += 50 * (int(frame.txParameters.cbw) / 20);
         auto tx_time = std::chrono::system_clock::now();
         nic->transmitPicoScenesFrame(frame);
-        auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame&rxframe) -> bool {
+        auto replyFrame = nic->syncRxConditionally([=](const ModularPicoScenesRxFrame& rxframe) -> bool {
             return rxframe.PicoScenesHeader && (rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeReplyFrameType) || rxframe.PicoScenesHeader->frameType == static_cast<uint8_t>(EchoProbePacketFrameType::EchoProbeFreqChangeACKFrameType)) && rxframe.PicoScenesHeader->taskId == taskId;
         }, std::chrono::milliseconds(totalTimeOut), "taskId[" + std::to_string(taskId) + "]");
 
@@ -217,7 +211,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithCSI) {
                 const auto payloadName = replySeg.getEchoProbeReply().payloadName;
-                if (auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const std::shared_ptr<PayloadSegment>&payloadSegment) {
+                if (auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const std::shared_ptr<PayloadSegment>& payloadSegment) {
                     return payloadSegment->getPayloadData().payloadDescription == payloadName;
                 }); foundIt != replyFrame->payloadSegments.cend()) {
                     LoggingService_debug_printf("Round-trip delay %.3fms, only CSI", timeGap);
@@ -227,7 +221,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
 
             if (replySeg.getEchoProbeReply().replyStrategy == EchoProbeReplyStrategy::ReplyWithFullPayload) {
                 const auto payloadName = replySeg.getEchoProbeReply().payloadName;
-                if (auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const std::shared_ptr<PayloadSegment>&payloadSegment) {
+                if (auto foundIt = std::find_if(replyFrame->payloadSegments.cbegin(), replyFrame->payloadSegments.cend(), [payloadName](const std::shared_ptr<PayloadSegment>& payloadSegment) {
                     return payloadSegment->getPayloadData().payloadDescription == payloadName;
                 }); foundIt != replyFrame->payloadSegments.cend()) {
                     if (auto ackFrame = ModularPicoScenesRxFrame::fromBuffer(foundIt->get()->getPayloadData().payloadData.data(), foundIt->get()->getPayloadData().payloadData.size())) {
@@ -248,7 +242,7 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }
 
-ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType&frameType, uint16_t sessionId) const {
+ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType& frameType, uint16_t sessionId) const {
     auto frame = nic->initializeTxFrame();
 
     if (frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP) {
@@ -258,8 +252,7 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
          * Plugin developers now can access the parameters via a new method nic->getUserSpecifiedTxParameters().
          */
         frame.setTxParameters(nic->getUserSpecifiedTxParameters()).txParameters.NDPFrame = true;
-    }
-    else {
+    } else {
         /**
          * @brief PicoScenes Platform CLI parser has *absorbed* the common Tx parameters.
          * The platform parser will parse the Tx parameters options and store the results in AbstractNIC.
@@ -307,10 +300,10 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
     return frame;
 }
 
-std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const EchoProbePacketFrameType&frameType) const {
+std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const EchoProbePacketFrameType& frameType) const {
     std::vector<ModularPicoScenesTxFrame> frameBatches;
 
-    auto batchLength = *parameters.cf_repeat > 1024 ? 1024 : *parameters.cf_repeat;
+    auto batchLength = *parameters.cf_repeat > parameters.batchLength ? parameters.batchLength : *parameters.cf_repeat;
     LoggingService_Plugin_info_print("Building {} EchoProbe frames spaced by {} us...", batchLength, parameters.tx_delay_us);
     for (uint32_t frameIndex = 0; frameIndex < batchLength; frameIndex++) {
         auto frame = nic->initializeTxFrame();
@@ -338,7 +331,7 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
             auto signalLength = signals[0].size();
             auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
 
-            std::for_each(splitFrames.begin(), splitFrames.end(), [&](ModularPicoScenesTxFrame&currentFrame) {
+            std::for_each(splitFrames.begin(), splitFrames.end(), [&](ModularPicoScenesTxFrame& currentFrame) {
                 auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
                 currentFrame.txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
                 nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(currentFrame, nic->getFrontEnd()->getTxChannels().size());
@@ -368,8 +361,7 @@ EchoProbeRequest EchoProbeInitiator::makeRequestSegment(uint16_t sessionId, std:
             echoProbeRequest.cf = *newCF;
         if (newSF)
             echoProbeRequest.sf = *newSF;
-    }
-    else {
+    } else {
         echoProbeRequest.replyStrategy = parameters.replyStrategy;
         echoProbeRequest.ackMCS = parameters.ack_mcs.value_or(-1);
         echoProbeRequest.ackNumSTS = parameters.ack_numSTS.value_or(-1);
@@ -426,8 +418,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitrarySamplingRates() {
     do {
         frequencies.emplace_back(cur_sf);
         cur_sf += sf_step;
-    }
-    while ((sf_step > 0 && cur_sf <= sf_end) || (sf_step < 0 && cur_sf >= sf_end));
+    } while ((sf_step > 0 && cur_sf <= sf_end) || (sf_step < 0 && cur_sf >= sf_end));
 
     return frequencies;
 }
@@ -458,8 +449,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     do {
         frequencies.emplace_back(cur_cf);
         cur_cf += cf_step;
-    }
-    while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
+    } while ((cf_step > 0 && cur_cf <= cf_end) || (cf_step < 0 && cur_cf >= cf_end));
 
     return frequencies;
 }
@@ -485,7 +475,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
     return frequencies;
 }
 
-static double closest(std::vector<double> const&vec, double value) {
+static double closest(std::vector<double> const& vec, double value) {
     if (value <= vec[0])
         return vec[0];
 
