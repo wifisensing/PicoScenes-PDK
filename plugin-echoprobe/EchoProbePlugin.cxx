@@ -33,7 +33,7 @@ void EchoProbePlugin::initialization() {
             ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
-            ("batch", "Use BatchTx API to precisely time the injecting frames.")
+            ("batch", po::value<uint32_t>()->implicit_value(1024), "Use BatchTx API to precisely time the injecting frames.")
             ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
 
@@ -62,7 +62,7 @@ std::vector<PicoScenesDeviceType> EchoProbePlugin::getSupportedDeviceTypes() {
     return supportedDevices;
 }
 
-void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) {
+void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) {
     po::variables_map vm;
     auto style = pos::allow_long | pos::allow_dash_for_short |
                  pos::long_allow_adjacent | pos::long_allow_next |
@@ -191,6 +191,8 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
 
     if (vm.contains("batch")) {
         parameters.useBatchAPI = true;
+        auto batchLength = vm["batch"].as<uint32_t>();
+        parameters.batchLength = batchLength;
     } else
         parameters.useBatchAPI = false;
 
@@ -246,7 +248,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
     }
 }
 
-void EchoProbePlugin::rxHandle(const ModularPicoScenesRxFrame &rxframe) {
+void EchoProbePlugin::rxHandle(const ModularPicoScenesRxFrame& rxframe) {
     if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger || parameters.workingMode == EchoProbeWorkingMode::Radar)
         responder->handle(rxframe);
 }
