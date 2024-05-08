@@ -88,13 +88,11 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string &commandString) 
         } else if (modeString.find("responder") != std::string::npos) {
             parameters.workingMode = EchoProbeWorkingMode::EchoProbeResponder;
             nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector{MagicIntel123456});
-            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector{MagicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("initiator") != std::string::npos) {
             parameters.workingMode = EchoProbeWorkingMode::EchoProbeInitiator;
             nic->getFrontEnd()->setDestinationMACAddressFilter(std::vector{MagicIntel123456});
-            nic->getFrontEnd()->setSourceMACAddressFilter(std::vector{MagicIntel123456});
             nic->startRxService();
             nic->startTxService();
         } else if (modeString.find("radar") != std::string::npos) {
