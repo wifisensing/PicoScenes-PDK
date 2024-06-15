@@ -47,7 +47,7 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string& commandStrin
         destinationIP = segments[0];
         destinationPort = boost::lexical_cast<uint16_t>(segments[1]);
 
-        LoggingService_info_print("UDP Forwarder destination: {}/{}\n", *destinationIP, *destinationPort);
+        LoggingService_Plugin_info_print("UDP Forwarder destination: {}/{}\n", *destinationIP, *destinationPort);
     }
 }
 
