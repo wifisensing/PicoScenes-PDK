@@ -33,6 +33,7 @@ public:
     std::optional<double> cf_end;
     std::optional<double> cf_step;
     std::optional<uint32_t> cf_repeat;
+    std::optional<uint32_t> round_repeat;
 
     std::optional<double> sf_begin;
     std::optional<double> sf_end;

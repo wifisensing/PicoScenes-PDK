@@ -20,6 +20,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto tx_count = 0, acked_count = 0;
     auto total_mean_delay = 0.0, mean_delay_single = 0.0;
     auto workingMode = parameters.workingMode;
+    auto round_repeat = parameters.round_repeat.value_or(1);
     auto cf_repeat = parameters.cf_repeat.value_or(100);
     auto tx_delay_us = parameters.tx_delay_us;
     auto tx_delayed_start = parameters.delayed_start_seconds.value_or(0);
@@ -32,7 +33,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
 
     auto sessionId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
     LoggingService_Plugin_info_print("EchoProbe job parameters: sf--> {} : {} : {}MHz, cf--> {} : {} : {}MHz, {}K repeats with {}us interval {}s delayed start.",
-                              sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
+                                     sfList.front() / 1e6, parameters.sf_step.value_or(0) / 1e6, sfList.back() / 1e6, cfList.front() / 1e6, parameters.cf_step.value_or(0) / 1e6, cfList.back() / 1e6, cf_repeat / 1e3, tx_delay_us, tx_delayed_start);
 
     if (tx_delayed_start > 0)
         std::this_thread::sleep_for(std::chrono::seconds(tx_delayed_start));
@@ -42,53 +43,43 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         prebuiltFrames = buildBatchFrames(EchoProbePacketFrameType::SimpleInjectionFrameType);
     }
 
-    for (const auto& sf_value: sfList) {
-        auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
-        for (const auto& cf_value: cfList) {
-            if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
-                if (sf_value != frontEnd->getSamplingRate()) {
-                    LoggingService_Plugin_info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value / 1e6);
-                    frontEnd->setSamplingRate(sf_value);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                }
+    for (auto ri = 0; ri < round_repeat; ri++) {
+        for (const auto& sf_value: sfList) {
+            auto dumperId = fmt::sprintf("EPI_%s_%u_bb%.1fM", nic->getReferredInterfaceName(), sessionId, sf_value / 1e6);
+            for (const auto& cf_value: cfList) {
+                if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
+                    if (sf_value != frontEnd->getSamplingRate()) {
+                        LoggingService_Plugin_info_print("EchoProbe injector shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value / 1e6);
+                        frontEnd->setSamplingRate(sf_value);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                    }
 
-                if (cf_value != frontEnd->getCarrierFrequency()) {
-                    LoggingService_Plugin_info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...", nic->getReferredInterfaceName(), cf_value / 1e6);
-                    frontEnd->setCarrierFrequency(cf_value);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                }
-            } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
-                bool shiftSF = false, shiftCF = false;
-                if (sf_value != frontEnd->getSamplingRate()) {
-                    LoggingService_Plugin_info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value);
-                    shiftSF = true;
-                }
-                if (cf_value != frontEnd->getCarrierFrequency()) {
-                    LoggingService_Plugin_info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
-                    shiftCF = true;
-                }
+                    if (cf_value != frontEnd->getCarrierFrequency()) {
+                        LoggingService_Plugin_info_print("EchoProbe injector shifting {}'s carrier frequency to {}MHz...", nic->getReferredInterfaceName(), cf_value / 1e6);
+                        frontEnd->setCarrierFrequency(cf_value);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                    }
+                } else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
+                    bool shiftSF = false, shiftCF = false;
+                    if (sf_value != frontEnd->getSamplingRate()) {
+                        LoggingService_Plugin_info_print("EchoProbe initiator shifting {}'s baseband sampling rate to {}MHz...", nic->getReferredInterfaceName(), sf_value);
+                        shiftSF = true;
+                    }
+                    if (cf_value != frontEnd->getCarrierFrequency()) {
+                        LoggingService_Plugin_info_print("EchoProbe initiator shifting {}'s carrier frequency to {}MHz...", nic->getReferredInterfaceName(), (double) cf_value / 1e6);
+                        shiftCF = true;
+                    }
 
-                if (shiftCF || shiftSF) {
-                    auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType, sessionId);
-                    txframe.addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId, shiftCF ? std::optional<double>(cf_value) : std::nullopt, shiftSF ? std::optional<double>(sf_value) : std::nullopt)));
-                    auto currentCF = frontEnd->getCarrierFrequency();
-                    auto currentSF = frontEnd->getSamplingRate();
-                    auto nextCF = cf_value;
-                    auto nextSF = sf_value;
-                    auto connectionEstablished = false;
-                    for (auto i = 0; i < parameters.tx_max_retry; i++) {
-                        if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe, 2); rxframe) {
-                            LoggingService_Plugin_info_print("EchoProbe responder confirms the channel changes.");
-                            if (shiftSF) frontEnd->setSamplingRate(nextSF);
-                            if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
-                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
-                            connectionEstablished = true;
-                            break;
-                        } else {
-                            if (shiftSF) frontEnd->setSamplingRate(nextSF);
-                            if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
-                            std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                    if (shiftCF || shiftSF) {
+                        auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                        auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeFreqChangeRequestFrameType, sessionId);
+                        txframe.addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId, shiftCF ? std::optional<double>(cf_value) : std::nullopt, shiftSF ? std::optional<double>(sf_value) : std::nullopt)));
+                        auto currentCF = frontEnd->getCarrierFrequency();
+                        auto currentSF = frontEnd->getSamplingRate();
+                        auto nextCF = cf_value;
+                        auto nextSF = sf_value;
+                        auto connectionEstablished = false;
+                        for (auto i = 0; i < parameters.tx_max_retry; i++) {
                             if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe, 2); rxframe) {
                                 LoggingService_Plugin_info_print("EchoProbe responder confirms the channel changes.");
                                 if (shiftSF) frontEnd->setSamplingRate(nextSF);
@@ -97,83 +88,95 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                                 connectionEstablished = true;
                                 break;
                             } else {
-                                if (shiftSF) frontEnd->setSamplingRate(currentSF);
-                                if (shiftCF) frontEnd->setCarrierFrequency(currentCF);
+                                if (shiftSF) frontEnd->setSamplingRate(nextSF);
+                                if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
                                 std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                                if (auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe, 2); rxframe) {
+                                    LoggingService_Plugin_info_print("EchoProbe responder confirms the channel changes.");
+                                    if (shiftSF) frontEnd->setSamplingRate(nextSF);
+                                    if (shiftCF) frontEnd->setCarrierFrequency(nextCF);
+                                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                                    connectionEstablished = true;
+                                    break;
+                                } else {
+                                    if (shiftSF) frontEnd->setSamplingRate(currentSF);
+                                    if (shiftCF) frontEnd->setCarrierFrequency(currentCF);
+                                    std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+                                }
                             }
+                        }
+
+                        if (!connectionEstablished)
+                            goto failed;
+                    }
+                }
+
+                tx_count = 0;
+                acked_count = 0;
+                mean_delay_single = 0.0;
+
+                if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
+                    // In batch mode, Tx directly the gen-ed PPDU, saving quite a lot of PPDU gen time.
+                    if (parameters.useBatchAPI) {
+                        std::vector<const ModularPicoScenesTxFrame *> framePoints;
+                        for (const auto& frame: prebuiltFrames) {
+                            framePoints.emplace_back(&frame);
+                        }
+                        auto repeats = std::ceil(1.0f * cf_repeat / framePoints.size());
+                        nic->getFrontEnd()->transmitFramesInBatch(framePoints, repeats);
+                    } else {
+                        for (uint32_t i = 0; i < cf_repeat; ++i) {
+                            auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+                            auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
+                            nic->transmitPicoScenesFrameSync(txframe);
+                            tx_count++;
+                            total_tx_count++;
+                            printDots(tx_count);
+                            SystemTools::Time::delay_periodic(parameters.tx_delay_us);
                         }
                     }
 
-                    if (!connectionEstablished)
-                        goto failed;
+                    LoggingService_Plugin_info_printf("\nEchoProbe injector %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
                 }
-            }
 
-            tx_count = 0;
-            acked_count = 0;
-            mean_delay_single = 0.0;
-
-            if (workingMode == EchoProbeWorkingMode::Injector || workingMode == EchoProbeWorkingMode::Radar) {
-                // In batch mode, Tx directly the gen-ed PPDU, saving quite a lot of PPDU gen time.
-                if (parameters.useBatchAPI) {
-                    std::vector<const ModularPicoScenesTxFrame *> framePoints;
-                    for (const auto& frame: prebuiltFrames) {
-                        framePoints.emplace_back(&frame);
-                    }
-                    auto repeats = std::ceil(1.0f * cf_repeat / framePoints.size());
-                    nic->getFrontEnd()->transmitFramesInBatch(framePoints, repeats);
-                } else {
+                if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
                     for (uint32_t i = 0; i < cf_repeat; ++i) {
                         auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                        auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
-                        nic->transmitPicoScenesFrameSync(txframe);
-                        tx_count++;
-                        total_tx_count++;
-                        printDots(tx_count);
-                        SystemTools::Time::delay_periodic(parameters.tx_delay_us);
+                        auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
+                        txframe.addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
+                        auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe);
+                        tx_count += retryPerTx;
+                        total_tx_count += retryPerTx;
+                        if (rxframe && ackframe) {
+                            acked_count++;
+                            total_acked_count++;
+                            mean_delay_single += rtDelay / cf_repeat;
+                            total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
+                            if (parameters.outputFileName)
+                                FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
+                            else
+                                FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
+                            LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
+                            printDots(acked_count);
+                            SystemTools::Time::delay_periodic(parameters.tx_delay_us);
+                        } else {
+                            printf("\n");
+                            LoggingService_Plugin_warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...", cf_value);
+                            goto failed;
+                        }
                     }
-                }
 
-                LoggingService_Plugin_info_printf("\nEchoProbe injector %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count);
+                    LoggingService_Plugin_info_printf("\nEchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
+                }
             }
 
-            if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator) {
-                for (uint32_t i = 0; i < cf_repeat; ++i) {
-                    auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
-                    auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::EchoProbeRequestFrameType, sessionId);
-                    txframe.addSegment(std::make_shared<EchoProbeRequestSegment>(makeRequestSegment(sessionId)));
-                    auto [rxframe, ackframe, retryPerTx, rtDelay] = this->transmitAndSyncRxUnified(txframe);
-                    tx_count += retryPerTx;
-                    total_tx_count += retryPerTx;
-                    if (rxframe && ackframe) {
-                        acked_count++;
-                        total_acked_count++;
-                        mean_delay_single += rtDelay / cf_repeat;
-                        total_mean_delay += rtDelay / cf_repeat / cfList.size() / sfList.size();
-                        if (parameters.outputFileName)
-                            FrameDumper::getInstanceWithoutTime(*parameters.outputFileName)->dumpRxFrame(rxframe.value());
-                        else
-                            FrameDumper::getInstance(dumperId)->dumpRxFrame(rxframe.value());
-                        LoggingService_Plugin_detail_print("TaskId {} done!", int(rxframe->PicoScenesHeader->taskId));
-                        printDots(acked_count);
-                        SystemTools::Time::delay_periodic(parameters.tx_delay_us);
-                    } else {
-                        printf("\n");
-                        LoggingService_Plugin_warning_print("EchoProbe Job Warning: max retry times reached during measurement @ {}Hz...", cf_value);
-                        goto failed;
-                    }
-                }
+            FrameDumper::getInstance(dumperId)->finishCurrentSession();
+            continue;
 
-                LoggingService_Plugin_info_printf("\nEchoProbe initiator %s @ cf=%.3fMHz, sf=%.3fMHz, #.tx=%d, #.acked=%d, echo_delay=%.1fms, success_rate=%.1f%%.", nic->getReferredInterfaceName(), (double) cf_value / 1e6, (double) sf_value / 1e6, tx_count, acked_count, mean_delay_single, double(100.0 * acked_count / tx_count));
-            }
+        failed:
+            FrameDumper::getInstance(dumperId)->finishCurrentSession();
+            break;
         }
-
-        FrameDumper::getInstance(dumperId)->finishCurrentSession();
-        continue;
-
-    failed:
-        FrameDumper::getInstance(dumperId)->finishCurrentSession();
-        break;
     }
 
     if (workingMode == EchoProbeWorkingMode::Injector)

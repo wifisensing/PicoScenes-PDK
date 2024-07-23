@@ -30,7 +30,8 @@ void EchoProbePlugin::initialization() {
 
             ("cf", po::value<std::string>(), "MATLAB-style specification for carrier frequency scan range, format begin:step:end, e.g., 5200e6:20e6:5800e6")
             ("sf", po::value<std::string>(), "MATLAB-style specification for baseband sampling frequency multiplier scan range, format begin:step:end, e.g., 11:11:88")
-            ("repeat", po::value<std::string>(), "The injection number per cf/bw combination, 100 as default")
+            ("repeat", po::value<std::string>()->default_value("100"), "The injection number per cf/bw combination, 100 as default")
+            ("round", po::value<std::string>()->default_value("1"), "Rounds of whole SF/CF swiping, 1 as default")
             ("delay", po::value<std::string>(), "The delay between successive injections(unit in us, 5e5 as default)")
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("batch", po::value<uint32_t>()->implicit_value(1024), "Use BatchTx API to precisely time the injecting frames.")
@@ -169,6 +170,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) 
 
     if (vm.count("repeat")) {
         parameters.cf_repeat = boost::lexical_cast<double>(vm["repeat"].as<std::string>());
+    }
+
+    if (vm.count("round")) {
+        parameters.round_repeat = boost::lexical_cast<double>(vm["round"].as<std::string>());
     }
 
     if (vm.count("delay")) {
