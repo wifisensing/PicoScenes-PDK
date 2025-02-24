@@ -38,7 +38,7 @@ void UDPForwarderPlugin::parseAndExecuteCommands(const std::string& commandStrin
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*pluginOptionsDescription()).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    if (vm.contains("forward-to")) {
+    if (vm.count("forward-to")) {
         auto input = vm["forward-to"].as<std::string>();
         std::vector<std::string> segments;
         boost::split(segments, input, boost::is_any_of(":"), boost::token_compress_on);

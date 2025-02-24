@@ -8,7 +8,9 @@
 #include <cstdint>
 #include <optional>
 
-struct PicoScenesFrameUDPForwardingDiagramHeader {
+#include "macros.hxx"
+
+PACKED(struct PicoScenesFrameUDPForwardingDiagramHeader {
     uint32_t magicNumber{0x20150315U};
     uint16_t version{0x1U};
     uint16_t diagramTaskId{0};
@@ -26,6 +28,6 @@ struct PicoScenesFrameUDPForwardingDiagramHeader {
         return {};
     }
 
-} __attribute__ ((__packed__));
+});
 
 #endif //UDPFORWARDINGHEADER_HXX

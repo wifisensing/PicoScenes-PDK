@@ -6,3 +6,6 @@ libPDK-EchoProbe.*
 libPDK-UDPForwarder.*
 cmake-build-*/*
 UDPRemoteLogger
+Debug/
+Release/
+CMakeUserPresets.json

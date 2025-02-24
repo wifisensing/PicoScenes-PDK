@@ -4,6 +4,7 @@
 
 #include <PicoScenes/SystemTools.hxx>
 #include <PicoScenes/MAC80211CSIExtractableNIC.hxx>
+#include <cstdint>
 #include "EchoProbeInitiator.hxx"
 #include "EchoProbeReplySegment.hxx"
 #include "EchoProbeRequestSegment.hxx"
@@ -295,8 +296,14 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
 
     auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
     if (parameters.randomMAC) {
+        #ifdef _WIN32
+        uint16_t randAddr = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(0, UINT16_MAX);
+        sourceAddr[0] = randAddr & UINT8_MAX;
+        sourceAddr[1] = (randAddr >> 8) & UINT8_MAX;
+        #else
         sourceAddr[0] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
         sourceAddr[1] = SystemTools::Math::uniformRandomNumberWithinRange<uint8_t>(0, UINT8_MAX);
+        #endif
     }
     frame.setSourceAddress(sourceAddr.data());
     frame.setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : MagicIntel123456.data());
@@ -438,9 +445,11 @@ std::vector<double> EchoProbeInitiator::enumerateArbitrarySamplingRates() {
 }
 
 std::vector<double> EchoProbeInitiator::enumerateCarrierFrequencies() {
+    #ifndef _WIN32
     if (false && isIntelMVMTypeNIC(nic->getFrontEnd()->getFrontEndType())) {
         return enumerateIntelMVMCarrierFrequencies();
     }
+    #endif
     return enumerateArbitraryCarrierFrequencies();
 }
 
@@ -468,6 +477,7 @@ std::vector<double> EchoProbeInitiator::enumerateArbitraryCarrierFrequencies() {
     return frequencies;
 }
 
+#ifndef _WIN32
 std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
     auto cf_begin = parameters.cf_begin.value_or(nic->getFrontEnd()->getCarrierFrequency());
     auto cf_end = parameters.cf_end.value_or(nic->getFrontEnd()->getCarrierFrequency());
@@ -488,6 +498,7 @@ std::vector<double> EchoProbeInitiator::enumerateIntelMVMCarrierFrequencies() {
 
     return frequencies;
 }
+#endif
 
 static double closest(std::vector<double> const& vec, double value) {
     if (value <= vec[0])

@@ -11,7 +11,7 @@ enum class EchoProbeReplyStrategyV1 : uint8_t {
     ReplyWithFullPayload,
 };
 
-struct EchoProbeRequestV1 {
+PACKED(struct EchoProbeRequestV1 {
     bool deviceProbingStage = false;
     EchoProbeReplyStrategyV1 replyStrategy = EchoProbeReplyStrategyV1::ReplyWithCSI;
     uint16_t sessionId = 0;
@@ -22,7 +22,7 @@ struct EchoProbeRequestV1 {
     int16_t ackGI = -1;         // 0 for LGI, 1 for SGI, negative means use default (maybe LGI).
     int64_t cf = -1;
     int64_t sf = -1;
-} __attribute__ ((__packed__));
+});
 
 
 static auto v1Parser = [](const uint8_t *buffer, uint32_t bufferLength) -> EchoProbeRequest {

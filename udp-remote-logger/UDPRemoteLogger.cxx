@@ -183,15 +183,15 @@ auto main(const int argc, char* argv[]) -> int {
         store(parse_command_line(argc, argv, optionSet), vm);
         notify(vm);
 
-        if (vm.contains("port")) {
+        if (vm.count("port")) {
             rxPort = vm["port"].as<int>();
         }
 
-        if (vm.contains("prefix")) {
+        if (vm.count("prefix")) {
             outputPrefix = vm["prefix"].as<std::string>();
         }
 
-        if (vm.contains("help") || argc <= 1) {
+        if (vm.count("help") || argc <= 1) {
             std::cout << optionSet << std::endl;
             exit(0);
         }

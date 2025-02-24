@@ -9,6 +9,7 @@
 #include <map>
 #include <PicoScenes/PicoScenesCommons.hxx>
 #include <PicoScenes/AbstractPicoScenesFrameSegment.hxx>
+#include "macros.hxx"
 
 enum class EchoProbeReplyStrategy : uint8_t {
     ReplyOnlyHeader = 0,
@@ -17,7 +18,7 @@ enum class EchoProbeReplyStrategy : uint8_t {
     ReplyWithFullPayload,
 };
 
-struct EchoProbeRequest {
+PACKED(struct EchoProbeRequest {
     bool deviceProbingStage = false;
     EchoProbeReplyStrategy replyStrategy = EchoProbeReplyStrategy::ReplyWithCSI;
     uint16_t sessionId = 0;
@@ -30,7 +31,7 @@ struct EchoProbeRequest {
     int64_t sf = -1;
 
     std::vector<uint8_t> toBuffer();
-} __attribute__ ((__packed__));
+});
 
 class EchoProbeRequestSegment : public AbstractPicoScenesFrameSegment {
 public:

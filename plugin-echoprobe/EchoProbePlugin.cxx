@@ -72,7 +72,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) 
     po::store(po::command_line_parser(po::split_unix(commandString)).options(*echoProbeOptions).style(style).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    if (vm.contains("mode")) {
+    if (vm.count("mode")) {
         auto modeString = vm["mode"].as<std::string>();
         boost::algorithm::to_lower(modeString);
         boost::trim(modeString);
@@ -194,7 +194,7 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) 
             parameters.injectorContent = EchoProbeInjectionContent::Full;
     }
 
-    if (vm.contains("batch")) {
+    if (vm.count("batch")) {
         parameters.useBatchAPI = true;
         auto batchLength = vm["batch"].as<uint32_t>();
         parameters.batchLength = batchLength;
