@@ -10,9 +10,15 @@ set(CMAKE_CXX_STANDARD 20)
 if(NOT MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "-g -Wno-attributes")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-attributes")
-else()
-    include_directories("C:/chi/pcs/PicoScenes/Debug")
-    link_directories("C:/chi/pcs/PicoScenes/Debug")
+endif()
+
+if(WIN32)
+    add_compile_definitions(
+        "VC_EXTRALEAN"
+        "WIN32_LEAN_AND_MEAN"
+        "NOMINMAX"
+        "__SSE2__"
+    )
 endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
