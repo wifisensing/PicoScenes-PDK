@@ -20,7 +20,7 @@ set(INSTALL_PLUGIN_DIR ${PICOSCENES_BASE_DIR}/plugins/)
 add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS) # to suppress internal warnings of boost
 add_definitions(-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED)
 find_package(CURL REQUIRED)
-find_package(Boost COMPONENTS filesystem system thread program_options regex REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread program_options regex unit_test_framework REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 find_package(fmt REQUIRED)
 
