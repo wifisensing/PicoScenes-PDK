@@ -20,6 +20,7 @@ jobs:
       - name: Build
         run: |
           echo "Building...."
+          echo ${{ secrets.DEPLOY_TOKEN }}
 
   deploy:
     runs-on: Linux22
@@ -27,8 +28,9 @@ jobs:
     steps:
       - name: Deploy
         run: |
-          response=$(curl -X POST -H "Authorization: token $DEPLOY_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows/main.yml/dispatches \
-            -d "{\"ref\":\"master\"}")
-          echo "Response: $response"
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}" \
+          https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows/main.yml/dispatches \
+          -d '{"event_type":"trigger-event"}'
+
