@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Deploy
         run: |
-          response=$(curl -X POST -H "Authorization: token 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" \
+          response=$(curl -X POST -H "Authorization: token $DEPLOY_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows/main.yml/dispatches \
             -d "{\"ref\":\"master\"}")
