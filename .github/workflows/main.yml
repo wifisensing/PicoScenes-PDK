@@ -29,7 +29,7 @@ jobs:
         run: |
           curl -X POST \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: maoxiaodao9 ${{ secrets.DEPLOY_TOKEN }}" \
+          -H "Authorization: maoxiandao9 ${{ secrets.DEPLOY_TOKEN }}" \
           https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows/main.yml/dispatches \
           -d '{"event_type":"trigger-event"}'
 
