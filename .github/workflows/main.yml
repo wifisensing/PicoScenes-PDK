@@ -1,4 +1,4 @@
-name: plugin Pipeline
+name: Platform Pipeline
 
 on:
   push:
@@ -27,9 +27,8 @@ jobs:
     steps:
       - name: Deploy
         run: |
-          curl -X POST \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization:Bearer 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" \
-          https://api.github.com/repos/wifisensing/PicoScenes-Driver/actions/workflows/main.yml/dispatches \
-          -d "{\"ref\":\"master\"}"
-
+          response=$(curl -X POST -H "Authorization: token ${{ secrets.WORKFLOW_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/wifisensing/PicoScenes-Driver/actions/workflows/main.yml/dispatches \
+            -d "{\"ref\":\"master\"}")
+          echo "Response: $response"
