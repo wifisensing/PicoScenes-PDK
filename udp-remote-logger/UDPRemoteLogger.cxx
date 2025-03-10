@@ -5,6 +5,7 @@
 #include <array>
 #include <map>
 #include <optional>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <PicoScenes/AsyncPipeline.hxx>
@@ -148,7 +149,7 @@ public:
 
 private:
     // BOOST ASIO facilities, used for UDP data receiving
-    boost::asio::io_service io_service;
+    boost::asio::io_context io_service;
     std::shared_ptr<udp::socket> socket;
     udp::endpoint endPoint;
 
