@@ -30,6 +30,6 @@ jobs:
           curl -X POST \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization:  ${{ secrets.PIPELINE_TOKEN }}" \
-          https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows/main.yml/dispatches \
+          https://api.github.com/repos/wifisensing/PicoScenes/actions/workflows \
           -d "{\"ref\":\"master\"}"
 
