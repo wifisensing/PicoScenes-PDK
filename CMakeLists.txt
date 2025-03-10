@@ -25,7 +25,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/..)
 
 if(WIN32)
-    set(PICOSCENES_BASE_DIR "C:/PicoScenes")
+    set(PICOSCENES_BASE_DIR "C:/PicoScenes" CACHE PATH "PicoScenes base directory")
 else()
     set(PICOSCENES_BASE_DIR /usr/local/PicoScenes)
 endif()
