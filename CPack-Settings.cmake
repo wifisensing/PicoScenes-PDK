@@ -10,13 +10,13 @@ set(CPACK_STRIP_FILES true)
 
 if(APPLE)
     set(CPACK_GENERATOR "productbuild")
-	set(CPACK_COMPONENTS_ALL Unspecified) # Must be Unspecified, or else empty .pkg content
+    set(CPACK_COMPONENTS_ALL Unspecified) # Must be Unspecified, or else empty .pkg content
 elseif(WIN32)
     set(CPACK_GENERATOR "ZIP;NSIS")
     set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
     set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-    string(REPLACE "/" "\\\\" CPACK_NSIS_INSTALL_ROOT "${CMAKE_INSTALL_PREFIX}")
-    set(CPACK_PACKAGE_INSTALL_DIRECTORY "")
+    set(CPACK_NSIS_INSTALL_ROOT "C:\\ProgramData\\${CMAKE_INSTALL_PREFIX}")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
     set(CPACK_NSIS_PACKAGE_NAME "PicoScenes Plugins Demo, Echoprobe, Forwarder ${CPACK_PACKAGE_VERSION}")
     set(CPACK_NSIS_DISPLAY_NAME "${CPACK_NSIS_PACKAGE_NAME}")
     set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "${CPACK_PACKAGE_NAME}")
