@@ -129,7 +129,27 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         for (uint32_t i = 0; i < cf_repeat; ++i) {
                             auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                             auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
-                            nic->transmitPicoScenesFrameSync(txframe);
+                            if (parameters.napa.value_or(false)){
+                                ModularPicoScenesTxFrame ndpa_frame;
+                                U8Vector mpduData = {
+                                    0x54, 0x00, 0x64, 0x00, 0x68, 0x34, 0x21, 0xfa,
+                                    0xeb, 0x14, 0x49, 0x5f, 0x08, 0x22, 0xc2, 0x00,
+                                    0xe6, 0x08, 0x00, 0x24, 0x09, 0x88, 0x1d, 0x9c,
+                                    0x46
+                                };
+                                std::vector<U8Vector> ampduContent;
+                                ampduContent.emplace_back(mpduData);
+                                ndpa_frame.arbitraryAMPDUContent = ampduContent;
+                                ndpa_frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
+                                ndpa_frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
+                                std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame{ndpa_frame, txframe};
+
+                                nic->transmitFramesInBatch(ndpa_ndp_frame, 1);
+
+
+                            }else{
+                                nic->transmitPicoScenesFrameSync(txframe);
+                            }
                             tx_count++;
                             total_tx_count++;
                             printDots(tx_count);
@@ -316,6 +336,20 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
         frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         frame.setForceSounding(false);
         frame.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
+    }
+
+    if (parameters.napa.value_or(false)) {
+        auto frame = nic->initializeTxFrame();
+        // frame.setTxParameters(nic->getUserSpecifiedTxParameters()).txParameters.NDPFrame = true;
+        frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+        frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
+        frame.txParameters.NDPFrame = true;
+        auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
+        frame.setSourceAddress(sourceAddr.data());
+        frame.setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : MagicIntel123456.data());
+        frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        frame.txParameters.forceSounding = true;
+        return frame;
     }
 
     return frame;

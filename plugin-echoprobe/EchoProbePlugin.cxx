@@ -36,7 +36,8 @@ void EchoProbePlugin::initialization() {
             ("delayed-start", po::value<uint32_t>(), "A one-time delay before injection(unit in second, 0 as default)")
             ("batch", po::value<uint32_t>()->implicit_value(1024), "Use BatchTx API to precisely time the injecting frames.")
             ("random-payload", po::value<uint32_t>()->implicit_value(100), "Add PayloadSegment with random payload of given length")
-            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]");
+            ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
+            ("ndpa", "Transmit NDPA NDP frame");
 
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options", 120);
     echoOptions->add_options()
@@ -135,6 +136,10 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) 
 
     if (vm.count("5300")) {
         parameters.inj_for_intel5300 = true;
+    }
+
+    if (vm.count("ndpa")) {
+        parameters.napa = true;
     }
 
     if (vm.count("cf")) {

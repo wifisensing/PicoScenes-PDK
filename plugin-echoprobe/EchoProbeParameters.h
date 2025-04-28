@@ -19,6 +19,7 @@ public:
     EchoProbeWorkingMode workingMode = EchoProbeWorkingMode::Standby;
     std::optional<std::array<uint8_t, 6>> inj_target_mac_address;
     std::optional<bool> inj_for_intel5300;
+    std::optional<bool> napa;
     uint32_t tx_delay_us;
     std::optional<uint32_t> delayed_start_seconds;
     bool useBatchAPI;
