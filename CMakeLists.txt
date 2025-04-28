@@ -18,6 +18,7 @@ if(WIN32)
         "WIN32_LEAN_AND_MEAN"
         "NOMINMAX"
         "__SSE2__"
+        "_USE_MATH_DEFINES"
     )
 endif()
 
