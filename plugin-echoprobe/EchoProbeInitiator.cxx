@@ -146,9 +146,7 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                                 ndpa_frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
                                 std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame{ndpa_frame, txframe};
                                 auto splitFrames = txframe.autoSplit(1350);
-                                LoggingService_SDR_debug_printf("splitFrames.size() = %d", splitFrames.size());
                                 nic->transmitFramesInBatch(ndpa_ndp_frame, 1);
-
 
                             }else{
                                 nic->transmitPicoScenesFrameSync(txframe);
