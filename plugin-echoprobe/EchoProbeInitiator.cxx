@@ -132,22 +132,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                             auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
                             
                             if (parameters.napa.value_or(false)){
-                                ModularPicoScenesTxFrame ndpa_frame;
-                                U8Vector mpduData = {
-                                    0x54, 0x00, 0x64, 0x00, 0x00, 0x16, 0xea, 0x12,
-                                    0x34, 0x56, 0x49, 0x5f, 0x08, 0x22, 0xc2, 0x00,
-                                    0xe6, 0x08, 0x00, 0x24, 0x09, 0x88, 0x1d, 0x9c,
-                                    0x46
-                                };
-                                std::vector<U8Vector> ampduContent;
-                                ampduContent.emplace_back(mpduData);
-                                ndpa_frame.arbitraryAMPDUContent = ampduContent;
-                                ndpa_frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
-                                ndpa_frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
+                                ModularPicoScenesTxFrame ndpa_frame = buildNDPAFrame();
                                 std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame{ndpa_frame, txframe};
-                                auto splitFrames = txframe.autoSplit(1350);
+                               
                                 nic->transmitFramesInBatch(ndpa_ndp_frame, 1);
-
                             }else{
                                 nic->transmitPicoScenesFrameSync(txframe);
                             }
@@ -280,6 +268,24 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }
 
+ModularPicoScenesTxFrame EchoProbeInitiator::buildNDPAFrame() const{
+    ModularPicoScenesTxFrame frame;
+    U8Vector mpduData = {
+        0x54, 0x00, 0x64, 0x00, 0x00, 0x16, 0xea, 0x12,
+        0x34, 0x56, 0x49, 0x5f, 0x08, 0x22, 0xc2, 0x00,
+        0xe6, 0x08, 0x00, 0x24, 0x09, 0x88, 0x1d, 0x9c,
+        0x46
+    };
+    std::vector<U8Vector> ampduContent;
+    ampduContent.emplace_back(mpduData);
+    frame.arbitraryAMPDUContent = ampduContent;
+    frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
+    frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
+    frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+
+    return frame;
+}
+
 ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType& frameType, uint16_t sessionId) const {
     auto frame = nic->initializeTxFrame();
 
@@ -352,6 +358,7 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
         frame.setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : MagicIntel123456.data());
         frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
         frame.txParameters.forceSounding = true;
+
         return frame;
     }
 
@@ -379,18 +386,7 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
             auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto sessionId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
             auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
-            ModularPicoScenesTxFrame ndpa_frame;
-            U8Vector mpduData = {
-                0x54, 0x00, 0x64, 0x00, 0x00, 0x16, 0xea, 0x12,
-                0x34, 0x56, 0x49, 0x5f, 0x08, 0x22, 0xc2, 0x00,
-                0xe6, 0x08, 0x00, 0x24, 0x09, 0x88, 0x1d, 0x9c,
-                0x46
-            };
-            std::vector<U8Vector> ampduContent;
-            ampduContent.emplace_back(mpduData);
-            ndpa_frame.arbitraryAMPDUContent = ampduContent;
-            ndpa_frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
-            ndpa_frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
+            ModularPicoScenesTxFrame ndpa_frame = buildNDPAFrame();
             std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame = {ndpa_frame, txframe};
 
             splitFrames.push_back(ndpa_frame);
@@ -407,8 +403,6 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
                     auto samplingRate = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
                     double perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / samplingRate;
 
-                    //LoggingService_SDR_debug_printf("Frame duration: %.2f us",perPacketDurationUs);
-
                     totalDurationUs += perPacketDurationUs;
                 }
                 totalDurationUs += 16.0;
@@ -417,7 +411,7 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
                 double actualIdleTimePerFrameUs = parameters.tx_delay_us - totalDurationUs;
                 if (actualIdleTimePerFrameUs < 0) actualIdleTimePerFrameUs = 0;
 
-                // 清空中间帧的 padding，只对最后一个帧设 padding
+                // 清空中间帧的 padding，只对最后一个帧设 padding(第一个帧是ndpa帧)
                 for (size_t i = 1; i < splitFrames.size() - 1; ++i)
                 splitFrames[i].txParameters.postfixPaddingTime = 0;
 
@@ -450,8 +444,7 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
                 frame.addSegment(segment);
             }
             splitFrames = frame.autoSplit(1350);
-            //LoggingService_SDR_debug_printf("frame size = %d", getFrameDataLength(frame));
-            LoggingService_SDR_debug_printf("Loop %d: splitFrames.size() = %d",frameIndex, splitFrames.size());
+            
             if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !splitFrames.empty()) {
                 auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(splitFrames[0], nic->getFrontEnd()->getTxChannels().size());
                 auto signalLength = signals[0].size();
