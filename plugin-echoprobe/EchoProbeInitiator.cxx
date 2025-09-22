@@ -123,13 +123,22 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
                         for (const auto& frame: prebuiltFrames) {
                             framePoints.emplace_back(&frame);
                         }
+
                         auto repeats = std::ceil(1.0f * cf_repeat / framePoints.size());
                         nic->getFrontEnd()->transmitFramesInBatch(framePoints, repeats);
                     } else {
                         for (uint32_t i = 0; i < cf_repeat; ++i) {
                             auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
                             auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
-                            nic->transmitPicoScenesFrameSync(txframe);
+                            
+                            if (parameters.napa.value_or(false)){
+                                ModularPicoScenesTxFrame ndpa_frame = buildNDPAFrame();
+                                std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame{ndpa_frame, txframe};
+                               
+                                nic->transmitFramesInBatch(ndpa_ndp_frame, 1);
+                            }else{
+                                nic->transmitPicoScenesFrameSync(txframe);
+                            }
                             tx_count++;
                             total_tx_count++;
                             printDots(tx_count);
@@ -180,8 +189,10 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
         }
     }
 
-    if (workingMode == EchoProbeWorkingMode::Injector)
+    if (workingMode == EchoProbeWorkingMode::Injector){
         LoggingService_Plugin_info_print("Job done! #.total_tx=%d.", total_tx_count);
+        LoggingService_Plugin_info_print("count=%d", prebuiltFrames.size());
+    }
     else if (workingMode == EchoProbeWorkingMode::EchoProbeInitiator)
         LoggingService_Plugin_info_print("Job done! #.total_tx=%d #.total_acked=%d, echo_delay=%.1fms, success_rate =%.1f%%.", total_tx_count, total_acked_count, total_mean_delay, 100.0 * total_acked_count / total_tx_count);
 }
@@ -257,6 +268,24 @@ std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoSce
     return std::make_tuple(std::nullopt, std::nullopt, 0, 0);
 }
 
+ModularPicoScenesTxFrame EchoProbeInitiator::buildNDPAFrame() const{
+    ModularPicoScenesTxFrame frame;
+    U8Vector mpduData = {
+        0x54, 0x00, 0x64, 0x00, 0x00, 0x16, 0xea, 0x12,
+        0x34, 0x56, 0x49, 0x5f, 0x08, 0x22, 0xc2, 0x00,
+        0xe6, 0x08, 0x00, 0x24, 0x09, 0x88, 0x1d, 0x9c,
+        0x46
+    };
+    std::vector<U8Vector> ampduContent;
+    ampduContent.emplace_back(mpduData);
+    frame.arbitraryAMPDUContent = ampduContent;
+    frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
+    frame.txParameters.postfixPaddingTime = 16.0e-6;//对于802.11a/g/n/ac/ax, SIFS的典型值为16us; 对于802.11b/g/n, SIFS的典型值为10us; 对于802.11ad, SIFS的典型值为3us
+    frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+
+    return frame;
+}
+
 ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType& frameType, uint16_t sessionId) const {
     auto frame = nic->initializeTxFrame();
 
@@ -318,8 +347,33 @@ ModularPicoScenesTxFrame EchoProbeInitiator::buildBasicFrame(uint16_t taskId, co
         frame.setChannelCoding(ChannelCodingEnum::BCC); // IWL5300 doesn't support LDPC coding.
     }
 
+    if (parameters.napa.value_or(false)) {
+        auto frame = nic->initializeTxFrame();
+        // frame.setTxParameters(nic->getUserSpecifiedTxParameters()).txParameters.NDPFrame = true;
+        frame.setTxParameters(nic->getUserSpecifiedTxParameters());
+        frame.txParameters.frameType = PacketFormatEnum::PacketFormat_VHT;
+        frame.txParameters.NDPFrame = true;
+        auto sourceAddr = nic->getFrontEnd()->getMacAddressPhy();
+        frame.setSourceAddress(sourceAddr.data());
+        frame.setDestinationAddress(parameters.inj_target_mac_address ? parameters.inj_target_mac_address->data() : MagicIntel123456.data());
+        frame.set3rdAddress(nic->getFrontEnd()->getMacAddressPhy().data());
+        frame.txParameters.forceSounding = true;
+
+        return frame;
+    }
+
     return frame;
 }
+
+// size_t getFrameDataLength(const ModularPicoScenesTxFrame& frame) {
+//     size_t length = 0;
+//     for (const auto& segment : frame.segments) {
+//         if (segment) {
+//             length += segment->totalLengthIncludingLeading4ByteLength();
+//         }
+//     }
+//     return length;
+// }
 
 std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const EchoProbePacketFrameType& frameType) const {
     std::vector<ModularPicoScenesTxFrame> frameBatches;
@@ -327,41 +381,87 @@ std::vector<ModularPicoScenesTxFrame> EchoProbeInitiator::buildBatchFrames(const
     auto batchLength = *parameters.cf_repeat > parameters.batchLength ? parameters.batchLength : *parameters.cf_repeat;
     LoggingService_Plugin_info_print("Building {} EchoProbe frames spaced by {} us...", batchLength, parameters.tx_delay_us);
     for (uint32_t frameIndex = 0; frameIndex < batchLength; frameIndex++) {
-        auto frame = nic->initializeTxFrame();
-        frame.setTaskId(SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, 30000))
-                .setPicoScenesFrameType(static_cast<uint8_t>(frameType))
-                .addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()))
-                .setDestinationAddress(MagicIntel123456.data())
-                .setSourceAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
-                .set3rdAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
-                .setTxParameters(nic->getUserSpecifiedTxParameters())
-                .setForceSounding(!parameters.inj_for_intel5300)
-                .setChannelCoding(parameters.inj_for_intel5300 ? ChannelCodingEnum::BCC : frame.txParameters.coding[0]);
-        frame.txParameters.NDPFrame = frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP;
-        if (parameters.randomPayloadLength) {
-            std::vector<uint8_t> vec(*parameters.randomPayloadLength);
-            std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
-            auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
-            frame.addSegment(segment);
+        std::vector<ModularPicoScenesTxFrame> splitFrames;
+        if(parameters.napa.value_or(false)){
+            auto taskId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+            auto sessionId = SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, UINT16_MAX);
+            auto txframe = buildBasicFrame(taskId, EchoProbePacketFrameType::SimpleInjectionFrameType, sessionId);
+            ModularPicoScenesTxFrame ndpa_frame = buildNDPAFrame();
+            std::vector<ModularPicoScenesTxFrame> ndpa_ndp_frame = {ndpa_frame, txframe};
+
+            splitFrames.push_back(ndpa_frame);
+            auto parts = txframe.autoSplit(1350);
+            splitFrames.insert(splitFrames.end(), parts.begin(), parts.end());
+
+            if(isSDR(nic->getFrontEnd()->getFrontEndType()) && !splitFrames.empty()) {
+                double totalDurationUs = 0.0;
+                for (auto& frame : splitFrames) {
+                    // 计算每个帧帧的信号长度和持续时间
+                    auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(
+                        frame, nic->getFrontEnd()->getTxChannels().size());
+                    auto signalLength = signals[0].size();
+                    auto samplingRate = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
+                    double perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / samplingRate;
+
+                    totalDurationUs += perPacketDurationUs;
+                }
+                totalDurationUs += 16.0;
+
+                // 计算补零时间，确保每两个ndpa帧发送间隔为 tx_delay_us
+                double actualIdleTimePerFrameUs = parameters.tx_delay_us - totalDurationUs;
+                if (actualIdleTimePerFrameUs < 0) actualIdleTimePerFrameUs = 0;
+
+                // 清空中间帧的 padding，只对最后一个帧设 padding(第一个帧是ndpa帧)
+                for (size_t i = 1; i < splitFrames.size() - 1; ++i)
+                splitFrames[i].txParameters.postfixPaddingTime = 0;
+
+                // 最后一个帧设置补零
+                splitFrames.back().txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
+
+                // 预构建所有帧的发送信号
+                for (auto& currentFrame : splitFrames) {
+                    nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(
+                        currentFrame, nic->getFrontEnd()->getTxChannels().size());
+                }
+            }
         }
-
-        auto splitFrames = frame.autoSplit(1350);
-
-        if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !splitFrames.empty()) {
-            auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(splitFrames[0], nic->getFrontEnd()->getTxChannels().size());
-            auto signalLength = signals[0].size();
-            auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
-
-            std::for_each(splitFrames.begin(), splitFrames.end(), [&](ModularPicoScenesTxFrame& currentFrame) {
-                auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
-                currentFrame.txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
-                nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(currentFrame, nic->getFrontEnd()->getTxChannels().size());
-            });
+        else{
+            auto frame = nic->initializeTxFrame();
+            frame.setTaskId(SystemTools::Math::uniformRandomNumberWithinRange<uint16_t>(9999, 30000))
+                    .setPicoScenesFrameType(static_cast<uint8_t>(frameType))
+                    .addSegment(std::make_shared<ExtraInfoSegment>(nic->getFrontEnd()->buildExtraInfo()))
+                    .setDestinationAddress(MagicIntel123456.data())
+                    .setSourceAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
+                    .set3rdAddress(parameters.inj_for_intel5300 ? MagicIntel123456.data() : nic->getFrontEnd()->getMacAddressPhy().data())
+                    .setTxParameters(nic->getUserSpecifiedTxParameters())
+                    .setForceSounding(!parameters.inj_for_intel5300)
+                    .setChannelCoding(parameters.inj_for_intel5300 ? ChannelCodingEnum::BCC : frame.txParameters.coding[0]);
+            frame.txParameters.NDPFrame = frameType == EchoProbePacketFrameType::SimpleInjectionFrameType && parameters.injectorContent == EchoProbeInjectionContent::NDP;
+            if (parameters.randomPayloadLength) {
+                std::vector<uint8_t> vec(*parameters.randomPayloadLength);
+                std::generate(vec.begin(), vec.end(), []() { return rand() % 256; });
+                auto segment = std::make_shared<PayloadSegment>("RandomPayload", vec, PayloadDataType::RawData);
+                frame.addSegment(segment);
+            }
+            splitFrames = frame.autoSplit(1350);
+            
+            if (isSDR(nic->getFrontEnd()->getFrontEndType()) && !splitFrames.empty()) {
+                auto signals = nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->generateMultiChannelSignals(splitFrames[0], nic->getFrontEnd()->getTxChannels().size());
+                auto signalLength = signals[0].size();
+                auto perPacketDurationUs = static_cast<double>(signalLength) * 1e6 / nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->getTxSamplingRate();
+    
+                std::for_each(splitFrames.begin(), splitFrames.end(), [&](ModularPicoScenesTxFrame& currentFrame) {
+                    auto actualIdleTimePerFrameUs = parameters.tx_delay_us - perPacketDurationUs;
+                    if(actualIdleTimePerFrameUs < 0)   actualIdleTimePerFrameUs = 0;
+                    currentFrame.txParameters.postfixPaddingTime = actualIdleTimePerFrameUs / 1e6;
+                    nic->getTypedFrontEnd<AbstractSDRFrontEnd>()->prebuildSignals(currentFrame, nic->getFrontEnd()->getTxChannels().size());
+                });
+            }
         }
 
         std::copy(splitFrames.cbegin(), splitFrames.cend(), std::back_inserter(frameBatches));
     }
-
+    LoggingService_SDR_debug_printf("batchLength = %d, Total frameBatches size = %d", batchLength, frameBatches.size());
     return frameBatches;
 }
 
@@ -389,7 +489,6 @@ EchoProbeRequest EchoProbeInitiator::makeRequestSegment(uint16_t sessionId, std:
         echoProbeRequest.ackCBW = parameters.ack_cbw ? (*parameters.ack_cbw == 40) : -1;
         echoProbeRequest.ackGI = parameters.ack_guardInterval.value_or(-1);
     }
-
     return echoProbeRequest;
 }
 

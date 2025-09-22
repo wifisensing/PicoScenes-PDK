@@ -40,6 +40,8 @@ private:
 
     std::tuple<std::optional<ModularPicoScenesRxFrame>, std::optional<ModularPicoScenesRxFrame>, int, double> transmitAndSyncRxUnified(ModularPicoScenesTxFrame&frameBuilder, std::optional<uint32_t> maxRetry = std::nullopt);
 
+    [[nodiscard]] ModularPicoScenesTxFrame buildNDPAFrame() const;
+    
     [[nodiscard]] ModularPicoScenesTxFrame buildBasicFrame(uint16_t taskId, const EchoProbePacketFrameType &frameType, uint16_t sessionId) const;
 
     [[nodiscard]] std::vector<ModularPicoScenesTxFrame> buildBatchFrames(const EchoProbePacketFrameType &frameType) const;
