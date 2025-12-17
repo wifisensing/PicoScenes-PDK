@@ -25,9 +25,63 @@ void EchoProbeInitiator::unifiedEchoProbeWork() {
     auto cf_repeat = parameters.cf_repeat.value_or(100);
     auto tx_delay_us = parameters.tx_delay_us;
     auto tx_delayed_start = parameters.delayed_start_seconds.value_or(0);
+    auto interval_ms = parameters.logger_cf_interval_ms;
 
     auto sfList = enumerateSamplingRates();
     auto cfList = enumerateCarrierFrequencies();
+
+    if (workingMode == EchoProbeWorkingMode::Logger && interval_ms != 0) {
+        std::vector<double> wifiChannelsHz;
+
+        if (!parameters.custom_channels.empty()) {
+            LoggingService_Plugin_info_printf("Using custom channel list with %zu frequencies.", parameters.custom_channels.size());
+            wifiChannelsHz = parameters.custom_channels;
+        }else {
+            LoggingService_Plugin_info_print("No custom channel list provided. Using default 2.4G + 5G full scan.");
+
+            // 2.4 GHz channels 1..13
+            for (int ch = 1; ch <= 13; ++ch) {
+                wifiChannelsHz.push_back((2412.0 + 5.0 * (ch - 1)) * 1e6);
+            }
+
+            // 5 GHz common channels
+            const int chans5MHz[] = {
+                5180, 5200, 5220, 5240,
+                5260, 5280, 5300, 5320,
+                5500, 5520, 5540, 5560, 5580, 5600, 5620, 5640, 5660, 5680, 5700, 5720,
+                5745, 5765, 5785, 5805, 5825
+            };
+            for (auto fMHz : chans5MHz) wifiChannelsHz.push_back(double(fMHz) * 1e6);
+        }
+
+        // 安全检查：防止 wifiChannelsHz 为空导致除以零或越界
+        if (wifiChannelsHz.empty()) {
+            LoggingService_Plugin_error_print("Channel list is empty! Aborting logger loop.");
+            return;
+        }
+
+        // index-based cycling
+        size_t freqIdx = 0;
+        while (true) {
+            double nextCF = wifiChannelsHz[freqIdx];
+            // Only set if different
+            if (frontEnd->getCarrierFrequency() != nextCF) {
+                LoggingService_Plugin_info_printf("Logger shifting %s's carrier frequency to %.3f MHz ...",nic->getReferredInterfaceName(), nextCF / 1e6);
+                frontEnd->setCarrierFrequency(nextCF);
+                std::this_thread::sleep_for(std::chrono::milliseconds(*parameters.delay_after_cf_change_ms));
+            }
+            if (interval_ms < 0) {
+                LoggingService_Plugin_warning_print("logger_cf_interval_seconds < 0");
+                interval_ms = 0;
+            }
+            if (interval_ms > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(*interval_ms));
+            }
+
+            freqIdx = (freqIdx + 1) % wifiChannelsHz.size();
+        }
+    }
+
 
     // save the prebuilt frames
     std::vector<ModularPicoScenesTxFrame> prebuiltFrames;

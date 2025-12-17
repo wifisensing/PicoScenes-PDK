@@ -52,6 +52,8 @@ public:
     std::optional<uint32_t> timeout_ms;
     std::optional<uint32_t> delay_after_cf_change_ms;
     std::optional<uint32_t> numOfPacketsPerDotDisplay;
+    std::optional<uint32_t> logger_cf_interval_ms; // seconds between successive CF changes in logger mode
+    std::vector<double> custom_channels;
 };
 
 

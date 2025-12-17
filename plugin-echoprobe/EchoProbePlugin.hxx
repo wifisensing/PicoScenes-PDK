@@ -39,6 +39,7 @@ private:
 
     std::shared_ptr<po::options_description> echoProbeOptions;
     std::shared_ptr<po::options_description> injectionOptions;
+    std::shared_ptr<po::options_description> loggingOptions;
     std::shared_ptr<po::options_description> echoOptions;
 };
 

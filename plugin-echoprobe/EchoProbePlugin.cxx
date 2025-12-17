@@ -39,6 +39,11 @@ void EchoProbePlugin::initialization() {
             ("injector-content", po::value<std::string>(), "Content type for injector mode [full, header, ndp]")
             ("ndpa", "Transmit NDPA NDP frame");
 
+    loggingOptions = std::make_shared<po::options_description>("EchoProbe Initiator Options", 120);
+    loggingOptions->add_options()
+            ("cf-dwell", po::value<uint32_t>()->default_value(0), "The interval for converting CF in logger mode (in milliseconds, default value is 0).")
+            ("cflist-file", po::value<std::string>(), "Path to custom channel list file (one freq in MHz per line)");
+
     echoOptions = std::make_shared<po::options_description>("Echo Responder Options", 120);
     echoOptions->add_options()
             ("ack-type", po::value<std::string>(), "EchoProbe reply strategy [full, csi, extra, header], full as default")
@@ -52,7 +57,7 @@ void EchoProbePlugin::initialization() {
             ("mode", po::value<std::string>(), "Working mode [injector, logger, initiator, responder, radar]")
             ("random-mac", po::value<bool>()->default_value(false), "Random MAC address for Injector or Initiator")
             ("output", po::value<std::string>(), "Output CSI file name w/o .csi extension");
-    echoProbeOptions->add(*injectionOptions).add(*echoOptions);
+    echoProbeOptions->add(*injectionOptions).add(*echoOptions).add(*loggingOptions);
 }
 
 std::shared_ptr<po::options_description> EchoProbePlugin::pluginOptionsDescription() {
@@ -244,12 +249,46 @@ void EchoProbePlugin::parseAndExecuteCommands(const std::string& commandString) 
         parameters.ack_guardInterval = giValue;
     }
 
+    if (vm.count("cf-dwell")) {
+        auto log_cf_intv = vm["cf-dwell"].as<uint32_t>();
+        parameters.logger_cf_interval_ms = log_cf_intv;
+    }
+
+    if (vm.count("cflist-file")) {
+        auto filePath = vm["cflist-file"].as<std::string>();
+        std::ifstream configFile(filePath);
+
+        if (configFile.is_open()) {
+            std::string line;
+            parameters.custom_channels.clear(); // 清除可能存在的旧数据
+
+            while (std::getline(configFile, line)) {
+                boost::trim(line); // 去除首尾空格
+
+                // 跳过空行和以 # 开头的注释
+                if (line.empty() || line[0] == '#') continue;
+
+                try {
+                    double freqHz = std::stod(line);
+                    if (freqHz < 1e4)   {freqHz *= 1e6;}
+                    parameters.custom_channels.push_back(freqHz);
+                } catch (...) {
+                    LoggingService_Plugin_warning_print("Skipping invalid line in cf-list: " + line + "\n");
+                }
+            }
+            LoggingService_Plugin_info_printf("Loaded %zu channels from %s\n", parameters.custom_channels.size(), filePath.c_str());
+        } else {
+            LoggingService_Plugin_warning_print("Failed to open cf-list file: " + filePath + "\n");
+        }
+    }
+
     if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeInitiator || parameters.workingMode == EchoProbeWorkingMode::Injector) {
         initiator->startJob(parameters);
         nic->stopRxService();
         nic->stopTxService();
     } else if (parameters.workingMode == EchoProbeWorkingMode::EchoProbeResponder || parameters.workingMode == EchoProbeWorkingMode::Logger) {
         responder->startJob(parameters);
+        initiator->startJob(parameters);
     } else if (parameters.workingMode == EchoProbeWorkingMode::Radar) {
         responder->startJob(parameters);
         initiator->startJob(parameters);
